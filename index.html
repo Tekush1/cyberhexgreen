@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Team Evil - Elite Cybersecurity and Hacking Community" />
+    
+    <!-- Preload critical assets -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" as="style" />
+    <link rel="preload" href="/src/index.css" as="style" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Meta tags for social sharing -->
+    <meta property="og:title" content="CyberHx" />
+    <meta property="og:description" content="Elite Cybersecurity and Hacking Community" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- Load fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    
+    <title>CyberHx</title>
+  </head>
+  <body class="bg-black">
+    <div id="root"></div>
+    <!-- Loading Animation -->
+    <div id="loader" aria-label="Loading" role="progressbar">
+      <style>
+        #loader {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: #000000;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 9999;
+          opacity: 1;
+          transition: opacity 0.5s ease-out;
+        }
+
+        .loader-content {
+          text-align: center;
+        }
+
+        .logo-text {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 2rem;
+          font-weight: bold;
+          color: #00ff41;
+          margin-bottom: 1rem;
+          opacity: 0;
+          transform: translateY(20px);
+          animation: fadeInUp 0.5s ease forwards;
+          text-shadow: 
+            0 0 5px #00ff41,
+            0 0 10px #00ff41,
+            0 0 20px #00ff41;
+        }
+
+        .logo-animation {
+          width: 80px;
+          height: 80px;
+          position: relative;
+          margin: 0 auto 1rem;
+        }
+
+        .logo-circle {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border: 4px solid #00ff41;
+          border-radius: 50%;
+          animation: pulseAndRotate 2s ease-in-out infinite;
+        }
+
+        .logo-circle:nth-child(2) {
+          animation-delay: -0.5s;
+        }
+
+        .logo-circle:nth-child(3) {
+          animation-delay: -1s;
+        }
+
+        .progress-bar {
+          width: 200px;
+          height: 4px;
+          background: rgba(0, 255, 65, 0.2);
+          border-radius: 2px;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .progress-fill {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          background: linear-gradient(90deg, #00ff41, #0ff);
+          animation: fillProgress 2s ease infinite;
+        }
+
+        @keyframes fadeInUp {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fillProgress {
+          0% {
+            width: 0%;
+          }
+          50% {
+            width: 100%;
+          }
+          100% {
+            width: 0%;
+          }
+        }
+
+        .loaded #loader {
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        @media (max-width: 640px) {
+          .logo-text {
+            font-size: 1.5rem;
+          }
+          .logo-animation {
+            width: 60px;
+            height: 60px;
+          }
+          .progress-bar {
+            width: 150px;
+          }
+        }
+      </style>
+      <div class="loader-content">
+        <div class="logo-animation">
+          <div class="logo-circle"></div>
+          <div class="logo-circle"></div>
+          <div class="logo-circle"></div>
+        </div>
+        <div class="logo-text">CyberHx</div>
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initLoader);
+      } else {
+        initLoader();
+      }
+
+      function initLoader() {
+        const loader = document.getElementById('loader');
+        if (!loader) return;
+
+        window.addEventListener('load', () => {
+          requestAnimationFrame(() => {
+            document.body.classList.add('loaded');
+            setTimeout(() => {
+              loader.style.display = 'none';
+            }, 500);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

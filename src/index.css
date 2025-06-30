@@ -1,0 +1,281 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #00ff41;
+  --secondary: #0ff;
+  --dark-300: #000000;
+  --dark-200: #141414;
+  --dark-100: #1a1a1a;
+  --glitch-duration: 3s;
+}
+
+/* Base styles */
+body {
+  background-color: var(--dark-300);
+  color: #ffffff;
+  font-family: 'Share Tech Mono', monospace;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+/* Mr. Robot inspired glitch effect */
+.glitch {
+  position: relative;
+  animation: glitch var(--glitch-duration) infinite;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  clip: rect(0, 0, 0, 0);
+}
+
+.glitch::before {
+  left: 2px;
+  text-shadow: -2px 0 #ff0000;
+  animation: glitch-anim-1 var(--glitch-duration) infinite linear alternate-reverse;
+}
+
+.glitch::after {
+  left: -2px;
+  text-shadow: 2px 0 #00ff00;
+  animation: glitch-anim-2 var(--glitch-duration) infinite linear alternate-reverse;
+}
+
+/* Terminal text effect */
+.terminal-text {
+  border-right: 2px solid var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+}
+
+/* Matrix code rain effect */
+.matrix-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.1;
+}
+
+.matrix-rain {
+  color: var(--primary);
+  font-size: 1.2em;
+  text-shadow: 0 0 5px var(--primary);
+  animation: matrix-rain 20s linear infinite;
+}
+
+/* Hacker aesthetic */
+.hacker-text {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--primary);
+  text-shadow: 0 0 5px var(--primary);
+  letter-spacing: 1px;
+}
+
+.cyber-window {
+  border: 1px solid var(--primary);
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 10px var(--primary);
+  padding: 20px;
+  position: relative;
+}
+
+.cyber-window::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: scan-line 2s linear infinite;
+}
+
+/* Gradient Text Effect */
+.gradient-text {
+  background: linear-gradient(45deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  position: relative;
+  display: inline-block;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+/* Glass Effect */
+.glass-effect {
+  background: rgba(26, 26, 26, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 255, 65, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Mr. Robot Glitch Animations */
+@keyframes glitch-anim-1 {
+  0% { clip: rect(2px, 9999px, 56px, 0); }
+  20% { clip: rect(25px, 9999px, 28px, 0); }
+  40% { clip: rect(13px, 9999px, 42px, 0); }
+  60% { clip: rect(36px, 9999px, 14px, 0); }
+  80% { clip: rect(7px, 9999px, 49px, 0); }
+  100% { clip: rect(20px, 9999px, 35px, 0); }
+}
+
+@keyframes glitch-anim-2 {
+  0% { clip: rect(42px, 9999px, 21px, 0); }
+  20% { clip: rect(17px, 9999px, 35px, 0); }
+  40% { clip: rect(31px, 9999px, 7px, 0); }
+  60% { clip: rect(5px, 9999px, 56px, 0); }
+  80% { clip: rect(28px, 9999px, 14px, 0); }
+  100% { clip: rect(49px, 9999px, 42px, 0); }
+}
+
+/* Terminal Scan Line */
+@keyframes scan-line {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Matrix Code Rain */
+@keyframes matrix-rain {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* Terminal Typing Effect */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--primary); }
+}
+
+/* Digital Distortion */
+@keyframes digital-distort {
+  0% { transform: skew(0deg); }
+  20% { transform: skew(-2deg); }
+  40% { transform: skew(2deg); }
+  60% { transform: skew(-1deg); }
+  80% { transform: skew(1deg); }
+  100% { transform: skew(0deg); }
+}
+
+/* CRT Screen Effect */
+.crt-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.crt-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  animation: crt-scan 8s linear infinite;
+}
+
+@keyframes crt-scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .glitch {
+    font-size: 0.8em;
+  }
+  
+  .matrix-rain {
+    font-size: 1em;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Kali Terminal Styles */
+.kali-terminal {
+  font-family: 'Share Tech Mono', monospace;
+  background-color: #1F1F1F;
+  color: #00FF00;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.kali-terminal-prompt {
+  color: #FF0000;
+}
+
+.kali-terminal-output {
+  color: #00FF00;
+}
+
+.kali-terminal-error {
+  color: #FF0000;
+}
+
+.kali-terminal-warning {
+  color: #FFFF00;
+}
+
+.kali-terminal-success {
+  color: #00FF00;
+}
+
+.kali-terminal-input {
+  caret-color: #00FF00;
+}
+
+.kali-terminal-suggestion {
+  color: #0087D7;
+}
+
+.kali-terminal-header {
+  background: linear-gradient(to right, #1F1F1F, #2D2D2D);
+  border-bottom: 1px solid #333;
+}
+
+.kali-terminal-command {
+  color: #FF0000;
+}
+
+.kali-terminal-path {
+  color: #0087D7;
+}
+
+.kali-terminal-user {
+  color: #00FF00;
+}
