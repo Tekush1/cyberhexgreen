@@ -30,28 +30,7 @@ export const Mentors = () => {
         email: "kushdwivedikd@gmail.com"
       }
     },
-   
-    {
-  name: "Pankaj Kumar",
-  role: "CEO & Founder ",
-  expertise: ["Cybersecurity", "Business Growth", "Talent Leadership"],
-  experience: "5+ years",
-  availability: "Full-Time",
-  rating: 5.0,
-  reviews: 215,
-  image: "https://i.ibb.co/yGCWX76/Whats-App-Image-2025-06-08-at-04-10-59-002b80d8.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-  bio: "tech entrepreneur and cybersecurity enthusiast leading Macky's Tech ",
-  achievements: [
-    "Leading Macky's tech",
-    "Certified in CyberSecurity",
-    "Strategic Talent Development"
-  ],
-  socials: {
-    linkedin: "https://www.linkedin.com/in/pankaj-kumar-647080266",
-    email: "kumarpankaj85894@gmail.com",
-    website: "https://mackystech.vercel.app/index.html"
-  }
-}
+
   ];
 
   const expertiseCategories = [

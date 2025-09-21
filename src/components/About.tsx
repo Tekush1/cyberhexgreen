@@ -693,7 +693,7 @@ export const About = () => {
     {
       name: "Kushagra Dwivedi",
       role: "Founder of cyberhx",
-      image: "https://media.licdn.com/dms/image/v2/D4E03AQG5-iwtXiZvTg/profile-displayphoto-shrink_400_400/B4EZRxNdDQHgAg-/0/1737066140640?e=1756944000&v=beta&t=LqTPIAzhTg2JPXy1QcUJ8s-N3_brZaHEXEiEC-vz2vk",
+      image: "https://i.ibb.co/dw8SKDgt/kush1.jpg" ,
       achievements: [
         "Ethical hacker government",
         "SIH Finalist 2024",
@@ -703,21 +703,6 @@ export const About = () => {
         "Network Security",
         "Penetration Testing",
         "Ethical Hacking"
-      ]
-    },
-    {
-      name: "Pankaj Kumar",
-      role: "CEO & Founder of macky's tech",
-      image: "https://i.ibb.co/yGCWX76/Whats-App-Image-2025-06-08-at-04-10-59-002b80d8.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      achievements: [
-        "Leading Macky's Tech",
-        "Certified in CyberSecurity",
-        "Strategic Talent Development"
-      ],
-      expertise: [
-        "Cybersecurity",
-        "Business Growth",
-        "Talent Leadership"
       ]
     }
   ];

@@ -63,15 +63,15 @@ export const Footer = () => {
             <ul className="space-y-2 text-sm">
               <li className="flex items-center text-gray-400">
                 <Mail className="w-4 h-4 text-primary mr-2" />
-                mackystech@gmail.com
+                cyberhexofficial@gmail.com
               </li>
               <li className="flex items-center text-gray-400">
                 <Phone className="w-4 h-4 text-primary mr-2" />
-                +91 8235910315
+                +91 9984753791
               </li>
               <li className="flex items-center text-gray-400">
                 <MapPin className="w-4 h-4 text-primary mr-2" />
-                Macky's tech, Bhopal 
+                CyberHx, Bhopal 
               </li>
             </ul>
           </div>
@@ -81,7 +81,7 @@ export const Footer = () => {
             <h4 className="text-white font-semibold mb-4">Connect</h4>
             <div className="flex space-x-4">
               <a 
-                href="https://github.com/team-evil"
+                href="https://github.com/Tekush1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-primary transition-colors"
@@ -90,7 +90,7 @@ export const Footer = () => {
                 <Github className="w-5 h-5" />
               </a>
               <a 
-                href="https://linkedin.com/company/team-evil"
+                href="https://www.linkedin.com/search/results/all/?fetchDeterministicClustersOnly=true&heroEntityKey=urn%3Ali%3Aorganization%3A107736778&keywords=cyberhx&origin=RICH_QUERY_TYPEAHEAD_HISTORY&position=0&searchId=9949fed7-f524-450d-a4cb-6fc155f6792e&sid=9e5&spellCorrectionEnabled=true"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-primary transition-colors"
