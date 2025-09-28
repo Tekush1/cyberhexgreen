@@ -28,14 +28,14 @@ export const HallOfFame = () => {
       }
     },
     {
-      name: "Pragati Yadav",
-      role: "Volunteers",
-      expertise: ["Community Management", "Technical Support", "Event Planning"],
-      email: "pragatiyadav9039@gmail.com",
-      image: "https://media.licdn.com/dms/image/v2/D5603AQG9nMfjIl9GSg/profile-displayphoto-shrink_200_200/B56ZOaIY1HHYAc-/0/1733457712693?e=1751500800&v=beta&t=8CWnHj83KU3IXH1E_T6yLeJxfcU0fPOIXdode9ZZPQ8",
+      name: "Satyam Sharma",
+      role: "CFO-Cheif Finance Officer",
+      expertise: ["Financial Planning & Analysis","Budgeting & Forecasting","Risk Management","Corporate Finance","Strategic Investments"],
+      email: "satyam.cfo@cyberhx.com",
+      image: "https://i.ibb.co/zWM2CbK1/Whats-App-Image-2025-09-28-at-7-23-39-PM-removebg-preview.png",
       socials: {
-        linkedin: "https://www.linkedin.com/in/pragati-yadav-8b4196275",
-        instagram: "https://www.instagram.com/pragatiii.i_"
+        linkedin: "https://www.linkedin.com/in/satyam-sharma-32a507326?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+        instagram: "https://www.instagram.com/satyams0s?igsh=MWwwejNnZTNuMXFleQ=="
       }
     }
   
