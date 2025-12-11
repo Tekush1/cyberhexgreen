@@ -37,7 +37,24 @@ export const HallOfFame = () => {
         linkedin: "https://www.linkedin.com/in/satyam-sharma-32a507326?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
         instagram: "https://www.instagram.com/satyams0s?igsh=MWwwejNnZTNuMXFleQ=="
       }
-    }
+    },
+    {
+  name: "Pragati Yadav",
+  role: "Volunteer",
+  expertise: [
+    "Community Management",
+    "Technical Support",
+    "Event Planning"
+  ],
+  phone: "9691399051",
+  email: "pragatiyadav9039@gmail.com",
+  image: "https://i.ibb.co/Q3Q0Pd33/Screenshot-from-2025-12-11-22-22-11.png",
+  socials: {
+    linkedin: "https://www.linkedin.com/in/pragati-yadav-8b4196275/",
+    instagram: "https://www.instagram.com/pragatiii.i_"
+  }
+}
+
   
   ];
 

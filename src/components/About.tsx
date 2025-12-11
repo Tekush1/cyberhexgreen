@@ -806,7 +806,7 @@ export const About = () => {
                   whileTap={{ scale:  0.9 }}
                 >
                   {expandedValue === index ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  <span className="text-sm">{expandedValue === index ? 'Show Less' : 'Learn More'}</span>
+                  <span className="text-sm">{expandedValue === index ? 'Show Less' : 'REPORT SCAM'}</span>
                 </motion.button>
               </motion.div>
 
