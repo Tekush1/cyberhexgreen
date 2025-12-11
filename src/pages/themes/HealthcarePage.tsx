@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Shield, Brain, Lock, ArrowRight, Database, Code, Star, Users, Target } from 'lucide-react';
+import { Shield, Brain, Lock, ArrowRight, Code, Star, Users, Target } from 'lucide-react';
 
 export const HealthcarePage = () => {
   const problemStatements = [
@@ -143,7 +143,7 @@ export const HealthcarePage = () => {
                 className="glass-effect rounded-xl p-6 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div 
+                  <div
                     className="p-3 rounded-lg"
                     style={{ backgroundColor: `${problem.color}20` }}
                   >

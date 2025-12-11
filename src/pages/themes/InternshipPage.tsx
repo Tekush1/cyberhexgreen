@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Car, Book, ShoppingCart, MessageCircle, School, Wallet, CreditCard, ArrowRight, Code, Users, Database, Star, Target } from 'lucide-react';
+import { Car, Book, ShoppingCart, MessageCircle, School, Wallet, CreditCard, ArrowRight, Code, Users, Star, Target } from 'lucide-react';
 
 export const InternshipPage = () => {
   const projects = [
@@ -181,7 +181,7 @@ export const InternshipPage = () => {
               className="glass-effect rounded-xl p-6 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
             >
               <div className="flex items-start gap-4 mb-6">
-                <div 
+                <div
                   className="p-3 rounded-lg"
                   style={{ backgroundColor: `${project.color}20` }}
                 >

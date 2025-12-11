@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Cpu, Shield, Code, Brain, ArrowRight, Zap, Lock, Radio, Network } from 'lucide-react';
+import { Shield, Code, Brain, ArrowRight, Zap, Lock, Radio, Network } from 'lucide-react';
 
 export const IoTThemePage = () => {
   const problemStatements = [
@@ -103,7 +103,7 @@ export const IoTThemePage = () => {
               className="glass-effect rounded-xl p-6 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
             >
               <div className="flex items-start gap-4 mb-6">
-                <div 
+                <div
                   className="p-3 rounded-lg"
                   style={{ backgroundColor: `${problem.color}20` }}
                 >

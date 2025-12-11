@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, Brain, Mic,Book,School,ShoppingCart,Wallet,CreditCard, Users, Star, ArrowRight,Car, Globe, Code } from 'lucide-react';
+import { MessageCircle, Brain, Book, School, ShoppingCart, Wallet, CreditCard, Users, Star, ArrowRight, Car, Code } from 'lucide-react';
 
 export const MagicTalkPage = () => {
   const problemStatements = [
-   
-     {
+
+    {
       id: 1,
       title: "Safe Ride Platform",
       description: "Build a comprehensive ride-hailing solution with user and admin applications.",
@@ -142,7 +142,7 @@ export const MagicTalkPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl font-bold gradient-text mb-4"
           >
-          Internship
+            Internship
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}

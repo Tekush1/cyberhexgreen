@@ -1,20 +1,31 @@
 import React, { useState } from 'react';
-import { Github, Linkedin, Mail, Search, Filter, BookOpen, Code, Brain, Star, Calendar, Instagram } from 'lucide-react';
+import { Github, Linkedin, Mail, Search, Filter, Instagram } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Modal } from './shared/Modal';
-import { Phone } from 'lucide-react';
-import { BookSessionForm } from './forms/BookSessionForm';
 import { BecomeMentorForm } from './forms/BecomeMentorForm';
-import { useNavigate } from 'react-router-dom';
+
+interface TeamMember {
+  name: string;
+  role: string;
+  expertise: string[];
+  email: string;
+  image: string;
+  phone?: string;
+  contact?: string;
+  socials: {
+    github?: string;
+    linkedin?: string;
+    instagram?: string;
+  };
+}
 
 export const HallOfFame = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
-  const navigate = useNavigate();
 
-  const team = [
-    
+  const team: TeamMember[] = [
+
     {
       name: "Sejal Tiwari",
       role: "Volunteers",
@@ -30,7 +41,7 @@ export const HallOfFame = () => {
     {
       name: "Satyam Sharma",
       role: "CFO-Cheif Finance Officer",
-      expertise: ["Financial Planning & Analysis","Budgeting & Forecasting","Risk Management","Corporate Finance","Strategic Investments"],
+      expertise: ["Financial Planning & Analysis", "Budgeting & Forecasting", "Risk Management", "Corporate Finance", "Strategic Investments"],
       email: "satyam.cfo@cyberhx.com",
       image: "https://i.ibb.co/zWM2CbK1/Whats-App-Image-2025-09-28-at-7-23-39-PM-removebg-preview.png",
       socials: {
@@ -39,23 +50,23 @@ export const HallOfFame = () => {
       }
     },
     {
-  name: "Pragati Yadav",
-  role: "Volunteer",
-  expertise: [
-    "Community Management",
-    "Technical Support",
-    "Event Planning"
-  ],
-  phone: "9691399051",
-  email: "pragatiyadav9039@gmail.com",
-  image: "https://i.ibb.co/Q3Q0Pd33/Screenshot-from-2025-12-11-22-22-11.png",
-  socials: {
-    linkedin: "https://www.linkedin.com/in/pragati-yadav-8b4196275/",
-    instagram: "https://www.instagram.com/pragatiii.i_"
-  }
-}
+      name: "Pragati Yadav",
+      role: "Volunteer",
+      expertise: [
+        "Community Management",
+        "Technical Support",
+        "Event Planning"
+      ],
+      phone: "9691399051",
+      email: "pragatiyadav9039@gmail.com",
+      image: "https://i.ibb.co/Q3Q0Pd33/Screenshot-from-2025-12-11-22-22-11.png",
+      socials: {
+        linkedin: "https://www.linkedin.com/in/pragati-yadav-8b4196275/",
+        instagram: "https://www.instagram.com/pragatiii.i_"
+      }
+    }
 
-  
+
   ];
 
   const categories = [
@@ -64,12 +75,12 @@ export const HallOfFame = () => {
   ];
 
   const filteredTeam = team.filter(member => {
-    const matchesCategory = selectedCategory === 'all' || 
-                          
-                          (selectedCategory === 'volunteers' && member.role === 'Volunteer');
+    const matchesCategory = selectedCategory === 'all' ||
+
+      (selectedCategory === 'volunteers' && member.role === 'Volunteer');
     const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         member.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         member.expertise.some(exp => exp.toLowerCase().includes(searchQuery.toLowerCase()));
+      member.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.expertise.some(exp => exp.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -77,14 +88,14 @@ export const HallOfFame = () => {
     <section className="py-24 bg-dark-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-5xl font-bold gradient-text mb-6"
           >
             Our Team
           </motion.h2>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -106,17 +117,16 @@ export const HallOfFame = () => {
                 className="w-full bg-dark-100 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary"
               />
             </div>
-            
+
             <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
-                    selectedCategory === category.id
+                  className={`flex items-center px-4 py-2 rounded-lg whitespace-nowrap transition-all ${selectedCategory === category.id
                       ? 'bg-primary text-dark-300'
                       : 'bg-dark-100 text-gray-300 hover:bg-dark-200'
-                  }`}
+                    }`}
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   <span>{category.label}</span>
@@ -164,10 +174,12 @@ export const HallOfFame = () => {
 
               <div className="px-6 pb-4">
                 <div className="space-y-2">
-                  <div className="flex items-center text-gray-400">
-                    
-                    <span>{member.contact}</span>
-                  </div>
+                  {(member.contact || member.phone) && (
+                    <div className="flex items-center text-gray-400">
+                      {/* Could add a phone icon here if desired */}
+                      <span>{member.contact || member.phone}</span>
+                    </div>
+                  )}
                   <div className="flex items-center text-gray-400">
                     <Mail className="w-4 h-4 text-primary mr-2" />
                     <span>{member.email}</span>
@@ -177,30 +189,30 @@ export const HallOfFame = () => {
 
               <div className="px-6 py-4 bg-dark-100 flex items-center justify-center space-x-6">
                 {member.socials.github && (
-                  <a 
+                  <a
                     href={member.socials.github}
                     target="_blank"
-                    rel="noopener noreferrer" 
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-primary transition-colors"
                   >
                     <Github className="w-5 h-5" />
                   </a>
                 )}
                 {member.socials.linkedin && (
-                  <a 
+                  <a
                     href={member.socials.linkedin}
                     target="_blank"
-                    rel="noopener noreferrer" 
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-primary transition-colors"
                   >
                     <Linkedin className="w-5 h-5" />
                   </a>
                 )}
                 {member.socials.instagram && (
-                  <a 
+                  <a
                     href={member.socials.instagram}
                     target="_blank"
-                    rel="noopener noreferrer" 
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-primary transition-colors"
                   >
                     <Instagram className="w-5 h-5" />

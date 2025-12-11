@@ -48,6 +48,9 @@ export default defineConfig({
     }),
   ],
   build: {
+    // Keep custom output directory from the first config
+    outDir: 'build',
+
     // Enable minification and optimization
     minify: 'terser',
     terserOptions: {
