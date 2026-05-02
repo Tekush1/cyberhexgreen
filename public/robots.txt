@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /register
+Disallow: /book-session
+Disallow: /become-mentor
+
+Sitemap: https://cyberhx.in/sitemap.xml

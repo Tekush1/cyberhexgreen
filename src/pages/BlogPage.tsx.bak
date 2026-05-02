@@ -1,0 +1,766 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Search, Filter, Calendar, User, Eye, MessageCircle, Heart,
+  Share2, BookOpen, AlertTriangle, Shield, TrendingUp, Clock,
+  Tag, Plus, ChevronRight, X, ArrowUp, Bookmark, Send,
+  ChevronLeft, Loader2, Wifi, WifiOff, LayoutGrid, LayoutList,
+  Flame, Newspaper, Zap
+} from 'lucide-react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content?: string;
+  cover_image: string;
+  category: string;
+  tags: string[];
+  author_name: string;
+  author_avatar: string;
+  author_role: string;
+  published_at: string;
+  read_time: number;
+  views: number;
+  likes: number;
+  comments_count: number;
+  featured: boolean;
+}
+
+interface Category { id: string; name: string; slug: string; }
+
+// ─── Supabase config ──────────────────────────────────────────────────────────
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+const PAGE_SIZE = 12;
+const IS_CONFIGURED = SUPABASE_URL && !SUPABASE_URL.includes('YOUR_PROJECT');
+
+// ─── Supabase REST fetcher ────────────────────────────────────────────────────
+async function sbFetch(path: string, params: Record<string, string> = {}) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${path}`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString(), {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'count=exact',
+    },
+  });
+  const count = parseInt(res.headers.get('content-range')?.split('/')[1] ?? '0', 10);
+  const data = await res.json();
+  return { data, count, error: res.ok ? null : data };
+}
+
+// ─── Fallback demo posts (shown when Supabase not yet configured) ─────────────
+const DEMO_POSTS: BlogPost[] = [
+  {
+    id: '1', slug: 'whatsapp-otp-scam', title: 'New WhatsApp Scam: Fake OTP Verification Links',
+    excerpt: 'Discovered a sophisticated phishing campaign targeting WhatsApp users with fake OTP verification messages. Here\'s how to identify and protect yourself.',
+    cover_image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&q=80',
+    category: 'Scam Alert', tags: ['WhatsApp', 'Phishing', 'OTP'],
+    author_name: 'Kushagra Dwivedi', author_avatar: 'https://i.ibb.co/kscBzpxZ/Whats-App-Image-2025-07-01-at-1-02-59-AM.jpg',
+    author_role: 'Security Researcher', published_at: '2025-01-15T00:00:00Z',
+    read_time: 5, views: 1247, likes: 89, comments_count: 23, featured: true,
+  },
+  {
+    id: '2', slug: 'zeus-variant-banks', title: 'Banking Trojan Analysis: Zeus Variant Targeting Indian Banks',
+    excerpt: 'Deep dive into a new Zeus banking trojan variant specifically designed to target major Indian banking institutions with advanced evasion techniques.',
+    cover_image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80',
+    category: 'Malware Analysis', tags: ['Banking Trojan', 'Zeus', 'Malware'],
+    author_name: 'Pankaj Kumar', author_avatar: 'https://media.licdn.com/dms/image/v2/D4D03AQEoIIJDEgVOKQ/profile-displayphoto-shrink_200_200/0/1722410387895?e=1751500800&v=beta&t=xiMbJncd3nXFMUpl1-k2kX2qRheifvjKTwhVPM9qqOQ',
+    author_role: 'Malware Analyst', published_at: '2025-01-12T00:00:00Z',
+    read_time: 8, views: 892, likes: 67, comments_count: 15, featured: false,
+  },
+  {
+    id: '3', slug: 'crypto-scam-exposed', title: 'Cryptocurrency Scam: Fake Investment Platform Exposed',
+    excerpt: 'Investigation reveals how scammers are using fake cryptocurrency investment platforms to steal millions from unsuspecting investors.',
+    cover_image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80',
+    category: 'Fraud Investigation', tags: ['Cryptocurrency', 'Investment Scam', 'Fraud'],
+    author_name: 'Shreya Shristi', author_avatar: 'https://i.ibb.co/609FPPt3/IMG-20250430-WA0002-1.jpg',
+    author_role: 'Fraud Investigator', published_at: '2025-01-10T00:00:00Z',
+    read_time: 6, views: 1456, likes: 112, comments_count: 34, featured: true,
+  },
+  {
+    id: '4', slug: 'social-media-takeover', title: 'Social Media Account Takeover: New Attack Vector',
+    excerpt: 'Discovered a new method attackers are using to take over social media accounts through session hijacking and cookie manipulation.',
+    cover_image: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80',
+    category: 'Social Engineering', tags: ['Social Media', 'Session Hijacking', 'Privacy'],
+    author_name: 'Sejal Tiwari', author_avatar: 'https://i.ibb.co/0pCqJfQY/Whats-App-Image-2025-04-29-at-8-31-07-PM.jpg',
+    author_role: 'Security Analyst', published_at: '2025-01-08T00:00:00Z',
+    read_time: 4, views: 743, likes: 45, comments_count: 12, featured: false,
+  },
+  {
+    id: '5', slug: 'email-spoofing-corporate', title: 'Email Spoofing Campaign Targeting Corporate Executives',
+    excerpt: 'Analysis of a sophisticated email spoofing campaign that successfully compromised several high-profile corporate accounts.',
+    cover_image: 'https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=800&q=80',
+    category: 'Email Security', tags: ['Email Spoofing', 'Corporate Security', 'Phishing'],
+    author_name: 'Pragati Yadav', author_avatar: 'https://media.licdn.com/dms/image/v2/D5603AQG9nMfjIl9GSg/profile-displayphoto-shrink_200_200/0/1733457712693',
+    author_role: 'Email Security Expert', published_at: '2025-01-05T00:00:00Z',
+    read_time: 7, views: 634, likes: 38, comments_count: 9, featured: false,
+  },
+];
+
+const DEMO_CATEGORIES: Category[] = [
+  { id: 'all', name: 'All Posts', slug: 'all' },
+  { id: '1', name: 'Scam Alert', slug: 'scam-alert' },
+  { id: '2', name: 'Malware Analysis', slug: 'malware-analysis' },
+  { id: '3', name: 'Fraud Investigation', slug: 'fraud-investigation' },
+  { id: '4', name: 'Social Engineering', slug: 'social-engineering' },
+  { id: '5', name: 'Email Security', slug: 'email-security' },
+  { id: '6', name: 'Web Security', slug: 'web-security' },
+  { id: '7', name: 'CTF Writeups', slug: 'ctf-writeups' },
+  { id: '8', name: 'News & Updates', slug: 'news-updates' },
+];
+
+const TRENDING_TAGS = ['Phishing', 'Malware', 'Cryptocurrency', 'Social Engineering', 'Banking', 'Fraud', 'CTF', 'Zero-Day'];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmt = (d: string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+const fmtNum = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+const CategoryIcon = ({ name }: { name: string }) => {
+  const m: Record<string, React.ReactNode> = {
+    'Scam Alert': <AlertTriangle size={14} />, 'Malware Analysis': <Shield size={14} />,
+    'Fraud Investigation': <Search size={14} />, 'Social Engineering': <User size={14} />,
+    'Email Security': <Newspaper size={14} />, 'CTF Writeups': <Zap size={14} />,
+    'News & Updates': <Newspaper size={14} />,
+  };
+  return <>{m[name] ?? <BookOpen size={14} />}</>;
+};
+
+const PostCard = ({ post, onClick, viewMode }: { post: BlogPost; onClick: () => void; viewMode: 'grid' | 'list' }) => {
+  const [imgErr, setImgErr] = useState(false);
+
+  if (viewMode === 'list') {
+    return (
+      <motion.article
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="group glass-effect rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-[#a3e635]/10 transition-all duration-300 cursor-pointer"
+        onClick={onClick}
+        role="article"
+        aria-label={post.title}
+      >
+        <div className="flex flex-col sm:flex-row gap-0">
+          {/* Thumbnail */}
+          <div className="relative sm:w-48 md:w-56 flex-shrink-0 overflow-hidden">
+            <img
+              src={imgErr ? 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=60' : post.cover_image}
+              alt={post.title}
+              onError={() => setImgErr(true)}
+              loading="lazy"
+              className="w-full h-44 sm:h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20 hidden sm:block" />
+            <span className="absolute top-3 left-3 bg-[#a3e635]/90 text-[#05080f] px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+              <CategoryIcon name={post.category} />{post.category}
+            </span>
+            {post.featured && (
+              <span className="absolute top-3 right-3 bg-yellow-400/90 text-black px-2 py-1 rounded-full text-xs font-bold">★ Featured</span>
+            )}
+          </div>
+          {/* Content */}
+          <div className="flex flex-col justify-between p-4 sm:p-5 flex-1 min-w-0">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
+                <span className="flex items-center gap-1"><Clock size={11} />{post.read_time} min</span>
+                <span>•</span>
+                <span className="flex items-center gap-1"><Calendar size={11} />{fmt(post.published_at)}</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-[#a3e635] transition-colors leading-tight">
+                {post.title}
+              </h3>
+              <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed mb-3">{post.excerpt}</p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {post.tags.slice(0, 3).map(t => (
+                  <span key={t} className="bg-[#a3e635]/8 text-[#a3e635]/70 px-2 py-0.5 rounded-full text-xs border border-[#a3e635]/10">#{t}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <img src={post.author_avatar} alt={post.author_name} onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${post.author_name}&background=a3e635&color=000`; }}
+                  loading="lazy" className="w-7 h-7 rounded-full border border-[#a3e635]/20 flex-shrink-0 object-cover" />
+                <div className="min-w-0">
+                  <p className="text-white text-xs font-medium truncate">{post.author_name}</p>
+                  <p className="text-gray-500 text-xs truncate">{post.author_role}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-gray-500 text-xs flex-shrink-0">
+                <span className="flex items-center gap-1"><Eye size={12} />{fmtNum(post.views)}</span>
+                <span className="flex items-center gap-1"><Heart size={12} />{fmtNum(post.likes)}</span>
+                <span className="flex items-center gap-1"><MessageCircle size={12} />{post.comments_count}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.article>
+    );
+  }
+
+  // Grid card
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="group glass-effect rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-[#a3e635]/10 transition-all duration-300 cursor-pointer flex flex-col"
+      onClick={onClick}
+    >
+      <div className="relative h-44 overflow-hidden flex-shrink-0">
+        <img src={imgErr ? 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=60' : post.cover_image}
+          alt={post.title} onError={() => setImgErr(true)} loading="lazy"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <span className="absolute top-3 left-3 bg-[#a3e635]/90 text-[#05080f] px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+          <CategoryIcon name={post.category} />{post.category}
+        </span>
+        {post.featured && <span className="absolute top-3 right-3 bg-yellow-400/90 text-black px-2 py-1 rounded-full text-xs font-bold">★</span>}
+        <div className="absolute bottom-3 right-3 flex items-center gap-1 text-white/80 text-xs bg-black/40 rounded-full px-2 py-1">
+          <Clock size={11} />{post.read_time}m
+        </div>
+      </div>
+      <div className="p-4 flex flex-col flex-1">
+        <h3 className="text-sm font-bold text-white mb-2 line-clamp-2 group-hover:text-[#a3e635] transition-colors leading-snug flex-shrink-0">{post.title}</h3>
+        <p className="text-gray-400 text-xs line-clamp-3 leading-relaxed mb-3 flex-1">{post.excerpt}</p>
+        <div className="flex items-center justify-between gap-2 mt-auto">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <img src={post.author_avatar} alt={post.author_name} loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${post.author_name}&background=a3e635&color=000`; }}
+              className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
+            <span className="text-gray-400 text-xs truncate">{post.author_name}</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-500 text-xs flex-shrink-0">
+            <span className="flex items-center gap-1"><Eye size={11} />{fmtNum(post.views)}</span>
+            <span className="flex items-center gap-1"><Heart size={11} />{fmtNum(post.likes)}</span>
+          </div>
+        </div>
+      </div>
+    </motion.article>
+  );
+};
+
+const FeaturedCard = ({ post, onClick }: { post: BlogPost; onClick: () => void }) => (
+  <motion.article
+    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+    className="group relative glass-effect rounded-2xl overflow-hidden cursor-pointer hover:shadow-2xl hover:shadow-[#a3e635]/20 transition-all duration-500"
+    onClick={onClick}
+  >
+    <div className="relative h-52 sm:h-64 overflow-hidden">
+      <img src={post.cover_image} alt={post.title} loading="lazy"
+        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=60'; }} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <div className="absolute top-4 left-4 flex gap-2">
+        <span className="bg-[#a3e635] text-[#05080f] px-3 py-1 rounded-full text-xs font-bold">★ Featured</span>
+        <span className="bg-black/50 backdrop-blur-sm text-[#a3e635] px-3 py-1 rounded-full text-xs font-medium">{post.category}</span>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 p-5">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-2 line-clamp-2 group-hover:text-[#a3e635] transition-colors">{post.title}</h3>
+        <p className="text-gray-300 text-sm line-clamp-2 mb-3">{post.excerpt}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img src={post.author_avatar} alt={post.author_name} loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${post.author_name}&background=a3e635&color=000`; }}
+              className="w-8 h-8 rounded-full border-2 border-[#a3e635]/30 object-cover" />
+            <div>
+              <p className="text-white text-xs font-medium">{post.author_name}</p>
+              <p className="text-gray-400 text-xs">{fmt(post.published_at)}</p>
+            </div>
+          </div>
+          <div className="flex gap-3 text-gray-300 text-xs">
+            <span className="flex items-center gap-1"><Eye size={12} />{fmtNum(post.views)}</span>
+            <span className="flex items-center gap-1"><Clock size={12} />{post.read_time}m</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </motion.article>
+);
+
+const PostModal = ({ post, onClose }: { post: BlogPost; onClose: () => void }) => {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        onClick={onClose}
+        role="dialog" aria-modal="true" aria-label={post.title}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+          transition={{ type: 'spring', damping: 30 }}
+          className="bg-[#070b14] rounded-t-3xl sm:rounded-2xl w-full max-w-3xl max-h-[92vh] sm:max-h-[88vh] overflow-y-auto"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Drag handle (mobile) */}
+          <div className="flex justify-center pt-3 pb-1 sm:hidden">
+            <div className="w-10 h-1 bg-gray-600 rounded-full" />
+          </div>
+          <div className="relative">
+            <img src={post.cover_image} alt={post.title} loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=60'; }}
+              className="w-full h-48 sm:h-72 object-cover sm:rounded-t-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent sm:rounded-t-2xl" />
+            <button onClick={onClose}
+              className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm text-white p-2.5 rounded-full hover:bg-black/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Close">
+              <X size={20} />
+            </button>
+            <span className="absolute bottom-4 left-4 bg-[#a3e635] text-[#05080f] px-3 py-1.5 rounded-full text-sm font-bold">{post.category}</span>
+          </div>
+          <div className="p-5 sm:p-8">
+            <div className="flex flex-wrap items-center gap-3 mb-4 text-sm text-gray-400">
+              <span className="flex items-center gap-1"><Clock size={14} />{post.read_time} min read</span>
+              <span>•</span>
+              <span className="flex items-center gap-1"><Calendar size={14} />{fmt(post.published_at)}</span>
+            </div>
+            <h1 className="text-xl sm:text-3xl font-bold text-white mb-5 leading-tight">{post.title}</h1>
+            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/5">
+              <img src={post.author_avatar} alt={post.author_name} loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${post.author_name}&background=a3e635&color=000`; }}
+                className="w-12 h-12 rounded-full border-2 border-[#a3e635]/20 object-cover" />
+              <div>
+                <p className="text-white font-semibold">{post.author_name}</p>
+                <p className="text-gray-400 text-sm">{post.author_role}</p>
+              </div>
+            </div>
+            <div className="prose prose-invert prose-sm sm:prose-base max-w-none text-gray-300 leading-relaxed whitespace-pre-wrap">
+              {post.content || post.excerpt}
+            </div>
+            <div className="flex flex-wrap gap-2 mt-6">
+              {post.tags.map(t => (
+                <span key={t} className="bg-[#a3e635]/10 text-[#a3e635] px-3 py-1 rounded-full text-sm border border-[#a3e635]/20">#{t}</span>
+              ))}
+            </div>
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5 flex-wrap gap-3">
+              <div className="flex items-center gap-4">
+                <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#0a0f1a] text-gray-300 hover:text-red-400 transition-colors text-sm">
+                  <Heart size={16} />{fmtNum(post.likes)}
+                </button>
+                <button className="flex items-center gap-2 text-gray-400 hover:text-[#a3e635] transition-colors text-sm">
+                  <Share2 size={16} />Share
+                </button>
+              </div>
+              <div className="flex items-center gap-2 text-gray-500 text-sm">
+                <Eye size={14} />{fmtNum(post.views)} views
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+// ─── Main BlogPage component ──────────────────────────────────────────────────
+const BlogPage = () => {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [featured, setFeatured] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEMO_CATEGORIES);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [selectedTag, setSelectedTag] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [page, setPage] = useState(1);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Debounce search
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery]);
+
+  // Scroll to top button
+  useEffect(() => {
+    const h = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', h, { passive: true });
+    return () => window.removeEventListener('scroll', h);
+  }, []);
+
+  // Load posts from Supabase or fallback to demo
+  const loadPosts = useCallback(async (pg = 1, append = false) => {
+    if (pg === 1) setLoading(true); else setLoadingMore(true);
+    setError(null);
+
+    try {
+      if (!IS_CONFIGURED) throw new Error('demo');
+
+      const catFilter = selectedCategory !== 'all' ? selectedCategory : undefined;
+      const params: Record<string, string> = {
+        select: 'id,title,slug,excerpt,cover_image,category,tags,author_name,author_avatar,author_role,published_at,read_time,views,likes,comments_count,featured',
+        status: 'eq.published',
+        order: 'published_at.desc',
+        offset: String((pg - 1) * PAGE_SIZE),
+        limit: String(PAGE_SIZE),
+      };
+      if (catFilter) params.category = `eq.${catFilter}`;
+      if (selectedTag) params.tags = `cs.{${selectedTag}}`;
+      if (debouncedSearch) params.or = `title.ilike.*${debouncedSearch}*,excerpt.ilike.*${debouncedSearch}*`;
+
+      const { data, count } = await sbFetch('blog_posts', params);
+      if (!Array.isArray(data)) throw new Error('Invalid response');
+      setTotalCount(count);
+      if (append) setPosts(p => [...p, ...(data as BlogPost[])]);
+      else setPosts(data as BlogPost[]);
+
+      // Featured (first load only)
+      if (pg === 1 && !catFilter && !debouncedSearch && !selectedTag) {
+        const { data: fd } = await sbFetch('blog_posts', { select: params.select, status: 'eq.published', featured: 'eq.true', order: 'published_at.desc', limit: '3' });
+        setFeatured(Array.isArray(fd) ? fd as BlogPost[] : []);
+      }
+    } catch {
+      // Use demo data
+      let filtered = DEMO_POSTS;
+      if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
+      if (selectedTag) filtered = filtered.filter(p => p.tags.includes(selectedTag));
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
+        filtered = filtered.filter(p => p.title.toLowerCase().includes(q) || p.excerpt.toLowerCase().includes(q) || p.author_name.toLowerCase().includes(q));
+      }
+      setTotalCount(filtered.length);
+      if (append) setPosts(p => [...p, ...filtered.slice((pg - 1) * PAGE_SIZE, pg * PAGE_SIZE)]);
+      else setPosts(filtered.slice(0, PAGE_SIZE));
+      if (pg === 1) setFeatured(DEMO_POSTS.filter(p => p.featured).slice(0, 3));
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [selectedCategory, selectedTag, debouncedSearch]);
+
+  useEffect(() => { setPage(1); loadPosts(1, false); }, [selectedCategory, selectedTag, debouncedSearch]);
+
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    loadPosts(next, true);
+  };
+
+  const hasMore = posts.length < totalCount;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const clearFilters = () => {
+    setSelectedCategory('all');
+    setSearchQuery('');
+    setSelectedTag('');
+    setPage(1);
+  };
+  const hasFilters = selectedCategory !== 'all' || searchQuery || selectedTag;
+
+  return (
+    <div className="min-h-screen bg-[#05080f] pt-14 sm:pt-16">
+      {/* Hero Header */}
+      <div className="relative border-b border-white/5 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#a3e635]/3 via-transparent to-[#22d3ee]/3" />
+        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(163,230,53,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(163,230,53,0.03) 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+            <div className="inline-flex items-center gap-2 bg-[#a3e635]/10 border border-[#a3e635]/20 rounded-full px-4 py-1.5 mb-5">
+              <Flame size={14} className="text-[#a3e635]" />
+              <span className="text-[#a3e635] text-sm font-medium">Security Intelligence Hub</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
+              CyberHx <span className="text-[#a3e635]">Security</span> Blog
+            </h1>
+            <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
+              Real-time threat intelligence, scam alerts & cybersecurity research from India's leading security community.
+            </p>
+            {/* Stats */}
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-10 text-sm">
+              {[
+                { icon: <Newspaper size={15} />, label: `${IS_CONFIGURED ? totalCount : '5'}+ Articles` },
+                { icon: <User size={15} />, label: '20+ Researchers' },
+                { icon: <Eye size={15} />, label: '50k+ Readers' },
+              ].map(s => (
+                <div key={s.label} className="flex items-center gap-2 text-gray-400">
+                  <span className="text-[#a3e635]">{s.icon}</span>{s.label}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Not configured banner */}
+        {!IS_CONFIGURED && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="flex items-start gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 text-sm">
+            <WifiOff size={18} className="text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-yellow-300 font-semibold mb-1">Supabase not configured — showing demo posts</p>
+              <p className="text-yellow-400/70">Add <code className="bg-black/30 px-1 rounded">VITE_SUPABASE_URL</code> and <code className="bg-black/30 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> to your <code className="bg-black/30 px-1 rounded">.env</code> file to connect your database.</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Search + Controls */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+              <input
+                ref={searchRef}
+                type="search"
+                placeholder="Search articles, tags, authors…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-[#0a0f1a] border border-white/8 rounded-xl pl-10 pr-10 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#a3e635]/50 focus:ring-1 focus:ring-[#a3e635]/20 transition-all text-sm"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white p-1">
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => setViewMode(v => v === 'list' ? 'grid' : 'list')}
+                className="flex items-center gap-2 px-3 py-3 rounded-xl bg-[#0a0f1a] border border-white/8 text-gray-400 hover:text-[#a3e635] hover:border-[#a3e635]/30 transition-all text-sm min-w-[44px] justify-center"
+                aria-label={`Switch to ${viewMode === 'list' ? 'grid' : 'list'} view`}
+              >
+                {viewMode === 'list' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
+                <span className="hidden sm:inline">{viewMode === 'list' ? 'Grid' : 'List'}</span>
+              </button>
+              <button className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#a3e635] text-[#05080f] font-semibold hover:bg-[#bef264] transition-colors text-sm">
+                <Plus size={16} />
+                <span className="hidden sm:inline">Submit Article</span>
+                <span className="sm:hidden">Submit</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Category pills (horizontal scroll) */}
+          <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => { setSelectedCategory(cat.name === 'All Posts' ? 'all' : cat.name); setPage(1); setSelectedTag(''); }}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                  (cat.name === 'All Posts' ? 'all' : cat.name) === selectedCategory
+                    ? 'bg-[#a3e635] text-[#05080f]'
+                    : 'bg-[#0a0f1a] border border-white/8 text-gray-400 hover:text-[#a3e635] hover:border-[#a3e635]/30'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Active tag filter */}
+          {selectedTag && (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">Tag:</span>
+              <button onClick={() => setSelectedTag('')}
+                className="flex items-center gap-1.5 bg-[#a3e635]/15 text-[#a3e635] border border-[#a3e635]/30 px-3 py-1 rounded-full text-sm hover:bg-[#a3e635]/25 transition-colors">
+                #{selectedTag} <X size={13} />
+              </button>
+            </div>
+          )}
+
+          {/* Search results count */}
+          {(debouncedSearch || hasFilters) && !loading && (
+            <div className="flex items-center justify-between">
+              <p className="text-gray-500 text-sm">
+                {totalCount > 0 ? <><span className="text-[#a3e635] font-medium">{totalCount}</span> articles found</> : 'No articles found'}
+                {debouncedSearch && <> for "<span className="text-white">{debouncedSearch}</span>"</>}
+              </p>
+              {hasFilters && (
+                <button onClick={clearFilters} className="text-gray-500 hover:text-[#a3e635] text-sm flex items-center gap-1 transition-colors">
+                  <X size={14} />Clear filters
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Main layout */}
+        <div className="flex flex-col xl:flex-row gap-8">
+          {/* Content area */}
+          <div className="flex-1 min-w-0">
+            {/* Featured posts (only on default view) */}
+            {!hasFilters && !loading && featured.length > 0 && (
+              <section className="mb-10">
+                <div className="flex items-center gap-2 mb-5">
+                  <TrendingUp size={20} className="text-[#a3e635]" />
+                  <h2 className="text-xl font-bold text-white">Featured</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {featured.map(p => (
+                    <FeaturedCard key={p.id} post={p} onClick={() => setSelectedPost(p)} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Posts list/grid */}
+            <section>
+              {!loading && posts.length > 0 && (
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-lg font-bold text-white">
+                    {hasFilters ? 'Search Results' : 'Latest Articles'}
+                  </h2>
+                  <span className="text-gray-500 text-sm">{totalCount} total</span>
+                </div>
+              )}
+
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <Loader2 size={32} className="text-[#a3e635] animate-spin" />
+                  <p className="text-gray-500 text-sm">Loading articles…</p>
+                </div>
+              ) : posts.length === 0 ? (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
+                  <Search size={48} className="text-gray-700 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-400 mb-2">No articles found</h3>
+                  <p className="text-gray-600 text-sm mb-5">Try different keywords or clear filters</p>
+                  <button onClick={clearFilters} className="text-[#a3e635] hover:underline text-sm">Clear all filters</button>
+                </motion.div>
+              ) : (
+                <div className={viewMode === 'grid'
+                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
+                  : 'flex flex-col gap-4'
+                }>
+                  {posts.map((p, i) => (
+                    <PostCard key={p.id} post={p} onClick={() => setSelectedPost(p)} viewMode={viewMode} />
+                  ))}
+                </div>
+              )}
+
+              {/* Load more */}
+              {!loading && hasMore && (
+                <div className="mt-10 text-center">
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#0a0f1a] border border-white/10 rounded-xl text-gray-300 hover:text-[#a3e635] hover:border-[#a3e635]/30 transition-all text-sm font-medium disabled:opacity-50"
+                  >
+                    {loadingMore ? <><Loader2 size={16} className="animate-spin" />Loading…</> : <>Load More <ChevronRight size={16} /></>}
+                  </button>
+                  <p className="text-gray-600 text-xs mt-2">Showing {posts.length} of {totalCount}</p>
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Sidebar */}
+          <aside className="xl:w-72 flex-shrink-0 space-y-6">
+            {/* Trending tags */}
+            <div className="glass-effect rounded-2xl p-5">
+              <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <Flame size={16} className="text-[#a3e635]" />Trending Tags
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {TRENDING_TAGS.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => { setSelectedTag(tag === selectedTag ? '' : tag); setPage(1); }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                      tag === selectedTag
+                        ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]'
+                        : 'bg-[#a3e635]/8 text-[#a3e635]/70 border-[#a3e635]/15 hover:bg-[#a3e635]/15 hover:text-[#a3e635]'
+                    }`}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Guidelines */}
+            <div className="glass-effect rounded-2xl p-5">
+              <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <Shield size={16} className="text-[#a3e635]" />Community Rules
+              </h3>
+              <ul className="space-y-2.5 text-gray-400 text-sm">
+                {['Share verified findings with evidence', 'Include screenshots & technical details', 'Protect victim privacy always', 'Follow responsible disclosure', 'Help educate the community'].map(r => (
+                  <li key={r} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#a3e635] flex-shrink-0 mt-1.5" />
+                    <span>{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Quick links */}
+            <div className="glass-effect rounded-2xl p-5">
+              <h3 className="text-base font-bold text-white mb-4">Quick Links</h3>
+              <div className="space-y-2">
+                {[
+                  { label: 'Report a Scam', href: '/contact' },
+                  { label: 'CTF Platform', href: 'https://ctf.cyberhx.com', ext: true },
+                  { label: 'Pentest Lab', href: 'https://pentestlab.cyberhx.com', ext: true },
+                  { label: 'Community Forum', href: '/contact' },
+                ].map(l => (
+                  l.ext ? (
+                    <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#0a0f1a] text-gray-400 hover:text-[#a3e635] hover:bg-[#a3e635]/5 transition-all text-sm group">
+                      <span>{l.label}</span>
+                      <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                    </a>
+                  ) : (
+                    <a key={l.label} href={l.href}
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#0a0f1a] text-gray-400 hover:text-[#a3e635] hover:bg-[#a3e635]/5 transition-all text-sm group">
+                      <span>{l.label}</span>
+                      <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                    </a>
+                  )
+                ))}
+              </div>
+            </div>
+
+            {/* Newsletter */}
+            <div className="glass-effect rounded-2xl p-5">
+              <h3 className="text-base font-bold text-white mb-2">Stay Updated</h3>
+              <p className="text-gray-500 text-xs mb-4">Get security alerts in your inbox.</p>
+              <div className="flex gap-2">
+                <input type="email" placeholder="your@email.com"
+                  className="flex-1 min-w-0 bg-[#0a0f1a] border border-white/8 rounded-lg px-3 py-2.5 text-white text-xs focus:outline-none focus:border-[#a3e635]/40 placeholder-gray-600" />
+                <button className="bg-[#a3e635] text-[#05080f] p-2.5 rounded-lg hover:bg-[#bef264] transition-colors flex-shrink-0">
+                  <Send size={15} />
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      {/* Post Modal */}
+      {selectedPost && <PostModal post={selectedPost} onClose={() => setSelectedPost(null)} />}
+
+      {/* Scroll to top */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-4 sm:right-6 bg-[#a3e635] text-[#05080f] p-3 rounded-full shadow-lg hover:bg-[#bef264] transition-colors z-40"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp size={20} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default BlogPage;
