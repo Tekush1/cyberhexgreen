@@ -1,7 +1,30 @@
 User-agent: *
 Allow: /
+Allow: /blog
+Allow: /about
+Allow: /contact
+Allow: /pentest-lab
+Allow: /gallery
+
+Disallow: /admin
 Disallow: /register
 Disallow: /book-session
 Disallow: /become-mentor
+Disallow: /api/
+Disallow: /*.json$
 
-Sitemap: https://cyberhx.in/sitemap.xml
+# Google
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+
+# Crawl delay for others
+User-agent: *
+Crawl-delay: 10
+
+Sitemap: https://cyberhx.com/sitemap.xml
