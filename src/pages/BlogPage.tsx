@@ -171,7 +171,7 @@ const PostCard: React.FC<{ post: BlogPost; onClick: () => void; viewMode: 'grid'
       onClick={onClick} className={`group cursor-pointer bg-[#0a0f1a] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all border-l-4 ${getCat(post.category).accent} ${isGrid ? '' : 'flex gap-0 sm:gap-4'}`}>
       <div className={`relative overflow-hidden flex-shrink-0 ${isGrid ? 'h-44 w-full' : 'h-28 sm:h-auto w-full sm:w-44'}`}>
         <img src={post.cover_image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=60'; }} loading="lazy" />
+          onError={e => { (e.target as HTMLImageElement).src = 'https://i.ibb.co/gLcY5Nbm/Chat-GPT-Image-May-3-2026-04-46-05-PM.png'; }} loading="lazy" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent" />
       </div>
       <div className="p-4 flex flex-col gap-2.5 flex-1 min-w-0">
@@ -187,7 +187,7 @@ const PostCard: React.FC<{ post: BlogPost; onClick: () => void; viewMode: 'grid'
         <div className="flex items-center justify-between mt-auto pt-1">
           <div className="flex items-center gap-2 min-w-0">
             <img src={post.author_avatar} alt={post.author_name} className="w-6 h-6 rounded-full object-cover flex-shrink-0 ring-1 ring-white/10"
-              onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50'; }} />
+              onError={e => { (e.target as HTMLImageElement).src = 'https://i.ibb.co/gLcY5Nbm/Chat-GPT-Image-May-3-2026-04-46-05-PM.png'; }} />
             <span className="text-gray-500 text-xs truncate">{post.author_name}</span>
           </div>
           <div className="flex items-center gap-3 text-gray-600 text-xs flex-shrink-0">
