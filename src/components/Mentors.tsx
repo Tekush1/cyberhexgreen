@@ -19,13 +19,11 @@ export const Mentors = () => {
       expertise: ["Cybersecurity", "Ethical Hacking", "DevSecOps"],
       experience: "5+ years",
       availability: "Flexible Hours",
-      rating: 5,
-      reviews: 156,
       image: "https://i.ibb.co/kscBzpxZ/Whats-App-Image-2025-07-01-at-1-02-59-AM.jpg",
-      bio: "Ethical Hacker cybercrime Up Police",
-      achievements: ["SIH finalist 2024 as a Team leader", "CTF Nationl player" , "BPS 2022 State winner"],
+      bio: "Ethical Hacker ",
+      achievements: ["Author", "CTF Nationl player" ],
       socials: {
-        github: "",
+        github: "https://github.com/tekush1",
         linkedin: "https://www.linkedin.com/in/kushagra-dwivedi-0342062b8/",
         email: "kushdwivedikd@gmail.com"
       }
@@ -125,9 +123,6 @@ export const Mentors = () => {
                     <h3 className="text-xl font-semibold text-white">{mentor.name}</h3>
                     <p className="text-primary">{mentor.role}</p>
                     <div className="flex items-center mt-1">
-                      <Star className="w-4 h-4 text-primary fill-current" />
-                      <span className="ml-1 text-white">{mentor.rating}</span>
-                      <span className="ml-1 text-gray-400">({mentor.reviews} reviews)</span>
                     </div>
                   </div>
                 </div>
