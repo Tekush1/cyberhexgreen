@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Calendar, User, Eye, Heart,
+  Search, User, Eye, Heart,
   Share2, Shield, TrendingUp, Clock,
   Plus, ChevronRight, X, ArrowUp, Send,
   Loader2, WifiOff, LayoutGrid, LayoutList,
   Flame, Newspaper, Upload, Filter,
   CheckCircle, AlertCircle,
-  Copy, AlertTriangle
+  AlertTriangle, ImagePlus, Link2
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -203,9 +203,16 @@ const PostCard: React.FC<{ post: BlogPost; onClick: () => void; viewMode: 'grid'
 
 // ─── SubmitArticleModal ────────────────────────────────────────────────────────
 const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [form, setForm] = useState({ title: '', excerpt: '', content: '', category: 'Scam Alert', tags: '', author_name: '', author_email: '', author_role: 'Contributor', cover_image: '' });
+  const [form, setForm] = useState({
+    title: '', excerpt: '', content: '', category: 'Scam Alert',
+    tags: '', author_name: '', author_email: '', author_role: 'Contributor', cover_image: ''
+  });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errMsg, setErrMsg] = useState('');
+  const [imageTab, setImageTab] = useState<'url' | 'upload'>('url');
+  const [uploadPreview, setUploadPreview] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -213,6 +220,52 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     document.addEventListener('keydown', h);
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setErrMsg('Image 5MB se badi nahi honi chahiye.'); return; }
+    if (!file.type.startsWith('image/')) { setErrMsg('Sirf image files allowed hain.'); return; }
+    setErrMsg('');
+
+    // Instant local preview
+    const localUrl = URL.createObjectURL(file);
+    setUploadPreview(localUrl);
+
+    if (!IS_CONFIGURED) {
+      set('cover_image', localUrl);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const res = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/article-images/${filename}`,
+        {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': file.type,
+            'x-upsert': 'true',
+          },
+          body: file,
+        }
+      );
+      if (!res.ok) throw new Error('Upload failed');
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/article-images/${filename}`;
+      set('cover_image', publicUrl);
+      setUploadPreview(publicUrl);
+    } catch {
+      setErrMsg('Image upload failed. URL option use karo.');
+      setUploadPreview('');
+      set('cover_image', '');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!form.title || !form.excerpt || !form.content || !form.author_name || !form.author_email) {
@@ -242,6 +295,8 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
         <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
           className="bg-[#0a0f1a] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+
+          {/* Header */}
           <div className="sticky top-0 bg-[#0a0f1a] border-b border-white/8 px-6 py-4 flex items-center justify-between z-10 rounded-t-3xl sm:rounded-t-2xl">
             <div>
               <h2 className="text-lg font-bold text-white">Submit an Article</h2>
@@ -261,13 +316,29 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
           ) : (
             <div className="p-6 space-y-5">
+              {/* Author info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Your Name *</label><input value={form.author_name} onChange={e => set('author_name', e.target.value)} placeholder="Full name" className={inputCls} /></div>
-                <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Email * <span className="text-gray-600 font-normal">(not published)</span></label><input type="email" value={form.author_email} onChange={e => set('author_email', e.target.value)} placeholder="your@email.com" className={inputCls} /></div>
+                <div>
+                  <label className="block text-gray-400 text-xs font-medium mb-1.5">Your Name *</label>
+                  <input value={form.author_name} onChange={e => set('author_name', e.target.value)} placeholder="Full name" className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-xs font-medium mb-1.5">Email * <span className="text-gray-600 font-normal">(not published)</span></label>
+                  <input type="email" value={form.author_email} onChange={e => set('author_email', e.target.value)} placeholder="your@email.com" className={inputCls} />
+                </div>
               </div>
-              <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Role / Title</label><input value={form.author_role} onChange={e => set('author_role', e.target.value)} placeholder="e.g. Security Researcher, CTF Player" className={inputCls} /></div>
+              <div>
+                <label className="block text-gray-400 text-xs font-medium mb-1.5">Role / Title</label>
+                <input value={form.author_role} onChange={e => set('author_role', e.target.value)} placeholder="e.g. Security Researcher, CTF Player" className={inputCls} />
+              </div>
+
               <hr className="border-white/6" />
-              <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Article Title *</label><input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Clear, descriptive title" className={inputCls} /></div>
+
+              {/* Article info */}
+              <div>
+                <label className="block text-gray-400 text-xs font-medium mb-1.5">Article Title *</label>
+                <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Clear, descriptive title" className={inputCls} />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-400 text-xs font-medium mb-1.5">Category *</label>
@@ -275,15 +346,113 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     {SUBMIT_CATS.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Tags <span className="text-gray-600 font-normal">(comma separated)</span></label><input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="Phishing, OTP, WhatsApp" className={inputCls} /></div>
+                <div>
+                  <label className="block text-gray-400 text-xs font-medium mb-1.5">Tags <span className="text-gray-600 font-normal">(comma separated)</span></label>
+                  <input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="Phishing, OTP, WhatsApp" className={inputCls} />
+                </div>
               </div>
-              <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Cover Image URL <span className="text-gray-600 font-normal">(optional)</span></label><input value={form.cover_image} onChange={e => set('cover_image', e.target.value)} placeholder="https://…" className={inputCls} /></div>
-              <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Short Excerpt * <span className="text-gray-600 font-normal">(1-2 sentences)</span></label><textarea value={form.excerpt} onChange={e => set('excerpt', e.target.value)} rows={2} placeholder="Brief summary" className={`${inputCls} resize-none`} /></div>
-              <div><label className="block text-gray-400 text-xs font-medium mb-1.5">Full Article Content * <span className="text-gray-600 font-normal">(Markdown supported)</span></label><textarea value={form.content} onChange={e => set('content', e.target.value)} rows={8} placeholder="Write your full article here. Include screenshots, IOCs, commands, evidence..." className={`${inputCls} resize-y font-mono`} /></div>
-              {errMsg && <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm"><AlertCircle size={16} />{errMsg}</div>}
+
+              {/* ── Cover Image: URL or Upload ── */}
+              <div>
+                <label className="block text-gray-400 text-xs font-medium mb-2">
+                  Cover Image <span className="text-gray-600 font-normal">(optional)</span>
+                </label>
+
+                {/* Tab switcher */}
+                <div className="flex gap-1 bg-[#05080f] border border-white/8 rounded-xl p-1 mb-3 w-fit">
+                  <button
+                    onClick={() => setImageTab('url')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${imageTab === 'url' ? 'bg-[#a3e635]/15 text-[#a3e635] border border-[#a3e635]/30' : 'text-gray-500 hover:text-gray-300'}`}>
+                    <Link2 size={12} /> URL
+                  </button>
+                  <button
+                    onClick={() => setImageTab('upload')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${imageTab === 'upload' ? 'bg-[#a3e635]/15 text-[#a3e635] border border-[#a3e635]/30' : 'text-gray-500 hover:text-gray-300'}`}>
+                    <ImagePlus size={12} /> Upload
+                  </button>
+                </div>
+
+                {imageTab === 'url' ? (
+                  <>
+                    <input
+                      value={form.cover_image}
+                      onChange={e => { set('cover_image', e.target.value); setUploadPreview(''); }}
+                      placeholder="https://images.unsplash.com/..."
+                      className={inputCls}
+                    />
+                    {form.cover_image && (
+                      <div className="mt-2 rounded-xl overflow-hidden border border-white/8">
+                        <img
+                          src={form.cover_image}
+                          alt="preview"
+                          className="w-full h-28 object-cover"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      className={`w-full border-2 border-dashed rounded-xl py-6 flex flex-col items-center gap-2 transition-all ${
+                        uploadPreview
+                          ? 'border-[#a3e635]/40 bg-[#a3e635]/5'
+                          : 'border-white/10 hover:border-[#a3e635]/30 hover:bg-[#a3e635]/5'
+                      } ${uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                      {uploading ? (
+                        <>
+                          <Loader2 size={24} className="text-[#a3e635] animate-spin" />
+                          <span className="text-gray-400 text-xs">Uploading…</span>
+                        </>
+                      ) : uploadPreview ? (
+                        <>
+                          <img src={uploadPreview} alt="preview" className="w-full max-h-32 object-cover rounded-lg" />
+                          <span className="text-[#a3e635] text-xs flex items-center gap-1 mt-1">
+                            <CheckCircle size={12} /> Uploaded — click to change
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <ImagePlus size={24} className="text-gray-600" />
+                          <span className="text-gray-400 text-xs">Click to upload image</span>
+                          <span className="text-gray-600 text-xs">PNG, JPG, WebP · Max 5MB</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-xs font-medium mb-1.5">Short Excerpt * <span className="text-gray-600 font-normal">(1-2 sentences)</span></label>
+                <textarea value={form.excerpt} onChange={e => set('excerpt', e.target.value)} rows={2} placeholder="Brief summary" className={`${inputCls} resize-none`} />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-xs font-medium mb-1.5">Full Article Content * <span className="text-gray-600 font-normal">(Markdown supported)</span></label>
+                <textarea value={form.content} onChange={e => set('content', e.target.value)} rows={8} placeholder="Write your full article here. Include screenshots, IOCs, commands, evidence..." className={`${inputCls} resize-y font-mono`} />
+              </div>
+
+              {errMsg && (
+                <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                  <AlertCircle size={16} />{errMsg}
+                </div>
+              )}
+
               <div className="flex gap-3 pt-2">
                 <button onClick={onClose} className="flex-1 px-4 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors text-sm">Cancel</button>
-                <button onClick={handleSubmit} disabled={status === 'loading'} className="flex-1 px-4 py-3 rounded-xl bg-[#a3e635] text-[#05080f] font-bold hover:bg-[#bef264] transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                <button
+                  onClick={handleSubmit}
+                  disabled={status === 'loading' || uploading}
+                  className="flex-1 px-4 py-3 rounded-xl bg-[#a3e635] text-[#05080f] font-bold hover:bg-[#bef264] transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2">
                   {status === 'loading' ? <><Loader2 size={16} className="animate-spin" />Submitting…</> : <><Send size={16} />Submit Article</>}
                 </button>
               </div>
@@ -362,7 +531,6 @@ const PostModal: React.FC<{ post: BlogPost; onClose: () => void; onLike: (id: st
             </div>
           </div>
 
-          {/* Action bar */}
           <div className="sticky bottom-0 bg-[#07090f] border-t border-white/8 px-5 py-4 flex items-center gap-4">
             <button onClick={handleLike}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${isLiked ? 'bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25' : 'bg-white/5 text-gray-400 border border-white/8 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10'}`}>
@@ -542,7 +710,6 @@ const BlogPage: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Share copied toast */}
         <AnimatePresence>
           {shareCopied && (
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -659,7 +826,6 @@ const BlogPage: React.FC = () => {
 
           {/* Sidebar */}
           <aside className="xl:w-72 flex-shrink-0 space-y-6">
-            {/* Category legend */}
             <div className="glass-effect rounded-2xl p-5">
               <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2"><Filter size={16} className="text-[#a3e635]" />Categories</h3>
               <div className="space-y-1.5">
@@ -672,7 +838,6 @@ const BlogPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Trending tags */}
             <div className="glass-effect rounded-2xl p-5">
               <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2"><Flame size={16} className="text-orange-400" />Trending Tags</h3>
               <div className="flex flex-wrap gap-2">
@@ -685,14 +850,12 @@ const BlogPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit CTA */}
             <div className="glass-effect rounded-2xl p-5 bg-gradient-to-br from-[#a3e635]/5 to-transparent border border-[#a3e635]/15">
               <h3 className="text-base font-bold text-white mb-2 flex items-center gap-2"><Upload size={16} className="text-[#a3e635]" />Share Your Research</h3>
               <p className="text-gray-500 text-xs mb-4 leading-relaxed">Found a scam? Analyzed malware? Written a CTF solution? Share it with the community.</p>
               <button onClick={() => setShowSubmitModal(true)} className="w-full py-2.5 rounded-xl bg-[#a3e635] text-[#05080f] font-bold text-sm hover:bg-[#bef264] transition-colors">Submit Article</button>
             </div>
 
-            {/* Community Rules */}
             <div className="glass-effect rounded-2xl p-5">
               <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2"><Shield size={16} className="text-cyan-400" />Community Rules</h3>
               <ul className="space-y-2.5 text-gray-400 text-sm">
@@ -702,7 +865,6 @@ const BlogPage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Quick links */}
             <div className="glass-effect rounded-2xl p-5">
               <h3 className="text-base font-bold text-white mb-4">Quick Links</h3>
               <div className="space-y-2">
@@ -720,7 +882,6 @@ const BlogPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Newsletter */}
             <div className="glass-effect rounded-2xl p-5">
               <h3 className="text-base font-bold text-white mb-2">Stay Updated</h3>
               <p className="text-gray-500 text-xs mb-4">Get security alerts in your inbox.</p>
