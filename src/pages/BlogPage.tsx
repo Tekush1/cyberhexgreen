@@ -148,7 +148,7 @@ const FeaturedCard: React.FC<{ post: BlogPost; onClick: () => void }> = ({ post,
     onClick={onClick} className={`relative group cursor-pointer bg-[#0a0f1a] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all border-l-4 ${getCat(post.category).accent}`}>
     <div className="relative h-40 overflow-hidden">
       <img src={post.cover_image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=60'; }} loading="lazy" />
+        onError={e => { (e.target as HTMLImageElement).src = 'https://i.ibb.co/gLcY5Nbm/Chat-GPT-Image-May-3-2026-04-46-05-PM.png'; }} loading="lazy" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1a] via-transparent" />
       <div className="absolute top-3 left-3"><CategoryBadge category={post.category} /></div>
     </div>
