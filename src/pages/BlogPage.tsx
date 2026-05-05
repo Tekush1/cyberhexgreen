@@ -40,6 +40,9 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 const PAGE_SIZE = 12;
 const IS_CONFIGURED = !!(SUPABASE_URL && SUPABASE_KEY && !SUPABASE_URL.includes('YOUR_PROJECT'));
 
+// ─── Form draft storage key ───────────────────────────────────────────────────
+const DRAFT_KEY = 'cyberhx_article_draft';
+
 const getSessionId = () => {
   let sid = localStorage.getItem('cyberhx_sid');
   if (!sid) { sid = crypto.randomUUID(); localStorage.setItem('cyberhx_sid', sid); }
@@ -131,6 +134,21 @@ const DEMO_POSTS: BlogPost[] = [
 const TRENDING_TAGS = ['Phishing', 'WhatsApp', 'Banking', 'Malware', 'CTF', 'Ransomware', 'OTP Fraud', 'UPI Scam', 'Social Engineering', 'Linux'];
 const SUBMIT_CATS = ['Scam Alert', 'Malware Analysis', 'Fraud Investigation', 'Social Engineering', 'Email Security', 'Web Security', 'Mobile Security', 'CTF Writeups', 'News & Updates'];
 
+// ─── Default form state ────────────────────────────────────────────────────────
+const DEFAULT_FORM = {
+  title: '', excerpt: '', content: '', category: 'Scam Alert',
+  tags: '', author_name: '', author_email: '', author_role: 'Contributor', cover_image: ''
+};
+
+// ─── Load saved draft from localStorage ───────────────────────────────────────
+const loadDraft = () => {
+  try {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) return { ...DEFAULT_FORM, ...JSON.parse(saved) };
+  } catch {}
+  return DEFAULT_FORM;
+};
+
 // ─── CategoryBadge ─────────────────────────────────────────────────────────────
 const CategoryBadge: React.FC<{ category: string }> = ({ category }) => {
   const c = getCat(category);
@@ -203,17 +221,40 @@ const PostCard: React.FC<{ post: BlogPost; onClick: () => void; viewMode: 'grid'
 
 // ─── SubmitArticleModal ────────────────────────────────────────────────────────
 const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [form, setForm] = useState({
-    title: '', excerpt: '', content: '', category: 'Scam Alert',
-    tags: '', author_name: '', author_email: '', author_role: 'Contributor', cover_image: ''
-  });
+  // ── Load draft from localStorage on first render ──
+  const [form, setForm] = useState(loadDraft);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errMsg, setErrMsg] = useState('');
   const [imageTab, setImageTab] = useState<'url' | 'upload'>('url');
   const [uploadPreview, setUploadPreview] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ── Check if a meaningful draft exists ──
+  useEffect(() => {
+    const saved = loadDraft();
+    const hasContent = saved.title || saved.content || saved.excerpt || saved.author_name;
+    setHasDraft(!!hasContent);
+    // If there's a saved cover image, show it as preview
+    if (saved.cover_image) setUploadPreview(saved.cover_image);
+  }, []);
+
+  // ── Auto-save draft to localStorage on every change ──
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    } catch {}
+  }, [form]);
+
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setForm(DEFAULT_FORM);
+    setUploadPreview('');
+    setHasDraft(false);
+  };
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -228,7 +269,6 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (!file.type.startsWith('image/')) { setErrMsg('Sirf image files allowed hain.'); return; }
     setErrMsg('');
 
-    // Instant local preview
     const localUrl = URL.createObjectURL(file);
     setUploadPreview(localUrl);
 
@@ -280,6 +320,8 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       } else {
         await new Promise(r => setTimeout(r, 1200));
       }
+      // ── Clear draft after successful submission ──
+      localStorage.removeItem(DRAFT_KEY);
       setStatus('success');
     } catch {
       setStatus('error'); setErrMsg('Submission failed. Please try again.');
@@ -316,6 +358,28 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
           ) : (
             <div className="p-6 space-y-5">
+
+              {/* ── Draft restored banner ── */}
+              {hasDraft && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between gap-3 bg-[#a3e635]/10 border border-[#a3e635]/25 rounded-xl px-4 py-3"
+                >
+                  <div className="flex items-center gap-2 text-[#a3e635] text-sm">
+                    <CheckCircle size={15} />
+                    <span className="font-medium">Draft restored</span>
+                    <span className="text-[#a3e635]/60 text-xs">— wahan se chalu hain jahan choda tha</span>
+                  </div>
+                  <button
+                    onClick={clearDraft}
+                    className="text-xs text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1 flex-shrink-0"
+                  >
+                    <X size={12} /> Clear
+                  </button>
+                </motion.div>
+              )}
+
               {/* Author info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -358,7 +422,6 @@ const SubmitArticleModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   Cover Image <span className="text-gray-600 font-normal">(optional)</span>
                 </label>
 
-                {/* Tab switcher */}
                 <div className="flex gap-1 bg-[#05080f] border border-white/8 rounded-xl p-1 mb-3 w-fit">
                   <button
                     onClick={() => setImageTab('url')}
@@ -500,7 +563,7 @@ const PostModal: React.FC<{ post: BlogPost; onClose: () => void; onLike: (id: st
           className="bg-[#07090f] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-3xl max-h-[93vh] overflow-hidden flex flex-col shadow-2xl">
           <div className="relative h-48 sm:h-64 flex-shrink-0">
             <img src={post.cover_image} alt={post.title} className="w-full h-full object-cover"
-              onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=60'; }} />
+              onError={e => { (e.target as HTMLImageElement).src = 'https://i.ibb.co/gLcY5Nbm/Chat-GPT-Image-May-3-2026-04-46-05-PM.png'; }} />
             <div className="absolute inset-0 bg-gradient-to-t from-[#07090f] via-black/30 to-transparent" />
             <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/70 transition-colors"><X size={18} /></button>
             <div className="absolute bottom-4 left-5"><CategoryBadge category={post.category} /></div>
@@ -511,7 +574,7 @@ const PostModal: React.FC<{ post: BlogPost; onClose: () => void; onLike: (id: st
               <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight mb-3">{post.title}</h1>
               <div className="flex items-center gap-3 mb-5 pb-5 border-b border-white/8">
                 <img src={post.author_avatar} alt={post.author_name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white/10 flex-shrink-0"
-                  onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50'; }} />
+                  onError={e => { (e.target as HTMLImageElement).src = 'https://i.ibb.co/gLcY5Nbm/Chat-GPT-Image-May-3-2026-04-46-05-PM.png'; }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium text-sm">{post.author_name}</p>
                   <p className="text-gray-500 text-xs">{post.author_role}</p>
