@@ -5,58 +5,118 @@
   <!-- Core Pages -->
   <url>
     <loc>https://cyberhx.com/</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
     <loc>https://cyberhx.com/blog</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-05</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://cyberhx.com/about</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://cyberhx.com/pentest-lab</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://cyberhx.com/contact</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
 
   <url>
     <loc>https://cyberhx.com/gallery</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://cyberhx.com/prizes</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
     <loc>https://cyberhx.com/timeline</loc>
-    <lastmod>2025-05-03</lastmod>
+    <lastmod>2026-05-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Blog Posts — Add every new post here after publishing      -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+
+  <url>
+    <loc>https://cyberhx.com/blog/whatsapp-otp-scam</loc>
+    <lastmod>2025-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&amp;q=80</image:loc>
+      <image:title>New WhatsApp Scam: Fake OTP Verification Links</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://cyberhx.com/blog/zeus-variant-banks</loc>
+    <lastmod>2025-01-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&amp;q=80</image:loc>
+      <image:title>Banking Trojan Analysis: Zeus Variant Targeting Indian Banks</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://cyberhx.com/blog/crypto-scam-exposed</loc>
+    <lastmod>2025-01-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&amp;q=80</image:loc>
+      <image:title>Cryptocurrency Scam: Fake Investment Platform Exposed</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://cyberhx.com/blog/social-media-takeover</loc>
+    <lastmod>2025-01-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://cyberhx.com/blog/email-spoofing-corporate</loc>
+    <lastmod>2025-01-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://cyberhx.com/blog/ctf-hackthebox-phantom</loc>
+    <lastmod>2025-01-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- Add new blog posts above this line -->
 
 </urlset>

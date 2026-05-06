@@ -17,6 +17,7 @@ const BecomeMentorPage = lazy(() => import('./pages/BecomeMentorPage').then(modu
 const BookSessionPage = lazy(() => import('./pages/BookSessionPage').then(module => ({ default: module.BookSessionPage })));
 const RegistrationPage = lazy(() => import('./pages/RegistrationPage').then(module => ({ default: module.default })));
 const BlogPage = lazy(() => import('./pages/BlogPage').then(module => ({ default: module.default })));
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage').then(module => ({ default: module.default })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ default: module.default })));
 
 function App() {
@@ -34,7 +35,10 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/about" element={<AboutPage />} />
+              {/* Blog list page */}
               <Route path="/blog" element={<BlogPage />} />
+              {/* Individual blog post — THIS was missing! */}
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/prizes" element={<PrizesPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/contact" element={<ContactPage />} />

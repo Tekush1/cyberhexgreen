@@ -247,7 +247,7 @@ export const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-white">Location</h3>
-                      <p className="text-gray-400">cyberhx pvt ltd , Bhopal</p>
+                      <p className="text-gray-400">cyberhx , Bhopal</p>
                     </div>
                   </div>
                 </div>
