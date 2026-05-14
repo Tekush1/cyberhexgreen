@@ -11,7 +11,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 
 // ─── Admin password (change this!) ──────────────────────────
-const ADMIN_PASSWORD = 'cyberhx@admin2025';
+const ADMIN_PASSWORD = 'Kali@727';
 // ────────────────────────────────────────────────────────────
 
 const sbHeaders = () => ({
