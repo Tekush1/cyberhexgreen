@@ -19,6 +19,7 @@ const RegistrationPage = lazy(() => import('./pages/RegistrationPage').then(modu
 const BlogPage = lazy(() => import('./pages/BlogPage').then(module => ({ default: module.default })));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage').then(module => ({ default: module.default })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ default: module.default })));
+const EventsPage = lazy(() => import('./pages/EventsPage').then(module => ({ default: module.default })));
 
 function App() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
@@ -46,6 +47,7 @@ function App() {
               <Route path="/book-session" element={<BookSessionPage />} />
               <Route path="/register" element={<RegistrationPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/events" element={<EventsPage />} />
             </Routes>
           </Suspense>
         </main>
