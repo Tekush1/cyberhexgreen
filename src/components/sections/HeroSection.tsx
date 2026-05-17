@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Terminal, Cpu } from 'lucide-react';
+import { ArrowRight, Terminal, Cpu, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const HeroSection = () => {
@@ -63,18 +63,24 @@ export const HeroSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.7 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
+          className="flex flex-col sm:flex-row gap-4 justify-center mb-6"
         >
+          {/* ZeroDay Heist — Red event button (primary) */}
           <a
-            href="https://pentestlab.cyberhx.com"
+            href="https://zerodayheist.cyberhx.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-primary text-black font-semibold px-8 py-3.5 rounded-lg hover:bg-primary/90 transition-all duration-200 text-sm"
+            className="relative inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-semibold px-8 py-3.5 rounded-lg transition-all duration-200 text-sm overflow-hidden group"
           >
-            <Terminal size={18} />
-            Open Pentest Lab
-            <ArrowRight size={16} />
+            {/* Pulse ring */}
+            <span className="absolute inset-0 rounded-lg ring-2 ring-red-500/40 animate-pulse" />
+            <Zap size={18} className="relative z-10" />
+            <span className="relative z-10">ZeroDay Heist</span>
+            <span className="relative z-10 text-xs bg-white/20 px-1.5 py-0.5 rounded-full font-normal">Live</span>
+            <ArrowRight size={16} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
           </a>
+
+          {/* CTF Platform — secondary */}
           <a
             href="https://ctf.cyberhx.com"
             target="_blank"
@@ -86,11 +92,24 @@ export const HeroSection = () => {
           </a>
         </motion.div>
 
+        {/* ZeroDay subtext */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55, duration: 0.6 }}
+          className="text-xs text-gray-600 mb-10"
+        >
+          🔴 Registration for ZeroDay Heist is now open —{' '}
+          <a href="https://zerodayheist.cyberhx.com" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 underline underline-offset-2">
+            secure your spot
+          </a>
+        </motion.p>
+
         {/* Feature chips */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
+          transition={{ delay: 0.65, duration: 0.8 }}
           className="flex flex-wrap justify-center gap-3"
         >
           {[
