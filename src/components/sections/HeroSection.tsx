@@ -100,7 +100,7 @@ export const HeroSection = () => {
           className="text-xs text-gray-600 mb-10"
         >
           🔴 Registration for ZeroDay Heist is now open —{' '}
-          <a href="https://zerodayheist.cyberhx.com" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 underline underline-offset-2">
+          <a href="https://unstop.com/hackathons/zero-day-heist-6-hour-ctf-challenge-cyber-hx-1683151" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 underline underline-offset-2">
             secure your spot
           </a>
         </motion.p>
