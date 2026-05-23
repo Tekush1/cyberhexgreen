@@ -726,9 +726,9 @@ export const About = () => {
         "Ethical Hacking"
       ],
       socials: {
-        linkedin: "https://www.linkedin.com/in/kushagra-dwivedi",
-        instagram: "https://www.instagram.com/kushagra.dwivedi",
-        github: "https://github.com/kushagra-dwivedi"
+        linkedin: "https://in.linkedin.com/in/kushagra-dwivedi-0342062b8",
+        instagram: "https://www.instagram.com/iamkushagra.dwivedi",
+        github: "https://github.com/tekush1"
       }
     }
   ];
