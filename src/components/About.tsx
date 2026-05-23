@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Target, Users, Zap, Shield, ChevronDown, ChevronUp, Trophy } from 'lucide-react';
+import { Target, Users, Zap, Shield, ChevronDown, ChevronUp, Trophy, Linkedin, Github, Instagram } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, MeshDistortMaterial } from '@react-three/drei';
@@ -724,7 +724,12 @@ export const About = () => {
         "Network Security",
         "Penetration Testing",
         "Ethical Hacking"
-      ]
+      ],
+      socials: {
+        linkedin: "https://www.linkedin.com/in/kushagra-dwivedi",
+        instagram: "https://www.instagram.com/kushagra.dwivedi",
+        github: "https://github.com/kushagra-dwivedi"
+      }
     }
   ];
 
@@ -902,6 +907,49 @@ export const About = () => {
                       ))}
                     </div>
                   </div>
+
+                  {member.socials && (
+                    <div className="pt-2 border-t border-gray-700/50">
+                      <div className="flex items-center gap-3 mt-3">
+                        {member.socials.linkedin && (
+                          <a
+                            href={member.socials.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-all hover:scale-105 hover:brightness-110"
+                            style={{ backgroundColor: '#0A66C2' }}
+                          >
+                            <Linkedin className="w-4 h-4" />
+                            <span>LinkedIn</span>
+                          </a>
+                        )}
+                        {member.socials.instagram && (
+                          <a
+                            href={member.socials.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-all hover:scale-105 hover:brightness-110"
+                            style={{ background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
+                          >
+                            <Instagram className="w-4 h-4" />
+                            <span>Instagram</span>
+                          </a>
+                        )}
+                        {member.socials.github && (
+                          <a
+                            href={member.socials.github}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-all hover:scale-105 hover:brightness-110"
+                            style={{ backgroundColor: '#161B22', border: '1px solid #30363d' }}
+                          >
+                            <Github className="w-4 h-4" />
+                            <span>GitHub</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
