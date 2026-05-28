@@ -24,7 +24,7 @@ export const HallOfFame = () => {
       socials: {
         github: "https://github.com/Sejalhere",
         linkedin: "https://www.linkedin.com/in/sejaltiwari13",
-        instagram: "https://www.instagram.com/sejallllll._.13"
+        instagram: "https://www.instagram.com/sejal._.13"
       }
     }
   
