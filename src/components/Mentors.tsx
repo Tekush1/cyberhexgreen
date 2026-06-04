@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Github, Linkedin, Mail, Search, Filter, BookOpen, Code, Brain, Star, Calendar, Instagram } from 'lucide-react';
+import { Github, Linkedin, Mail, Search, Filter, BookOpen, Code, Brain, Star, Calendar, Instagram, Sword } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Modal } from './shared/Modal';
 import { BookSessionForm } from './forms/BookSessionForm';
@@ -15,12 +15,13 @@ export const Mentors = () => {
   const mentors = [
     {
       name: "Kushagra Dwivedi",
-      role: "Founder of cyberhx",
+      role: "Founder of CyberHX | Web & Network Pentester",
       expertise: ["Cybersecurity", "Ethical Hacking", "DevSecOps"],
       experience: "5+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/kscBzpxZ/Whats-App-Image-2025-07-01-at-1-02-59-AM.jpg",
-      bio: "Ethical Hacker",
+      bio: "Web Pentester, Shell Scripter & InfoSec Analyst from RGPV. Certified API Security Analyst and Anthropic-certified developer with hands-on experience in network pentesting and IoT security.",
+      team: "CyberXoX",
       achievements: ["Author", "CTF National Player"],
       socials: {
         github: "https://github.com/tekush1",
@@ -35,7 +36,8 @@ export const Mentors = () => {
       experience: "2+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg",
-      bio: "Cybersecurity Analyst with 150+ hands-on labs, 10+ CTFs, and national-level hackathons. Currently SOC Trainer at Cyber Toddler. TryHackMe Top 1% globally.",
+      bio: "Cybersecurity Analyst with 150+ hands-on labs and 10+ CTFs. Currently SOC Trainer at Cyber Toddler with TryHackMe Top 1% global ranking and national-level hackathon experience.",
+      team: "CyberXoX",
       achievements: ["TryHackMe Top 1% Globally", "KashiCTF 2026 – Top 10 Finish", "CCSP-AWS Certified with Merit", "SOC Trainer @ Cyber Toddler"],
       socials: {
         github: "https://github.com/cybxmonk/",
@@ -51,7 +53,8 @@ export const Mentors = () => {
       experience: "3+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/HpPdHYZ1/IMG-20260404-WA0097-Mithun-Achary.jpg",
-      bio: "System Engineer at TCS with CEH v13, AZ-500, and CAP certifications. TryHackMe Top 1%, Captain of CyberXoX CTF team. Passionate red teamer and active CTF competitor.",
+      bio: "System Engineer at TCS with CEH v13, AZ-500, and CAP certifications. TryHackMe Top 1% and Captain of CyberXoX CTF team with active red teaming and threat intelligence experience.",
+      team: "CyberXoX",
       achievements: ["CEH v13 | AZ-500 | CAP Certified", "TryHackMe Top 1%", "Captain – CyberXoX CTF Team", "QuickHeal Certified"],
       socials: {
         github: "https://github.com/mithunmadhukuttan",
@@ -67,7 +70,8 @@ export const Mentors = () => {
       experience: "2+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/pr9B5FBh/Ad-By-G0d-2-kjss-srivatsav.jpg",
-      bio: "Versatile security professional with knowledge spanning multiple domains. Committed to empowering the next generation of cybersecurity professionals.",
+      bio: "Versatile security professional with OSCP+ certification spanning multiple domains. Committed to empowering the next generation of cybersecurity professionals through hands-on mentorship.",
+      team: "CyberXoX",
       achievements: ["OSCP+, Multi-Domain Security Expert", "Cybersecurity Mentor"],
       socials: {
         github: "https://github.com/KoyyaJnyandeep",
@@ -81,8 +85,9 @@ export const Mentors = () => {
       expertise: ["Web & Android Pentesting", "Network Security", "Security Research"],
       experience: "2+ years",
       availability: "Flexible Hours",
-      image: "https://i.ibb.co/profile-no-star/profile-no-star-aman-tomar.png",
-      bio: "Cyber Security Engineer at TCS with CEH certification. Specializes in web & Android pentesting, builds open-source security tools, and actively participates in CTFs on HackTheBox and TryHackMe.",
+      image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
+      bio: "Cyber Security Engineer at TCS with CEH certification specializing in web & Android pentesting. Builds open-source security tools and actively competes in CTFs on HackTheBox and TryHackMe.",
+      team: "CyberXoX",
       achievements: ["CEH Certified – EC-Council (2025)", "CyberXoX – 22nd Place BH USA CTF 2025", "Built StegAll – Open Source Steganography Toolkit", "Bug Bounty – Vulnerability Disclosure Recognition"],
       socials: {
         github: "https://github.com/Amansinghtomar12",
@@ -182,12 +187,19 @@ export const Mentors = () => {
                   />
                   <div>
                     <h3 className="text-xl font-semibold text-white">{mentor.name}</h3>
-                    <p className="text-primary">{mentor.role}</p>
-                    <div className="flex items-center mt-1">
-                    </div>
+                    <p className="text-primary text-sm">{mentor.role}</p>
                   </div>
                 </div>
               </div>
+
+              {/* Team CyberXoX Badge */}
+              {mentor.team && (
+                <div className="px-6 pb-3">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                    ⚔️ Team {mentor.team}
+                  </span>
+                </div>
+              )}
 
               <div className="px-6 pb-4">
                 <div className="flex flex-wrap gap-2">
@@ -223,7 +235,7 @@ export const Mentors = () => {
                 <div className="space-y-2">
                   {mentor.achievements.map((achievement, i) => (
                     <div key={i} className="flex items-center text-sm">
-                      <Star className="w-4 h-4 text-primary mr-2" />
+                      <Star className="w-4 h-4 text-primary mr-2 flex-shrink-0" />
                       <span className="text-gray-300">{achievement}</span>
                     </div>
                   ))}
