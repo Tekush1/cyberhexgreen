@@ -66,9 +66,9 @@ export const Mentors = () => {
       expertise: ["Cybersecurity", "Web Development", "Ethical Hacking"],
       experience: "2+ years",
       availability: "Flexible Hours",
-      image: "https://ibb.co/WWtD31HH",
+      image: "https://i.ibb.co/pr9B5FBh/Ad-By-G0d-2-kjss-srivatsav.jpg",
       bio: "Versatile security professional with knowledge spanning multiple domains. Committed to empowering the next generation of cybersecurity professionals.",
-      achievements: ["Multi-Domain Security Expert", "Cybersecurity Mentor"],
+      achievements: ["OSCP+, Multi-Domain Security Expert", "Cybersecurity Mentor"],
       socials: {
         github: "https://github.com/KoyyaJnyandeep",
         linkedin: "https://www.linkedin.com/in/jnyandeep-koyya-938a87304",
