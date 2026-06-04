@@ -138,7 +138,7 @@ const Terminal = () => {
               ' | |   | | | |_ ',
               ' |_|   |_| |___|',
               '',
-              'KSR{y8u_d1d_1t}',
+              'CyberHx{y8u_d1d_1t}',
             ],
             type: 'success'
           };
