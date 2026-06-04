@@ -1,3 +1,170 @@
+Claude finished the response
+
+yeh dekho
+
+Screen reader support enabled.
+3 responses
+Name3 responses
+Prasad Chinchore
+Mithun Achary
+Kjssrivatsav 
+Email3 responses
+pdchinchore2005@gmail.com
+ccryptonite1@gmail.com
+vatsav.k.2705@gmail.com
+linkedin ID3 responses
+https://www.linkedin.com/in/prx02/
+https://www.linkedin.com/in/mithun-m-achary
+in.linkedin.com/in/jnyandeep-koyya-938a87304
+instagram id (optional)2 responses
+https://www.instagram.com/prx02_
+Ashwamit2199
+github id3 responses
+https://github.com/cybxmonk/
+https://github.com/mithunmadhukuttan
+https://github.com/KoyyaJnyandeep
+Phone number3 responses
+9359979896
+9054211828
+9866718866
+ skills( 2-4)3 responses
+Web Application Pentesting, CyberSecurity, VAPT
+Web Pentesting, Network Security, AI Security, Threat Intelligence 
+Everything 
+4 acheivements jis se log phechane2 responses
+Option 1100%
+    https://ibb.co/Kz3pSvpK
+https://ibb.co/JFpQs2Z0
+https://ibb.co/WWtD31HH
+.
+Banner hidden 
+
+enko bhi add krna hai
+10:14 PM
+
+Pehle existing code dekh liya. Ab teen naye mentors add karne hain form responses se. Let me update the mentors array.
+Reading the skill file
+
+Theek hai, ab updated component banata hoon teen naye mentors ke saath:
+Created a file, read a file
+Done
+
+Teen naye mentors add kar diye hain. Kya kya changes kiye:
+
+Naye Mentors Added:
+
+    Prasad Chinchore — Web App Pentesting, CyberSecurity, VAPT | GitHub, LinkedIn, Instagram
+    Mithun Achary — Web Pentesting, Network Security, AI Security, Threat Intelligence | GitHub, LinkedIn, Instagram
+    Kjss Srivatsav — Cybersecurity, Web Development, Ethical Hacking | GitHub, LinkedIn
+
+Aur kya fix kiya:
+
+    Email links mein mailto: prefix add kiya taaki click karne pe email client khule
+    Social links mein target="_blank" add kiya taaki new tab mein khule
+    Instagram icon bhi add kiya (jo mentors ke paas Instagram tha unke liye conditionally show hoga)
+    Instagram icon lucide-react se import kiya
+
+Note: Images ke liye ibb.co direct links diye hain form se — agar images load na hon toh unhe proper hosted URLs se replace karna hoga.
+Mentors
+Code · JSX 
+
+[MITHUN M ACHARY](https://www.linkedin.com/in/mithun-m-achary/)
+He/Him
+· 2nd
+System Engineer @TCS 🌐 | CEH v13 | AZ-500 | CAP | (C|CPTP) | C3SA | CNSP | SC-900 | THM top 1% 💻 | Quickheal Certified | 🔴 Teamer | CTF player | Captain CyberXoX |
+10:30 PM
+
+LinkedIn profiles dekh liya. Ab updated bio aur achievements update karta hoon dono mentors ke liye proper information ke saath.
+Edited a file, read a file
+
+Done! Dono mentors update ho gaye hain actual LinkedIn info se:
+
+Prasad Chinchore — Role: "Penetration Tester | Red Teamer | SOC Trainer", achievements mein TryHackMe Top 1%, KashiCTF Top 10, CCSP-AWS with Merit, aur SOC Trainer @ Cyber Toddler.
+
+Mithun M Achary — Role: "System Engineer @TCS | Red Teamer | CTF Player", achievements mein CEH v13, AZ-500, CAP certifications, TryHackMe Top 1%, aur Captain of CyberXoX CTF Team.
+Mentors
+Code · JSX 
+
+Screen reader support enabled.
+4 responses
+Name4 responses
+Prasad Chinchore
+Mithun Achary
+Kjssrivatsav 
+Aman Singh Tomar
+Email4 responses
+pdchinchore2005@gmail.com
+ccryptonite1@gmail.com
+vatsav.k.2705@gmail.com
+amantomar50948@gmail.com
+linkedin ID4 responses
+https://www.linkedin.com/in/prx02/
+https://www.linkedin.com/in/mithun-m-achary
+in.linkedin.com/in/jnyandeep-koyya-938a87304
+http://www.linkedin.com/in/aman-singh-tomar
+instagram id (optional)2 responses
+https://www.instagram.com/prx02_
+Ashwamit2199
+github id4 responses
+https://github.com/cybxmonk/
+https://github.com/mithunmadhukuttan
+https://github.com/KoyyaJnyandeep
+https://github.com/Amansinghtomar12
+Phone number4 responses
+9359979896
+9054211828
+9866718866
+6396575925
+ skills( 2-4)4 responses
+Web Application Pentesting, CyberSecurity, VAPT
+Web Pentesting, Network Security, AI Security, Threat Intelligence 
+Everything 
+Web & Android Penetration testing, Security Researcher
+4 acheivements jis se log phechane3 responses
+Option 1100%
+
+Option 1    3
+profile photo jo lagani ho 4 responses
+Image
+Prasad Photo - Prasad Chinchore.jpg
+Image
+IMG-20260404-WA0097 - Mithun Achary.jpg
+Image
+AdByG0d~2 - kjss srivatsav.png
+Image
+profile_no_star - aman tomar.png
+.
+Banner hidden 
+
+aman ki info add krni hai bss
+10:38 PM
+
+Aman Tomar ka LinkedIn profile dekh liya. Ab unhe add karta hoon.
+Edited 2 files
+
+Oops, { missing tha. Fix karta hoon:
+Edited a file, viewed a file
+
+Line 63-64 pe double { hai. Fix karta hoon:
+Remove duplicate opening brace
+
+Also image URL fix karta hoon — form se actual filename profile_no_star - aman tomar.png tha:
+Edited a file, read a file
+
+Aman Singh Tomar successfully add ho gaye! Unki details:
+
+    Role: Cyber Security Engineer @TCS | CEH v12 | Security Researcher
+    Skills: Web & Android Pentesting, Network Security, Security Research
+    Achievements: CEH Certified, CyberXoX BH USA CTF 2025 (22nd place), StegAll toolkit creator, Bug Bounty recognition
+    Socials: GitHub, LinkedIn, Email
+
+Note: Aman ki profile photo ka ibb.co URL confirm kar lena — form mein filename profile_no_star - aman tomar.png tha, toh jo actual hosted link hai woh apne code mein update kar dena.
+Mentors
+Code · JSX 
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+Mentors · JSX
 import React, { useState } from 'react';
 import { Github, Linkedin, Mail, Search, Filter, BookOpen, Code, Brain, Star, Calendar, Instagram } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -5,17 +172,17 @@ import { Modal } from './shared/Modal';
 import { BookSessionForm } from './forms/BookSessionForm';
 import { BecomeMentorForm } from './forms/BecomeMentorForm';
 import { useNavigate } from 'react-router-dom';
-
+ 
 export const Mentors = () => {
   const [selectedExpertise, setSelectedExpertise] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
   const navigate = useNavigate();
-
+ 
   const mentors = [
     {
       name: "Kushagra Dwivedi",
-      role: "DevOps Engineer",
+      role: "Founder of cyberhx",
       expertise: ["Cybersecurity", "Ethical Hacking", "DevSecOps"],
       experience: "5+ years",
       availability: "Flexible Hours",
@@ -29,18 +196,15 @@ export const Mentors = () => {
       }
     },
     {
-    
       name: "Prasad Chinchore",
       role: "Penetration Tester | Red Teamer | SOC Trainer",
       expertise: ["Web Application Pentesting", "Cloud Security", "VAPT"],
       experience: "2+ years",
       availability: "Flexible Hours",
-
-      image: "https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg",
-           bio: "Cybersecurity Analyst with 150+ hands-on labs, 10+ CTFs, and national-level hackathons. Currently SOC Trainer at Cyber Toddler. TryHackMe Top 1% globally.",
+      image: "https://ibb.co/Kz3pSvpK",
+      bio: "Cybersecurity Analyst with 150+ hands-on labs, 10+ CTFs, and national-level hackathons. Currently SOC Trainer at Cyber Toddler. TryHackMe Top 1% globally.",
       achievements: ["TryHackMe Top 1% Globally", "KashiCTF 2026 – Top 10 Finish", "CCSP-AWS Certified with Merit", "SOC Trainer @ Cyber Toddler"],
       socials: {
-
         github: "https://github.com/cybxmonk/",
         linkedin: "https://www.linkedin.com/in/prx02/",
         email: "mailto:pdchinchore2005@gmail.com",
@@ -48,21 +212,34 @@ export const Mentors = () => {
       }
     },
     {
-           name: "Mithun M Achary",
+      name: "Mithun M Achary",
       role: "System Engineer @TCS | Red Teamer | CTF Player",
       expertise: ["Web Pentesting", "Network Security", "AI Security", "Threat Intelligence"],
       experience: "3+ years",
       availability: "Flexible Hours",
-
-      image: "https://i.ibb.co/HpPdHYZ1/IMG-20260404-WA0097-Mithun-Achary.jpg",
-           bio: "System Engineer at TCS with CEH v13, AZ-500, and CAP certifications. TryHackMe Top 1%, Captain of CyberXoX CTF team. Passionate red teamer and active CTF competitor.",
+      image: "https://ibb.co/JFpQs2Z0",
+      bio: "System Engineer at TCS with CEH v13, AZ-500, and CAP certifications. TryHackMe Top 1%, Captain of CyberXoX CTF team. Passionate red teamer and active CTF competitor.",
       achievements: ["CEH v13 | AZ-500 | CAP Certified", "TryHackMe Top 1%", "Captain – CyberXoX CTF Team", "QuickHeal Certified"],
       socials: {
-
         github: "https://github.com/mithunmadhukuttan",
         linkedin: "https://www.linkedin.com/in/mithun-m-achary",
         email: "mailto:ccryptonite1@gmail.com",
         instagram: "https://www.instagram.com/Ashwamit2199"
+      }
+    },
+    {
+      name: "Aman Singh Tomar",
+      role: "Cyber Security Engineer @TCS | CEH v12 | Security Researcher",
+      expertise: ["Web & Android Pentesting", "Network Security", "Security Research"],
+      experience: "2+ years",
+      availability: "Flexible Hours",
+      image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
+      bio: "Cyber Security Engineer at TCS with CEH certification. Specializes in web & Android pentesting, builds open-source security tools, and actively participates in CTFs on HackTheBox and TryHackMe.",
+      achievements: ["CEH Certified – EC-Council (2025)", "CyberXoX – 22nd Place BH USA CTF 2025", "Built StegAll – Open Source Steganography Toolkit", "Bug Bounty – Vulnerability Disclosure Recognition"],
+      socials: {
+        github: "https://github.com/Amansinghtomar12",
+        linkedin: "http://www.linkedin.com/in/aman-singh-tomar",
+        email: "mailto:amantomar50948@gmail.com"
       }
     },
     {
@@ -71,9 +248,9 @@ export const Mentors = () => {
       expertise: ["Cybersecurity", "Web Development", "Ethical Hacking"],
       experience: "2+ years",
       availability: "Flexible Hours",
-      image: "https://i.ibb.co/pr9B5FBh/Ad-By-G0d-2-kjss-srivatsav.jpg",
+      image: "https://ibb.co/WWtD31HH",
       bio: "Versatile security professional with knowledge spanning multiple domains. Committed to empowering the next generation of cybersecurity professionals.",
-      achievements: ["OSCP+, Multi-Domain Security Expert", "Cybersecurity Mentor"],
+      achievements: ["Multi-Domain Security Expert", "Cybersecurity Mentor"],
       socials: {
         github: "https://github.com/KoyyaJnyandeep",
         linkedin: "https://www.linkedin.com/in/jnyandeep-koyya-938a87304",
@@ -81,14 +258,14 @@ export const Mentors = () => {
       }
     },
   ];
-
+ 
   const expertiseCategories = [
     { id: 'all', label: 'All Categories', icon: <Filter /> },
     { id: 'Web Development', label: 'Web Development', icon: <Code /> },
     { id: 'Machine Learning', label: 'Machine Learning', icon: <Brain /> },
     { id: 'Product Management', label: 'Product Management', icon: <BookOpen /> }
   ];
-
+ 
   const filteredMentors = mentors.filter(mentor => {
     const matchesExpertise = selectedExpertise === 'all' || mentor.expertise.includes(selectedExpertise);
     const matchesSearch = mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,11 +273,11 @@ export const Mentors = () => {
                          mentor.expertise.some(exp => exp.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesExpertise && matchesSearch;
   });
-
+ 
   const handleBookSession = () => {
     navigate('/book-session');
   };
-
+ 
   return (
     <section className="py-24 bg-dark-300 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,7 +298,7 @@ export const Mentors = () => {
             Connect with experienced mentors who are passionate about helping you succeed in your tech journey.
           </motion.p>
         </div>
-
+ 
         <div className="mb-12">
           <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
             <div className="relative flex-1">
@@ -153,7 +330,7 @@ export const Mentors = () => {
             </div>
           </div>
         </div>
-
+ 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredMentors.map((mentor, index) => (
             <motion.div
@@ -178,7 +355,7 @@ export const Mentors = () => {
                   </div>
                 </div>
               </div>
-
+ 
               <div className="px-6 pb-4">
                 <div className="flex flex-wrap gap-2">
                   {mentor.expertise.map((exp, i) => (
@@ -191,11 +368,11 @@ export const Mentors = () => {
                   ))}
                 </div>
               </div>
-
+ 
               <div className="px-6 pb-4">
                 <p className="text-gray-300 text-sm">{mentor.bio}</p>
               </div>
-
+ 
               <div className="px-6 pb-4">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center">
@@ -208,7 +385,7 @@ export const Mentors = () => {
                   </div>
                 </div>
               </div>
-
+ 
               <div className="px-6 pb-4">
                 <div className="space-y-2">
                   {mentor.achievements.map((achievement, i) => (
@@ -219,7 +396,7 @@ export const Mentors = () => {
                   ))}
                 </div>
               </div>
-
+ 
               <div className="px-6 py-4 bg-dark-100 flex items-center justify-between">
                 <div className="flex space-x-4">
                   <a href={mentor.socials.github} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary">
@@ -248,7 +425,7 @@ export const Mentors = () => {
           ))}
         </div>
       </div>
-
+ 
       <Modal
         isOpen={isMentorModalOpen}
         onClose={() => setIsMentorModalOpen(false)}
@@ -259,3 +436,5 @@ export const Mentors = () => {
     </section>
   );
 };
+ 
+
