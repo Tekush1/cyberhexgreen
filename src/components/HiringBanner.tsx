@@ -74,7 +74,7 @@ export const HiringBanner: React.FC = () => {
                 </div>
 
                 <motion.button
-                  onClick={() => window.open('https://forms.gle/K5qSEYwjQ9pcmowz9', '_blank')}
+                  onClick={() => window.open('https://cyberhx.com/contact', '_blank')}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-full bg-primary text-dark-300 py-2 px-4 rounded-lg font-medium text-sm hover:bg-secondary transition-colors flex items-center justify-center"
