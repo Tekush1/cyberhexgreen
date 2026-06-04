@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Github, Linkedin, Mail, Search, Filter, BookOpen, Code, Brain, Star, Calendar } from 'lucide-react';
+import { Github, Linkedin, Mail, Search, Filter, BookOpen, Code, Brain, Star, Calendar, Instagram } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Modal } from './shared/Modal';
 import { BookSessionForm } from './forms/BookSessionForm';
@@ -14,21 +14,67 @@ export const Mentors = () => {
 
   const mentors = [
     {
-      name: "Kushagra Dwivedi ",
+      name: "Kushagra Dwivedi",
       role: "Founder of cyberhx",
       expertise: ["Cybersecurity", "Ethical Hacking", "DevSecOps"],
       experience: "5+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/kscBzpxZ/Whats-App-Image-2025-07-01-at-1-02-59-AM.jpg",
-      bio: "Ethical Hacker ",
-      achievements: ["Author", "CTF Nationl player" ],
+      bio: "Ethical Hacker",
+      achievements: ["Author", "CTF National Player"],
       socials: {
         github: "https://github.com/tekush1",
         linkedin: "https://www.linkedin.com/in/kushagra-dwivedi-0342062b8/",
-        email: "kushdwivedikd@gmail.com"
+        email: "mailto:kushdwivedikd@gmail.com"
       }
     },
-
+    {
+      name: "Prasad Chinchore",
+      role: "Cybersecurity Specialist",
+      expertise: ["Web Application Pentesting", "CyberSecurity", "VAPT"],
+      experience: "3+ years",
+      availability: "Flexible Hours",
+      image: "https://ibb.co/Kz3pSvpK",
+      bio: "Passionate about web application security and vulnerability assessment. Helping others break into cybersecurity.",
+      achievements: ["Web App Pentesting Expert", "VAPT Specialist"],
+      socials: {
+        github: "https://github.com/cybxmonk/",
+        linkedin: "https://www.linkedin.com/in/prx02/",
+        email: "mailto:pdchinchore2005@gmail.com",
+        instagram: "https://www.instagram.com/prx02_"
+      }
+    },
+    {
+      name: "Mithun Achary",
+      role: "AI Security & Network Expert",
+      expertise: ["Web Pentesting", "Network Security", "AI Security", "Threat Intelligence"],
+      experience: "3+ years",
+      availability: "Flexible Hours",
+      image: "https://ibb.co/JFpQs2Z0",
+      bio: "Specialized in AI security and threat intelligence. Bridging the gap between traditional network security and modern AI-driven threats.",
+      achievements: ["AI Security Researcher", "Network Security Expert", "Threat Intelligence Analyst"],
+      socials: {
+        github: "https://github.com/mithunmadhukuttan",
+        linkedin: "https://www.linkedin.com/in/mithun-m-achary",
+        email: "mailto:ccryptonite1@gmail.com",
+        instagram: "https://www.instagram.com/Ashwamit2199"
+      }
+    },
+    {
+      name: "Kjss Srivatsav",
+      role: "Full-Stack Security Enthusiast",
+      expertise: ["Cybersecurity", "Web Development", "Ethical Hacking"],
+      experience: "2+ years",
+      availability: "Flexible Hours",
+      image: "https://ibb.co/WWtD31HH",
+      bio: "Versatile security professional with knowledge spanning multiple domains. Committed to empowering the next generation of cybersecurity professionals.",
+      achievements: ["Multi-Domain Security Expert", "Cybersecurity Mentor"],
+      socials: {
+        github: "https://github.com/KoyyaJnyandeep",
+        linkedin: "https://www.linkedin.com/in/jnyandeep-koyya-938a87304",
+        email: "mailto:vatsav.k.2705@gmail.com"
+      }
+    },
   ];
 
   const expertiseCategories = [
@@ -171,12 +217,17 @@ export const Mentors = () => {
 
               <div className="px-6 py-4 bg-dark-100 flex items-center justify-between">
                 <div className="flex space-x-4">
-                  <a href={mentor.socials.github} className="text-gray-400 hover:text-primary">
+                  <a href={mentor.socials.github} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary">
                     <Github className="w-5 h-5" />
                   </a>
-                  <a href={mentor.socials.linkedin} className="text-gray-400 hover:text-primary">
+                  <a href={mentor.socials.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary">
                     <Linkedin className="w-5 h-5" />
                   </a>
+                  {mentor.socials.instagram && (
+                    <a href={mentor.socials.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary">
+                      <Instagram className="w-5 h-5" />
+                    </a>
+                  )}
                   <a href={mentor.socials.email} className="text-gray-400 hover:text-primary">
                     <Mail className="w-5 h-5" />
                   </a>
