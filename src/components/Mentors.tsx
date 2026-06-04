@@ -15,7 +15,7 @@ export const Mentors = () => {
   const mentors = [
     {
       name: "Kushagra Dwivedi",
-      role: "Founder of cyberhx",
+      role: "DevOps Engineer",
       expertise: ["Cybersecurity", "Ethical Hacking", "DevSecOps"],
       experience: "5+ years",
       availability: "Flexible Hours",
@@ -34,7 +34,7 @@ export const Mentors = () => {
       expertise: ["Web Application Pentesting", "CyberSecurity", "VAPT"],
       experience: "3+ years",
       availability: "Flexible Hours",
-      image: "https://ibb.co/Kz3pSvpK",
+      image: "https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg",
       bio: "Passionate about web application security and vulnerability assessment. Helping others break into cybersecurity.",
       achievements: ["Web App Pentesting Expert", "VAPT Specialist"],
       socials: {
@@ -50,7 +50,7 @@ export const Mentors = () => {
       expertise: ["Web Pentesting", "Network Security", "AI Security", "Threat Intelligence"],
       experience: "3+ years",
       availability: "Flexible Hours",
-      image: "https://ibb.co/JFpQs2Z0",
+      image: "https://i.ibb.co/HpPdHYZ1/IMG-20260404-WA0097-Mithun-Achary.jpg",
       bio: "Specialized in AI security and threat intelligence. Bridging the gap between traditional network security and modern AI-driven threats.",
       achievements: ["AI Security Researcher", "Network Security Expert", "Threat Intelligence Analyst"],
       socials: {
