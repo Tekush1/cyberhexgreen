@@ -29,15 +29,18 @@ export const Mentors = () => {
       }
     },
     {
+    
       name: "Prasad Chinchore",
-      role: "Cybersecurity Specialist",
-      expertise: ["Web Application Pentesting", "CyberSecurity", "VAPT"],
-      experience: "3+ years",
+      role: "Penetration Tester | Red Teamer | SOC Trainer",
+      expertise: ["Web Application Pentesting", "Cloud Security", "VAPT"],
+      experience: "2+ years",
       availability: "Flexible Hours",
+
       image: "https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg",
-      bio: "Passionate about web application security and vulnerability assessment. Helping others break into cybersecurity.",
-      achievements: ["Web App Pentesting Expert", "VAPT Specialist"],
+           bio: "Cybersecurity Analyst with 150+ hands-on labs, 10+ CTFs, and national-level hackathons. Currently SOC Trainer at Cyber Toddler. TryHackMe Top 1% globally.",
+      achievements: ["TryHackMe Top 1% Globally", "KashiCTF 2026 – Top 10 Finish", "CCSP-AWS Certified with Merit", "SOC Trainer @ Cyber Toddler"],
       socials: {
+
         github: "https://github.com/cybxmonk/",
         linkedin: "https://www.linkedin.com/in/prx02/",
         email: "mailto:pdchinchore2005@gmail.com",
@@ -45,15 +48,17 @@ export const Mentors = () => {
       }
     },
     {
-      name: "Mithun Achary",
-      role: "AI Security & Network Expert",
+           name: "Mithun M Achary",
+      role: "System Engineer @TCS | Red Teamer | CTF Player",
       expertise: ["Web Pentesting", "Network Security", "AI Security", "Threat Intelligence"],
       experience: "3+ years",
       availability: "Flexible Hours",
+
       image: "https://i.ibb.co/HpPdHYZ1/IMG-20260404-WA0097-Mithun-Achary.jpg",
-      bio: "Specialized in AI security and threat intelligence. Bridging the gap between traditional network security and modern AI-driven threats.",
-      achievements: ["AI Security Researcher", "Network Security Expert", "Threat Intelligence Analyst"],
+           bio: "System Engineer at TCS with CEH v13, AZ-500, and CAP certifications. TryHackMe Top 1%, Captain of CyberXoX CTF team. Passionate red teamer and active CTF competitor.",
+      achievements: ["CEH v13 | AZ-500 | CAP Certified", "TryHackMe Top 1%", "Captain – CyberXoX CTF Team", "QuickHeal Certified"],
       socials: {
+
         github: "https://github.com/mithunmadhukuttan",
         linkedin: "https://www.linkedin.com/in/mithun-m-achary",
         email: "mailto:ccryptonite1@gmail.com",
