@@ -20,7 +20,7 @@ export const Mentors = () => {
       experience: "5+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/kscBzpxZ/Whats-App-Image-2025-07-01-at-1-02-59-AM.jpg",
-      bio: "Web Pentester, Shell Scripter & InfoSec Analyst from RGPV. Certified API Security Analyst and Anthropic-certified developer with hands-on experience in network pentesting and IoT security.",
+      bio: "Web Pentester • Shell Scripter • IoT Security • InfoSec Analyst",
       team: "CyberXoX",
       achievements: ["Author", "CTF National Player"],
       socials: {
@@ -36,7 +36,7 @@ export const Mentors = () => {
       experience: "2+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg",
-      bio: "Cybersecurity Analyst with 150+ hands-on labs and 10+ CTFs. Currently SOC Trainer at Cyber Toddler with TryHackMe Top 1% global ranking and national-level hackathon experience.",
+      bio: "150+ Labs • 10+ CTFs • SOC Trainer • THM Top 1%",
       team: "CyberXoX",
       achievements: ["TryHackMe Top 1% Globally", "KashiCTF 2026 – Top 10 Finish", "CCSP-AWS Certified with Merit", "SOC Trainer @ Cyber Toddler"],
       socials: {
@@ -48,12 +48,12 @@ export const Mentors = () => {
     },
     {
       name: "Mithun M Achary",
-      role: "System Engineer @TCS | Red Teamer | CTF Player",
+      role: "System Engineer | Red Teamer | CTF Player",
       expertise: ["Web Pentesting", "Network Security", "AI Security", "Threat Intelligence"],
       experience: "3+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/HpPdHYZ1/IMG-20260404-WA0097-Mithun-Achary.jpg",
-      bio: "System Engineer at TCS with CEH v13, AZ-500, and CAP certifications. TryHackMe Top 1% and Captain of CyberXoX CTF team with active red teaming and threat intelligence experience.",
+      bio: "CEH v13 • AZ-500 • Red Teamer • CTF Captain",
       team: "CyberXoX",
       achievements: ["CEH v13 | AZ-500 | CAP Certified", "TryHackMe Top 1%", "Captain – CyberXoX CTF Team", "QuickHeal Certified"],
       socials: {
@@ -70,7 +70,7 @@ export const Mentors = () => {
       experience: "2+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/pr9B5FBh/Ad-By-G0d-2-kjss-srivatsav.jpg",
-      bio: "Versatile security professional with OSCP+ certification spanning multiple domains. Committed to empowering the next generation of cybersecurity professionals through hands-on mentorship.",
+      bio: "OSCP+ • Multi-Domain • Web Security • Mentor",
       team: "CyberXoX",
       achievements: ["OSCP+, Multi-Domain Security Expert", "Cybersecurity Mentor"],
       socials: {
@@ -81,12 +81,12 @@ export const Mentors = () => {
     },
     {
       name: "Aman Singh Tomar",
-      role: "Cyber Security Engineer @TCS | CEH v12 | Security Researcher",
+      role: "Cyber Security Engineer | CEH v12 | Security Researcher",
       expertise: ["Web & Android Pentesting", "Network Security", "Security Research"],
       experience: "2+ years",
       availability: "Flexible Hours",
-      image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
-      bio: "Cyber Security Engineer at TCS with CEH certification specializing in web & Android pentesting. Builds open-source security tools and actively competes in CTFs on HackTheBox and TryHackMe.",
+      image: "https://i.ibb.co/profile-no-star/profile-no-star-aman-tomar.png",
+      bio: "CEH • Web Pentesting • Android Pentesting • Open Source",
       team: "CyberXoX",
       achievements: ["CEH Certified – EC-Council (2025)", "CyberXoX – 22nd Place BH USA CTF 2025", "Built StegAll – Open Source Steganography Toolkit", "Bug Bounty – Vulnerability Disclosure Recognition"],
       socials: {
@@ -95,6 +95,22 @@ export const Mentors = () => {
         email: "mailto:amantomar50948@gmail.com"
       }
     },
+    {
+      name: "Sathwika Putrevu",
+      role: "Cybersecurity Intern @ BCSSL | OSINT Specialist",
+      expertise: ["OSINT", "AI Security Testing"],
+      experience: "4+ years",
+      availability: "Flexible Hours",
+      image: "https://i.ibb.co/IMG-3647/IMG-3647-Sathwika-Putrevu.jpeg",
+      bio: "OSINT • AI Security • CTF Player • Recon",
+      team: "CyberXoX",
+      achievements: ["Cybersecurity Intern @ BCSSL", "KashiCTF 2026 – Top 10 Finish (Team K1d05)", "BSides Vizag 2025 – CTF Player \& Speaker Connect", "OSINT \& AI Security Researcher"],
+      socials: {
+        github: "https://github.com/sa7v1x3n",
+        linkedin: "https://linkedin.com/in/sathwikaputrevu",
+        email: "mailto:sathwikaputrevu5@gmail.com"
+      }
+    }
   ];
 
   const expertiseCategories = [
@@ -215,7 +231,7 @@ export const Mentors = () => {
               </div>
 
               <div className="px-6 pb-4">
-                <p className="text-gray-300 text-sm">{mentor.bio}</p>
+                <p className="text-gray-400 text-sm tracking-wide">{mentor.bio}</p>
               </div>
 
               <div className="px-6 pb-4">
