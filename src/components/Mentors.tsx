@@ -69,10 +69,10 @@ export const Mentors = () => {
       expertise: ["Cybersecurity", "Web Development", "Ethical Hacking"],
       experience: "5+ years",
       availability: "Flexible Hours",
-      image: "https://i.ibb.co/pr9B5FBh/Ad-By-G0d-2-kjss-srivatsav.jpg",
+      image: "https://i.ibb.co/KpRM8cTV/Screenshot-from-2026-06-05-18-45-45.png",
       bio: "OSCP+ • Multi-Domain • Web Security • Mentor",
       team: "CyberXoX",
-      achievements: ["OSCP+, Multi-Domain Security Expert", "Cybersecurity Mentor"],
+      achievements: ["OSCP, Ai security engineer, Red teamer ,Vapt analyst ,Strongest CTF playe"],
       socials: {
         github: "https://github.com/KoyyaJnyandeep",
         linkedin: "https://www.linkedin.com/in/jnyandeep-koyya-938a87304",
