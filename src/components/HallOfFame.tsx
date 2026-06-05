@@ -32,7 +32,7 @@ export const HallOfFame = () => {
       role: "Social Media Manager",
       expertise: ["Event Coordination", "Strategic Planning", "Team Management"],
       email: "tiwarisejal80@gmail.com",
-      image: "ttps://i.ibb.co/sd41DgMM/Whats-App-Image-2026-06-05-at-2-27-29-PM-1.jpg",
+      image: "https://i.ibb.co/sd41DgMM/Whats-App-Image-2026-06-05-at-2-27-29-PM-1.jpg",
       socials: {
         github: "https://github.com/Sejalhere",
         linkedin: "https://www.linkedin.com/in/sejaltiwari13",
