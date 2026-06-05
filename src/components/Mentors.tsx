@@ -70,9 +70,9 @@ export const Mentors = () => {
       experience: "5+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/KpRM8cTV/Screenshot-from-2026-06-05-18-45-45.png",
-      bio: "OSCP+ • Multi-Domain • Web Security • Mentor",
+      bio: "OSCP • Multi-Domain • Web Security • Mentor",
       team: "CyberXoX",
-      achievements: ["OSCP, Ai security engineer, Red teamer ,Vapt analyst ,Strongest CTF playe"],
+      achievements: ["OSCP", "Ai security engineer", "Red teamer", "Vapt analyst", "Strongest CTF player"],
       socials: {
         github: "https://github.com/KoyyaJnyandeep",
         linkedin: "https://www.linkedin.com/in/jnyandeep-koyya-938a87304",
