@@ -45,7 +45,6 @@ role: "Cybersecurity Researcher",
 expertise: [
 "Bug Bounty Hunting",
 "Web Security",
-"Vulnerability Assessment",
 "CTF Development"
 ],
 email: "babycoder143@gmail.com",

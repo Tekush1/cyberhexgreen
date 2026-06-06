@@ -82,7 +82,7 @@ export const Mentors = () => {
     {
       name: "Aman Singh Tomar",
       role: "Cyber Security Engineer | CEH v12 | Security Researcher",
-      expertise: ["Web & Android Pentesting", "Network Security"],
+      expertise: ["Pentesting", "Network Security"],
       experience: "6+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
