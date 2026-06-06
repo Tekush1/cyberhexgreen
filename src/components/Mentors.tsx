@@ -66,7 +66,7 @@ export const Mentors = () => {
     {
       name: "Kjss Srivatsav",
       role: "Full-Stack Security Enthusiast",
-      expertise: ["Cybersecurity", "Web Development", "Ethical Hacking"],
+      expertise: ["Web Development", "Ethical Hacking"],
       experience: "5+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/KpRM8cTV/Screenshot-from-2026-06-05-18-45-45.png",
@@ -82,13 +82,13 @@ export const Mentors = () => {
     {
       name: "Aman Singh Tomar",
       role: "Cyber Security Engineer | CEH v12 | Security Researcher",
-      expertise: ["Web & Android Pentesting", "Network Security", "Security Research"],
+      expertise: ["Web & Android Pentesting", "Network Security"],
       experience: "6+ years",
       availability: "Flexible Hours",
       image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
       bio: "CEH • Web Pentesting • Android Pentesting • Open Source",
       team: "CyberXoX",
-      achievements: ["CEH Certified – EC-Council (2025)", "CyberXoX – 22nd Place BH USA CTF 2025", "Built StegAll – Open Source Steganography Toolkit", "Bug Bounty – Vulnerability Disclosure Recognition"],
+      achievements: ["CEH Certified – EC-Council (2025)", "Built StegAll – Open Source Steganography Toolkit", "Bug Bounty – Vulnerability Disclosure Recognition"],
       socials: {
         github: "https://github.com/Amansinghtomar12",
         linkedin: "http://www.linkedin.com/in/aman-singh-tomar",

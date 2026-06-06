@@ -34,11 +34,29 @@ export const HallOfFame = () => {
       email: "rinshitrivedi195@gmail.com",
       image: "https://i.ibb.co/5p939Cj/Chat-GPT-Image-Jun-5-2026-02-55-29-PM.png",
       socials: {
-        github: "https://github.com/Sejalhere",
+        github: "https://github.com/riteshekbote",
         linkedin: "https://www.linkedin.com/in/sejaltiwari13",
         instagram: "https://www.instagram.com/iamrinshitrivedi"
       }
-    }
+    },
+    {
+name: "Ritesh Ekbote",
+role: "Cybersecurity Researcher",
+expertise: [
+"Bug Bounty Hunting",
+"Web Security",
+"Vulnerability Assessment",
+"CTF Development"
+],
+email: "babycoder143@gmail.com",
+image: "https://picsum.photos/id/237/536/354",
+socials: {
+linkedin: "https://www.linkedin.com/in/uml0zxnorwtib3rl",
+instagram: "https://www.instagram.com/baby_coder_143/",
+github: "https://github.com/riteshekbote",
+}
+},
+
   
   ];
 
