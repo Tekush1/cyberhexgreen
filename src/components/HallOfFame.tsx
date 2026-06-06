@@ -48,11 +48,27 @@ expertise: [
 "CTF Development"
 ],
 email: "babycoder143@gmail.com",
-image: "https://picsum.photos/id/237/536/354",
+image: "https://media.licdn.com/dms/image/v2/D4E03AQEdGwpoaCumUA/profile-displayphoto-crop_800_800/B4EZlL6wnrIQAI-/0/1757915319542?e=1782345600&v=beta&t=iIYnyypRwUFwNxD46ECHueiwfsgDLNz3Gny1V2JHxfY",
 socials: {
 linkedin: "https://www.linkedin.com/in/uml0zxnorwtib3rl",
 instagram: "https://www.instagram.com/baby_coder_143/",
 github: "https://github.com/riteshekbote",
+},
+{
+name: "Samit Pal",
+role: "Event Lead",
+expertise: [
+"Event Management",
+"Team Coordination",
+"Leadership",
+"System Design"
+],
+email: "samitpal.work@gmail.com",
+image: "https://instagram.fdel8-2.fna.fbcdn.net/v/t51.82787-19/696084395_17877886026596710_5618660967674367529_n.jpg?stp=dst-jpg_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=instagram.fdel8-2.fna.fbcdn.net&_nc_cat=110&_nc_oc=Q6cZ2gG5IW1FJVdod-tyW-qOgbibTmga5frz5F7P4s3QxIRyg0jLs1mzIt9aDwWMW1k8Foo&_nc_ohc=yQCroLc4lJkQ7kNvwFA2rMI&_nc_gid=D_KJeLFXaKnw4WRia11Q5Q&edm=AP4sbd4BAAAA&ccb=7-5&oh=00_Af9M5V4JUTExhILDXR6p0LQbHm_H-2j3jPyV7qB-DB0uaQ&oe=6A2A6B2D&_nc_sid=7a9f4b",
+socials: {
+linkedin: "https://www.linkedin.com/in/samit-pal-48a068310",
+instagram: "https://instagram.com/0xSamit",
+github: "https://github.com/spam-codes"
 }
 },
 
