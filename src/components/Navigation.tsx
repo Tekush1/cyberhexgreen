@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Shield, Home, Terminal, Code, Users, BookOpen, Mail, ChevronDown, Layers, Zap, Calendar, Clock, Trophy, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -197,6 +197,13 @@ export const Navigation = () => {
                           </div>
                         </div>
                       </a>
+                      <Link
+                        to="/gallery"
+                        onClick={() => setEventsOpen(false)}
+                        className="flex items-center justify-center gap-1.5 mt-2 w-full py-2 text-xs text-gray-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/5"
+                      >
+                        <Calendar size={12} /> View All Events →
+                      </Link>
                     </div>
                   </motion.div>
                 )}
@@ -278,6 +285,12 @@ export const Navigation = () => {
                   </div>
                   <span className="ml-auto text-xs text-gray-600">↗</span>
                 </a>
+                <Link to="/gallery" onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-primary hover:bg-primary/5 transition-all mt-1">
+                  <span className="text-primary flex-shrink-0"><Calendar size={16} /></span>
+                  <span>View All Events</span>
+                  <span className="ml-auto text-xs text-gray-600">→</span>
+                </Link>
               </motion.div>
 
               {staticNavItems.filter(i => i.href !== '/').map((item, index) => (

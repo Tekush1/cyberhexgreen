@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Terminal, Cpu } from 'lucide-react';
+import { ArrowRight, Terminal, Cpu, Calendar } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const CallToActionSection = () => {
   return (
@@ -42,6 +43,15 @@ export const CallToActionSection = () => {
             Open Pentest Lab
             <ArrowRight size={16} />
           </a>
+
+          <Link
+            to="/gallery"
+            className="inline-flex items-center justify-center gap-2 border border-gray-700 text-gray-300 font-medium px-8 py-3.5 rounded-lg hover:border-primary/50 hover:text-white transition-all duration-200 text-sm"
+          >
+            <Calendar size={18} />
+            Browse Events
+          </Link>
+
           <a
             href="https://ctf.cyberhx.com"
             target="_blank"
