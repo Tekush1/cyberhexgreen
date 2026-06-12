@@ -117,7 +117,7 @@ const statusConfig = {
 const filters = ['All', 'Live', 'Completed', 'Upcoming'] as const;
 type Filter = (typeof filters)[number];
 
-export const GalleryPage = () => {
+export const Gallery = () => {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
   const [lightbox, setLightbox] = useState<string | null>(null);
 
@@ -185,15 +185,9 @@ export const GalleryPage = () => {
               >
                 {/* Cover Image */}
                 <div className="relative h-52 sm:h-64 overflow-hidden">
-                  <img
-                    src={event.image}
-                    alt={event.title}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Gradient overlay */}
+                  <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
                   <div className={`absolute inset-0 bg-gradient-to-t ${s.overlayFrom} via-[#0a0f1a]/40 to-transparent`} />
 
-                  {/* Status badge on image */}
                   <div className="absolute top-4 left-4">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider border rounded-full px-3 py-1 backdrop-blur-sm ${s.badge}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${s.dot} ${event.status === 'live' ? 'animate-pulse' : ''}`} />
@@ -201,13 +195,11 @@ export const GalleryPage = () => {
                     </span>
                   </div>
 
-                  {/* Location on image */}
                   <div className="absolute top-4 right-4 flex items-center gap-1.5 text-xs text-gray-300 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
                     <MapPin size={11} />
                     {event.location}
                   </div>
 
-                  {/* Title overlay at bottom of image */}
                   <div className="absolute bottom-4 left-5 right-5">
                     <h2 className="text-2xl font-bold text-white drop-shadow-lg">{event.title}</h2>
                     <p className={`text-sm font-medium mt-0.5 ${s.color}`}>{event.subtitle}</p>
@@ -218,11 +210,10 @@ export const GalleryPage = () => {
                 <div className="p-5 sm:p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    {/* Left: description + tags + highlights */}
+                    {/* Left */}
                     <div className="lg:col-span-2 flex flex-col gap-4">
                       <p className="text-sm text-gray-400 leading-relaxed">{event.description}</p>
 
-                      {/* Stats row */}
                       <div className="grid grid-cols-3 gap-3">
                         {[
                           { icon: <Calendar size={14} />, label: 'Date', value: event.date },
@@ -237,7 +228,6 @@ export const GalleryPage = () => {
                         ))}
                       </div>
 
-                      {/* Highlights */}
                       {event.highlights && (
                         <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                           {event.highlights.map((h, idx) => (
@@ -249,7 +239,6 @@ export const GalleryPage = () => {
                         </div>
                       )}
 
-                      {/* Tags */}
                       <div className="flex flex-wrap gap-1.5">
                         {event.tags.map((tag) => (
                           <span key={tag} className="inline-flex items-center gap-1 text-[11px] border border-gray-700 text-gray-500 px-2.5 py-0.5 rounded-full">
@@ -259,9 +248,8 @@ export const GalleryPage = () => {
                       </div>
                     </div>
 
-                    {/* Right: prize + gallery thumbnails + CTA */}
+                    {/* Right */}
                     <div className="flex flex-col gap-4">
-                      {/* Prize */}
                       <div className="flex items-center gap-2 bg-primary/5 border border-primary/15 rounded-xl px-4 py-3">
                         <Trophy size={16} className="text-primary flex-shrink-0" />
                         <div>
@@ -270,7 +258,6 @@ export const GalleryPage = () => {
                         </div>
                       </div>
 
-                      {/* Gallery thumbnails */}
                       {event.gallery && event.gallery.length > 0 && (
                         <div>
                           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Photos</p>
@@ -293,7 +280,6 @@ export const GalleryPage = () => {
                         </div>
                       )}
 
-                      {/* CTA */}
                       {event.status === 'live' && event.link ? (
                         <a
                           href={event.link}
@@ -369,4 +355,4 @@ export const GalleryPage = () => {
   );
 };
 
-export default GalleryPage;
+export default Gallery;
