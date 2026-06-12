@@ -316,9 +316,10 @@ export const Gallery = () => {
             >
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-4 right-4 z-10 text-gray-400 hover:text-white bg-black/50 hover:bg-black/70 rounded-full p-2 transition-all"
+                aria-label="Close"
+                className="fixed sm:absolute top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-50 text-gray-200 hover:text-white bg-black/60 hover:bg-black/80 rounded-full p-2.5 transition-all touch-manipulation"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
 
               {/* Cover */}
@@ -503,9 +504,10 @@ export const Gallery = () => {
             />
             <button
               onClick={() => setLightbox(null)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
+              aria-label="Close"
+              className="fixed top-[max(1.25rem,env(safe-area-inset-top))] right-[max(1.25rem,env(safe-area-inset-right))] z-[70] text-gray-200 hover:text-white bg-black/60 hover:bg-black/80 rounded-full p-2.5 transition-all touch-manipulation"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           </motion.div>
         )}
