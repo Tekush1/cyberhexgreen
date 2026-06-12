@@ -67,7 +67,7 @@ export const HeroSection = () => {
         >
           {/* ZeroDay Heist — Red event button (primary) */}
           <a
-            href="https://zerodayheist.cyberhx.com"
+            href="https://www.cyberhx.com/gallery"
             target="_blank"
             rel="noopener noreferrer"
             className="relative inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-semibold px-8 py-3.5 rounded-lg transition-all duration-200 text-sm overflow-hidden group"
@@ -75,7 +75,7 @@ export const HeroSection = () => {
             {/* Pulse ring */}
             <span className="absolute inset-0 rounded-lg ring-2 ring-red-500/40 animate-pulse" />
             <Zap size={18} className="relative z-10" />
-            <span className="relative z-10">ZeroDay Heist</span>
+            <span className="relative z-10">Browse Events</span>
             <span className="relative z-10 text-xs bg-white/20 px-1.5 py-0.5 rounded-full font-normal">Live</span>
             <ArrowRight size={16} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
           </a>
@@ -99,7 +99,7 @@ export const HeroSection = () => {
           transition={{ delay: 0.55, duration: 0.6 }}
           className="text-xs text-gray-600 mb-10"
         >
-          🔴 Registration for ZeroDay Heist is now open —{' '}
+          🔴 Registration for CTFs is now open —{' '}
           <a href="https://unstop.com/hackathons/zero-day-heist-6-hour-ctf-challenge-cyber-hx-1683151" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 underline underline-offset-2">
             secure your spot
           </a>

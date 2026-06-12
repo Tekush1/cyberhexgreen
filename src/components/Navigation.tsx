@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Shield, Home, Terminal, Code, Users, BookOpen, Mail, ChevronDown, Layers, Zap, Calendar, Clock, Trophy, ExternalLink } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, Shield, Home, Terminal, Code, Users, BookOpen, Mail, ChevronDown, Layers, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [platformsOpen, setPlatformsOpen] = useState(false);
-  const [eventsOpen, setEventsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -29,7 +28,7 @@ export const Navigation = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => { setIsOpen(false); setPlatformsOpen(false); setEventsOpen(false); }, [location.pathname]);
+  useEffect(() => { setIsOpen(false); setPlatformsOpen(false); }, [location.pathname]);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
@@ -39,7 +38,7 @@ export const Navigation = () => {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsOpen(false); setPlatformsOpen(false); setEventsOpen(false);
+        setIsOpen(false); setPlatformsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -78,7 +77,7 @@ export const Navigation = () => {
             {/* Platforms Dropdown */}
             <div className="relative">
               <button
-                onClick={() => { setPlatformsOpen(!platformsOpen); setEventsOpen(false); }}
+                onClick={() => setPlatformsOpen(!platformsOpen)}
                 className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${platformsOpen ? 'text-[#a3e635] bg-[#a3e635]/10' : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'}`}
               >
                 <Layers size={18} /><span>Platforms</span>
@@ -118,97 +117,10 @@ export const Navigation = () => {
               </AnimatePresence>
             </div>
 
-            {/* Events Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => { setEventsOpen(!eventsOpen); setPlatformsOpen(false); }}
-                className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${eventsOpen ? 'text-red-400 bg-red-500/10' : 'text-gray-300 hover:text-red-400 hover:bg-red-500/5'}`}
-              >
-                <Calendar size={18} /><span>Events</span>
-                <motion.div animate={{ rotate: eventsOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronDown size={14} />
-                </motion.div>
-              </button>
-
-              <AnimatePresence>
-                {eventsOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 mt-2 w-80 bg-[#0a0e1a] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden"
-                  >
-                    <div className="p-3">
-                      <a
-                        href="https://zerodayheist.cyberhx.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setEventsOpen(false)}
-                        className="block group"
-                      >
-                        <div className="relative rounded-xl overflow-hidden border border-red-500/30 hover:border-red-500/60 transition-all duration-200 bg-gradient-to-br from-red-950/40 via-[#0d0a0a] to-[#0a0e1a] p-4">
-                          {/* Live badge */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                              <span className="text-xs font-semibold text-red-400 uppercase tracking-wider">Live Event</span>
-                            </div>
-                            <ExternalLink size={13} className="text-gray-600 group-hover:text-red-400 transition-colors" />
-                          </div>
-
-                          {/* Event Name */}
-                          <div className="flex items-center gap-2 mb-1">
-                            <Zap size={18} className="text-red-400 flex-shrink-0" />
-                            <h3 className="text-base font-bold text-white group-hover:text-red-300 transition-colors">ZeroDay Heist</h3>
-                          </div>
-                          <p className="text-xs text-gray-400 mb-4 ml-6">
-                            India's premier cybersecurity CTF & hacking event by CyberHx
-                          </p>
-
-                          {/* Timeline */}
-                          <div className="space-y-2.5 mb-4">
-                            {[
-                              { phase: 'Registration Open', status: 'active', icon: <Trophy size={11} /> },
-                              { phase: 'Qualifier Round', status: 'upcoming', icon: <Clock size={11} /> },
-                              { phase: 'Grand Finale', status: 'upcoming', icon: <Zap size={11} /> },
-                            ].map((step, i, arr) => (
-                              <div key={i} className="flex items-center gap-2.5">
-                                {/* connector line */}
-                                <div className="flex flex-col items-center">
-                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${step.status === 'active' ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-500'}`}>
-                                    {step.icon}
-                                  </div>
-                                  {i < arr.length - 1 && <div className="w-px h-3 bg-gray-700 mt-0.5" />}
-                                </div>
-                                <span className={`text-xs ${step.status === 'active' ? 'text-red-300 font-semibold' : 'text-gray-500'}`}>
-                                  {step.phase}
-                                </span>
-                                {step.status === 'active' && (
-                                  <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded-full ml-auto">Now</span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* CTA */}
-                          <div className="w-full py-2 bg-red-600 group-hover:bg-red-500 rounded-lg text-center text-sm font-bold text-white transition-colors">
-                            Register Now →
-                          </div>
-                        </div>
-                      </a>
-                      <Link
-                        to="/gallery"
-                        onClick={() => setEventsOpen(false)}
-                        className="flex items-center justify-center gap-1.5 mt-2 w-full py-2 text-xs text-gray-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/5"
-                      >
-                        <Calendar size={12} /> View All Events →
-                      </Link>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            {/* Events */}
+            <Link to="/gallery" className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${isActive('/gallery') ? 'text-[#05080f] bg-[#a3e635]' : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'}`}>
+              <Calendar size={18} /><span>Events</span>
+            </Link>
 
             {/* Blog */}
             <Link to="/blog" className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${isActive('/blog') ? 'text-[#05080f] bg-[#a3e635]' : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'}`}>
@@ -273,23 +185,10 @@ export const Navigation = () => {
 
               {/* Events */}
               <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.12 }}>
-                <div className="px-4 pt-3 pb-1.5">
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider flex items-center gap-1.5"><Calendar size={11} /> Events</span>
-                </div>
-                <a href="https://zerodayheist.cyberhx.com" target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium text-red-300 hover:text-red-200 hover:bg-red-500/8 transition-all min-h-[52px] border border-red-500/20 hover:border-red-500/40 mt-1">
-                  <span className="text-red-400 flex-shrink-0"><Zap size={18} /></span>
-                  <div>
-                    <div className="flex items-center gap-2">ZeroDay Heist <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /></div>
-                    <div className="text-xs text-gray-500 font-normal">Registration Open Now</div>
-                  </div>
-                  <span className="ml-auto text-xs text-gray-600">↗</span>
-                </a>
                 <Link to="/gallery" onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-primary hover:bg-primary/5 transition-all mt-1">
-                  <span className="text-primary flex-shrink-0"><Calendar size={16} /></span>
-                  <span>View All Events</span>
-                  <span className="ml-auto text-xs text-gray-600">→</span>
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-all min-h-[52px] ${isActive('/gallery') ? 'bg-[#a3e635] text-[#05080f]' : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'}`}>
+                  <span className={`flex-shrink-0 ${isActive('/gallery') ? 'text-[#05080f]' : 'text-[#a3e635]'}`}><Calendar size={18} /></span>
+                  <span>Events</span>
                 </Link>
               </motion.div>
 
