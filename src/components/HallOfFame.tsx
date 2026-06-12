@@ -75,7 +75,7 @@ const team = [
       "System Design"
     ],
     email: "samitpal.work@gmail.com",
-    image: "https://i.ibb.co/7Jm6d4r/samit.jpg",
+    image: "https://i.ibb.co/nsr49BLB/Chat-GPT-Image-Jun-13-2026-01-39-04-AM.png",
     socials: {
       github: "https://github.com/spam-codes",
       linkedin: "https://www.linkedin.com/in/samit-pal-48a068310",
