@@ -36,6 +36,49 @@ interface Event {
 
 const events: Event[] = [
   {
+    id: 2,
+    title: 'Null Origin CTF',
+    subtitle: '24-Hour Capture The Flag Challenge by CyberHx',
+
+    description:
+      'Null Origin is a 24-hour Jeopardy-style Capture The Flag challenge by CyberHx, open to participants of all skill levels. Compete across categories like Web Exploitation, Cryptography, Reverse Engineering, Forensics, OSINT and Pwn, and climb the live leaderboard.',
+
+    date: 'TBA',
+    duration: '24 Hours',
+    participants: 'TBA',
+    prize: 'TBA',
+
+    tags: [
+      'CTF',
+      'Web Exploitation',
+      'Reverse Engineering',
+      'Cryptography',
+      'OSINT',
+      'Forensics',
+      'Pwn'
+    ],
+
+    status: 'live',
+    category: 'Hacking',
+
+    link: 'https://unstop.com/hackathons/null-origin-24-hour-ctf-challenge-cyber-hx-1698744',
+
+    highlights: [
+      '24-Hour CTF',
+      'Open to All Skill Levels',
+      'Live Leaderboard'
+    ],
+
+    location: 'Online',
+
+    image: 'https://i.ibb.co/9kz9C6jC/722217335-18086037686297664-317017320748858629-n.jpg',
+
+    social: {
+      instagram: 'https://instagram.com/nulloriginctf',
+      website: 'https://nullorigin.cyberhx.com',
+    },
+  },
+  {
     id: 1,
     title: 'ZeroDay Heist',
     subtitle: "India's Largest Community-Driven Cybersecurity CTF",
