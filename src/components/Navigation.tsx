@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, Home, Terminal, Code, Users, BookOpen, Mail, ChevronDown, Layers, Calendar } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, Shield, Home, Terminal, Code, Users, BookOpen, Mail, ChevronDown, Layers, Calendar, ExternalLink } from 'lucide-react';import { motion, AnimatePresence } from 'framer-motion';
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
