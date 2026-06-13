@@ -74,7 +74,7 @@ const events: Event[] = [
     location: 'Online',
 
     image:
-      'https://i.ibb.co/6RjyB4VV/thanking-post-zerodayheist.png',
+      'https://i.ibb.co/r2N3WnGJ/zerodayheistlogo.jpg',
 
     gallery: [
       'https://i.ibb.co/1JvxSgRG/kanak-grand-numbers.png',
