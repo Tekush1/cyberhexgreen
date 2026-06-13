@@ -40,9 +40,17 @@
 
   <url>
     <loc>https://cyberhx.com/gallery</loc>
-    <lastmod>2026-05-03</lastmod>
-    <changefreq>monthly</changefreq>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.6</priority>
+    <image:image>
+      <image:loc>https://i.ibb.co/9kz9C6jC/722217335-18086037686297664-317017320748858629-n.jpg</image:loc>
+      <image:title>Null Origin CTF - 24 Hour Capture The Flag Challenge by CyberHx</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://i.ibb.co/r2N3WnGJ/zerodayheistlogo.jpg</image:loc>
+      <image:title>ZeroDay Heist - India's Largest Community-Driven Cybersecurity CTF</image:title>
+    </image:image>
   </url>
 
   <url>
