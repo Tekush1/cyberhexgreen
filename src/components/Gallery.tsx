@@ -30,6 +30,7 @@ interface Event {
     website?: string;
     ctftime?: string;
     leaderboard?: string;
+      certificates?: string;
   };
 }
 
@@ -37,86 +38,58 @@ const events: Event[] = [
   {
     id: 1,
     title: 'ZeroDay Heist',
-    subtitle: "India's Premier Cybersecurity CTF",
+    subtitle: "India's Largest Community-Driven Cybersecurity CTF",
+
     description:
-      'A high-stakes 6-hour Capture The Flag challenge featuring Web Exploitation, Reverse Engineering, Cryptography, OSINT, Forensics and Pwn. Open to all skill levels.',
+      'ZeroDay Heist brought together 1.4K+ cybersecurity enthusiasts from across India for an intense 6-hour Capture The Flag competition. Participants tackled challenges across Web Exploitation, Reverse Engineering, Cryptography, OSINT, Forensics and Pwn while competing for a ₹250K+ prize pool.',
+
     date: 'June 2026',
     duration: '6 Hours',
-    participants: '500+',
-    prize: '₹50,000+',
-    tags: ['CTF', 'Web Exploitation', 'Reverse Engineering', 'Cryptography', 'OSINT'],
-    status: 'live',
+    participants: '1.4K+',
+    prize: '₹250K+',
+
+    tags: [
+      'CTF',
+      'Web Exploitation',
+      'Reverse Engineering',
+      'Cryptography',
+      'OSINT',
+      'Forensics',
+      'Pwn'
+    ],
+
+    status: 'completed',
     category: 'Hacking',
+
     link: 'https://zerodayheist.cyberhx.com',
-    highlights: ['Registration Open Now', 'Qualifier Round', 'Grand Finale'],
-    location: 'Online',
-    image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
-    gallery: [
-      'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=400&q=70',
-      'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=400&q=70',
-      'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=400&q=70',
+
+    highlights: [
+      '1.4K+ Participants',
+      '48 Challenges',
+      '₹250K+ Prize Pool',
+      'Certificates Available',
+      'CTFtime Ranked Event'
     ],
+
+    location: 'Online',
+
+    image:
+      'https://i.ibb.co/6RjyB4VV/thanking-post-zerodayheist.png',
+
+    gallery: [
+      'https://i.ibb.co/1JvxSgRG/kanak-grand-numbers.png',
+      'https://i.ibb.co/6RjyB4VV/thanking-post-zerodayheist.png',
+      'https://i.ibb.co/r2N3WnGJ/zerodayheistlogo.jpg',
+    ],
+
     social: {
-      instagram: 'https://instagram.com/cyberhx',
-      x: 'https://x.com/cyberhx',
-      linkedin: 'https://linkedin.com/company/cyberhx',
+      instagram: 'https://instagram.com/zerodayheist',
+      x: 'https://x.com/zerodayheist',
+      linkedin: 'https://www.linkedin.com/company/110549481',
       website: 'https://zerodayheist.cyberhx.com',
-      ctftime: 'https://ctftime.org/event/0000',
+      ctftime: 'https://ctftime.org/event/3308',
       leaderboard: 'https://zerodayheist.cyberhx.com/leaderboard',
-    },
-  },
-  {
-    id: 2,
-    title: 'CyberHx CTF Season 1',
-    subtitle: 'Community Capture The Flag',
-    description:
-      'Our inaugural community CTF event bringing together cybersecurity enthusiasts from across India. Jeopardy-style challenges across multiple categories.',
-    date: 'March 2025',
-    duration: '24 Hours',
-    participants: '300+',
-    prize: '₹20,000',
-    tags: ['CTF', 'Forensics', 'Pwn', 'Web'],
-    status: 'completed',
-    category: 'Hacking',
-    highlights: ['200+ Teams Participated', '50+ Challenges', 'Top 3 Rewarded'],
-    location: 'Online',
-    image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80',
-    gallery: [
-      'https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=400&q=70',
-      'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=70',
-    ],
-    social: {
-      instagram: 'https://instagram.com/cyberhx',
-      x: 'https://x.com/cyberhx',
-      linkedin: 'https://linkedin.com/company/cyberhx',
-      ctftime: 'https://ctftime.org/event/0001',
-      leaderboard: 'https://cyberhx.com/ctf-s1/leaderboard',
-    },
-  },
-  {
-    id: 3,
-    title: 'Pentest Workshop — Bhopal',
-    subtitle: 'Hands-on Penetration Testing',
-    description:
-      'An offline hands-on workshop covering real-world penetration testing methodologies, tools like Burp Suite, Metasploit, and Nmap, guided by industry experts.',
-    date: 'January 2025',
-    duration: '2 Days',
-    participants: '80',
-    prize: 'Certificate',
-    tags: ['Workshop', 'Pentesting', 'Offline', 'Beginner Friendly'],
-    status: 'completed',
-    category: 'Learning',
-    highlights: ['80 Attendees', 'Hands-on Labs', 'Industry Mentors'],
-    location: 'Bhopal, India',
-    image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80',
-    gallery: [
-      'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=400&q=70',
-      'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=400&q=70',
-      'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=400&q=70',
-    ],
-    social: {
-      instagram: 'https://instagram.com/cyberhx',
-      linkedin: 'https://linkedin.com/company/cyberhx',
+      certificates: 'https://creds.cyberhx.com',
     },
   },
 ];
@@ -434,6 +407,17 @@ export const Gallery = () => {
                     </div>
                   </div>
                 )}
+                {selected.social.certificates && (
+  <a
+    href={selected.social.certificates}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center gap-1.5 text-xs bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 px-3 py-1.5 rounded-full transition-colors"
+  >
+    <CheckCircle size={13} />
+    Certificates
+  </a>
+)}
 
                 {/* Gallery */}
                 {selected.gallery && selected.gallery.length > 0 && (
@@ -468,11 +452,29 @@ export const Gallery = () => {
                   >
                     <Zap size={15} /> Register Now <ExternalLink size={13} />
                   </a>
-                ) : selected.status === 'completed' ? (
-                  <div className="flex items-center justify-center gap-2 w-full py-3 bg-white/[0.04] text-gray-500 font-medium rounded-xl text-sm border border-white/5 cursor-not-allowed">
-                    <CheckCircle size={14} /> Event Completed
-                  </div>
-                ) : (
+               ) : selected.status === 'completed' ? (
+  <div className="grid grid-cols-2 gap-3">
+    <a
+      href={selected.social?.leaderboard}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-center gap-2 py-3 bg-primary/10 border border-primary/20 text-primary rounded-xl hover:bg-primary/20 transition-colors"
+    >
+      <BarChart3 size={14} />
+      Leaderboard
+    </a>
+
+    <a
+      href={selected.social?.certificates}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-center gap-2 py-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl hover:bg-green-500/20 transition-colors"
+    >
+      <CheckCircle size={14} />
+      Certificates
+    </a>
+  </div>
+) : (
                   <div className="flex items-center justify-center gap-2 w-full py-3 bg-yellow-500/10 text-yellow-400 font-medium rounded-xl text-sm border border-yellow-500/20">
                     <Radio size={14} /> Coming Soon
                   </div>
