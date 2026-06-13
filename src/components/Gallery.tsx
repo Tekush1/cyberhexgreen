@@ -220,11 +220,11 @@ export const Gallery = () => {
                   event.status === 'live' ? s.glow : ''
                 } hover:border-primary/40 transition-all duration-200`}
               >
-                <div className="relative h-44 overflow-hidden">
+                <div className="relative h-44 overflow-hidden bg-black">
                   <img
                     src={event.image}
                     alt={event.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className={`absolute inset-0 bg-gradient-to-t ${s.overlayFrom} via-[#0a0f1a]/40 to-transparent`} />
 
@@ -296,8 +296,8 @@ export const Gallery = () => {
               </button>
 
               {/* Cover */}
-              <div className="relative h-56 sm:h-64 overflow-hidden">
-                <img src={selected.image} alt={selected.title} className="w-full h-full object-cover" />
+              <div className="relative h-56 sm:h-64 overflow-hidden bg-black">
+                <img src={selected.image} alt={selected.title} className="w-full h-full object-contain" />
                 <div className={`absolute inset-0 bg-gradient-to-t ${statusConfig[selected.status].overlayFrom} via-[#0a0f1a]/40 to-transparent`} />
 
                 <div className="absolute top-4 left-4">
