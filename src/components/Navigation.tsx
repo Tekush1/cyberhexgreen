@@ -202,7 +202,7 @@ export const Navigation = () => {
               ))}
 
               <div className="pt-3 border-t border-white/5 mt-1">
-                <Link to="/register" onClick={() => setIsOpen(false)}
+                <Link to="/gallery" onClick={() => setIsOpen(false)}
                   className="flex items-center justify-center w-full py-3.5 px-6 bg-[#a3e635] text-[#05080f] rounded-xl font-bold text-base transition-transform active:scale-[0.98]">
                   Register Now
                 </Link>
