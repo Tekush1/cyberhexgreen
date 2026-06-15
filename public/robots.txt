@@ -6,6 +6,8 @@ Allow: /contact
 Allow: /gallery
 Allow: /responsible-disclosure
 Allow: /hall-of-fame
+Allow: /privacy
+Allow: /terms
 
 Disallow: /admin
 Disallow: /register

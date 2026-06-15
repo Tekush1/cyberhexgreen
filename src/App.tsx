@@ -22,6 +22,8 @@ const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ defau
 const EventsPage = lazy(() => import('./pages/EventsPage').then(module => ({ default: module.default })));
 const ResponsibleDisclosurePage = lazy(() => import('./pages/ResponsibleDisclosurePage'));
 const HallOfFamePage = lazy(() => import('./pages/HallOfFamePage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function App() {
@@ -54,6 +56,9 @@ function App() {
               {/* Security pages */}
               <Route path="/responsible-disclosure" element={<ResponsibleDisclosurePage />} />
               <Route path="/hall-of-fame" element={<HallOfFamePage />} />
+              {/* Legal pages */}
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
