@@ -20,6 +20,9 @@ const BlogPage = lazy(() => import('./pages/BlogPage').then(module => ({ default
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage').then(module => ({ default: module.default })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ default: module.default })));
 const EventsPage = lazy(() => import('./pages/EventsPage').then(module => ({ default: module.default })));
+const ResponsibleDisclosurePage = lazy(() => import('./pages/ResponsibleDisclosurePage'));
+const HallOfFamePage = lazy(() => import('./pages/HallOfFamePage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function App() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
@@ -48,6 +51,11 @@ function App() {
               <Route path="/register" element={<RegistrationPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/events" element={<EventsPage />} />
+              {/* Security pages */}
+              <Route path="/responsible-disclosure" element={<ResponsibleDisclosurePage />} />
+              <Route path="/hall-of-fame" element={<HallOfFamePage />} />
+              {/* 404 */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </main>

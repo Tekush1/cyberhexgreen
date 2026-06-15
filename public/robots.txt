@@ -3,15 +3,14 @@ Allow: /
 Allow: /blog
 Allow: /about
 Allow: /contact
-Allow: /pentest-lab
 Allow: /gallery
+Allow: /responsible-disclosure
+Allow: /hall-of-fame
 
 Disallow: /admin
 Disallow: /register
 Disallow: /book-session
 Disallow: /become-mentor
-Disallow: /api/
-Disallow: /*.json$
 
 # Google
 User-agent: Googlebot
@@ -23,7 +22,7 @@ User-agent: Bingbot
 Allow: /
 Disallow: /admin
 
-# Crawl delay for others
+# Crawl delay for all other bots
 User-agent: *
 Crawl-delay: 10
 
