@@ -126,7 +126,6 @@ export const Footer = () => {
           <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center sm:justify-end">
             <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
-            <Link to="/responsible-disclosure" className="hover:text-primary transition-colors">Responsible Disclosure</Link>
             <Link to="/hall-of-fame" className="hover:text-primary transition-colors">Hall of Fame</Link>
             <a href="/.well-known/security.txt" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">security.txt</a>
           </div>
