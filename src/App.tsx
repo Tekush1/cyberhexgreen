@@ -25,6 +25,7 @@ const HallOfFamePage = lazy(() => import('./pages/HallOfFamePage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const CollaborationsPage = lazy(() => import('./pages/CollaborationsPage'));
 
 function App() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
@@ -46,6 +47,7 @@ function App() {
               {/* Individual blog post — THIS was missing! */}
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/prizes" element={<PrizesPage />} />
+              <Route path="/collaborations" element={<CollaborationsPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/become-mentor" element={<BecomeMentorPage />} />
