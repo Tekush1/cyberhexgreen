@@ -1,6 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Handshake, FileSignature, MapPin, Mail, Building2, ArrowUpRight } from 'lucide-react';
+import {
+  Handshake, FileSignature, MapPin, Mail, Building2, ArrowUpRight,
+  Shield, Server, BookOpen, Megaphone, Trophy, Users, Cpu, Globe,
+} from 'lucide-react';
 
 /**
  * Add a new entry here every time a partnership / MOU is signed.
@@ -12,12 +15,13 @@ const collaborations: {
   type: string;
   location: string;
   status: 'signed' | 'in-progress';
-  date: string; // e.g. 'June 2026'
+  date: string;
   description: string;
   link?: string;
+  logo?: string; // path in /public or external URL
 }[] = [
   {
-    org: 'IIT Indore E-Cell',
+    org: 'E-Cell IIT Indore',
     type: 'Outreach Partner',
     location: 'Indore, India',
     status: 'signed',
@@ -25,6 +29,7 @@ const collaborations: {
     description:
       'CyberHx has partnered with the Entrepreneurship Cell of IIT Indore as an outreach partner, with an MOU formally signed between both organisations. Together we will co-host cybersecurity awareness drives, CTFs, and workshops for the IIT Indore community.',
     link: 'https://ecell.iiti.ac.in',
+    logo: '/ecell-iiti-logo.svg',
   },
   // ── Add the next partnership here ──
   // {
@@ -47,6 +52,50 @@ const statusLabel = {
   signed: 'MOU Signed',
   'in-progress': 'In Progress',
 };
+
+/* ── What we can collaborate on ─────────────────────────────── */
+const colabTypes = [
+  {
+    icon: Trophy,
+    title: 'CTFs & Competitions',
+    desc: 'Co-organise Capture The Flag competitions, hackathons, and cyber challenges for your campus or community.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Workshops & Training',
+    desc: 'Hands-on workshops on ethical hacking, web security, OSINT, malware analysis, and more — tailored to your audience.',
+  },
+  {
+    icon: Megaphone,
+    title: 'Outreach & Awareness',
+    desc: 'Drive cybersecurity awareness campaigns, seminars, and panel discussions at colleges, fests, and events.',
+  },
+  {
+    icon: Server,
+    title: 'Infrastructure Support',
+    desc: 'We can provide CTF infrastructure, lab environments, challenge servers, or VPN/VPS setups for your events.',
+  },
+  {
+    icon: Cpu,
+    title: 'Technical Collaboration',
+    desc: 'Joint research, tool development, or open-source projects in offensive/defensive security.',
+  },
+  {
+    icon: Shield,
+    title: 'Security Audits & Reviews',
+    desc: 'Collaborate on security reviews, vulnerability research, or responsible disclosure programmes.',
+  },
+  {
+    icon: Users,
+    title: 'Community Building',
+    desc: 'Help us build local cybersecurity communities — chapters, Discord servers, newsletters, and mentorship circles.',
+  },
+  {
+    icon: Globe,
+    title: 'Media & Content',
+    desc: 'Cross-promote content, co-author blog posts or case studies, and build cyber-focused media together.',
+  },
+];
 
 const CollaborationsPage = () => {
   return (
@@ -91,6 +140,39 @@ const CollaborationsPage = () => {
         </div>
       </section>
 
+      {/* What we collaborate on */}
+      <section className="py-20 border-b border-gray-900">
+        <div className="max-w-5xl mx-auto px-6 lg:px-8">
+          <div className="mb-12 text-center">
+            <h2 className="text-2xl font-bold text-white mb-3">What we collaborate on</h2>
+            <p className="text-gray-500 text-sm max-w-xl mx-auto">
+              From infrastructure support to outreach events — if it's cyber, we're in. Here's everything we can work on together.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {colabTypes.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.06 }}
+                  className="bg-dark-100 border border-gray-900 rounded-xl p-5 hover:border-primary/30 transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mb-3">
+                    <Icon size={17} className="text-primary" />
+                  </div>
+                  <h3 className="text-white font-semibold text-sm mb-1.5">{item.title}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Collaborations list */}
       <section className="py-20 border-b border-gray-900">
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
@@ -121,8 +203,20 @@ const CollaborationsPage = () => {
                   className="bg-dark-100 border border-gray-900 rounded-2xl p-6 hover:border-primary/30 transition-colors flex flex-col"
                 >
                   <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                      <Building2 size={20} className="text-primary" />
+                    {/* Logo or fallback icon */}
+                    <div className="w-12 h-12 rounded-xl bg-dark-200 border border-gray-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {c.logo ? (
+                        <img
+                          src={c.logo}
+                          alt={`${c.org} logo`}
+                          className="w-10 h-10 object-contain"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Building2 size={22} className="text-primary" />
+                      )}
                     </div>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border flex-shrink-0 ${statusBadge[c.status]}`}>
                       <FileSignature size={11} />
@@ -165,7 +259,7 @@ const CollaborationsPage = () => {
           <Handshake size={28} className="text-primary mx-auto mb-4" />
           <h3 className="text-white text-xl font-bold mb-3">Want to collaborate with CyberHx?</h3>
           <p className="text-gray-500 text-sm mb-6">
-            We partner with colleges, E-Cells, communities, and organisations for outreach, events, and cybersecurity awareness. Let's talk.
+            We partner with colleges, E-Cells, communities, and organisations for outreach, events, infrastructure, and cybersecurity awareness. Let's talk.
           </p>
           <a
             href="mailto:hello@cyberhx.com?subject=Partnership%20Inquiry"

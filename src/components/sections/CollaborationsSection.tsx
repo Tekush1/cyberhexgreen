@@ -14,15 +14,17 @@ const collaborations: {
   date: string;
   description: string;
   link?: string;
+  logo?: string;
 }[] = [
   {
-    org: 'IIT Indore E-Cell',
+    org: 'E-Cell IIT Indore',
     type: 'Outreach Partner',
     location: 'Indore, India',
     date: 'June 2026',
     description:
       'Officially partnered with the Entrepreneurship Cell of IIT Indore as an outreach partner, with an MOU signed between both organisations.',
     link: 'https://ecell.iiti.ac.in',
+    logo: '/ecell-iiti-logo.svg',
   },
 ];
 
@@ -71,8 +73,20 @@ export const CollaborationsSection = () => {
               className="bg-dark-100 border border-gray-800 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 flex flex-col"
             >
               <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Building2 size={20} className="text-primary" />
+                {/* Logo or fallback icon */}
+                <div className="w-11 h-11 bg-dark-200 border border-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {c.logo ? (
+                    <img
+                      src={c.logo}
+                      alt={`${c.org} logo`}
+                      className="w-9 h-9 object-contain"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Building2 size={20} className="text-primary" />
+                  )}
                 </div>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-primary/10 text-primary border-primary/20 flex-shrink-0">
                   <FileSignature size={11} />
