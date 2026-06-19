@@ -24,7 +24,7 @@ const collaborations: {
     description:
       'Officially partnered with the Entrepreneurship Cell of IIT Indore as an outreach partner, with an MOU signed between both organisations.',
     link: 'https://ecell.iiti.ac.in',
-    logo: '/ecell-iiti-logo.svg',
+    logo: '/ecell-iiti-logo.jpeg',
   },
 ];
 

@@ -29,7 +29,7 @@ const collaborations: {
     description:
       'CyberHx has partnered with the Entrepreneurship Cell of IIT Indore as an outreach partner, with an MOU formally signed between both organisations. Together we will co-host cybersecurity awareness drives, CTFs, and workshops for the IIT Indore community.',
     link: 'https://ecell.iiti.ac.in',
-    logo: '/ecell-iiti-logo.svg',
+    logo: '/ecell-iiti-logo.jpeg',
   },
   // ── Add the next partnership here ──
   // {
