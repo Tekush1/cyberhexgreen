@@ -42,8 +42,6 @@ const team = [
     email: "rinshitrivedi195@gmail.com",
     image: "https://i.ibb.co/5p939Cj/Chat-GPT-Image-Jun-5-2026-02-55-29-PM.png",
     socials: {
-      github: "https://github.com/riteshekbote",
-      linkedin: "https://www.linkedin.com/in/sejaltiwari13",
       instagram: "https://www.instagram.com/iamrinshitrivedi"
     }
   },
@@ -80,6 +78,23 @@ const team = [
       github: "https://github.com/spam-codes",
       linkedin: "https://www.linkedin.com/in/samit-pal-48a068310",
       instagram: "https://instagram.com/0xSamit"
+    }
+  },
+   {
+    name: "Prerna Eshwar",
+    role: "Frontend Developer",
+   expertise: [
+  "User Experience (UX)",
+  "User Interface (UI)",
+  "Responsive Web Design",
+  "Frontend Development",
+  "Accessibility"
+]
+    email: "violettttt@proton.me",
+    image: "https://i.ibb.co/dw3kpkqx/Whats-App-Image-2026-06-22-at-9-43-51-AM.jpg",
+    socials: {
+      github: "https://github.com/Pr-e-rna",
+      linkedin: "https://www.linkedin.com/in/prerna-ishwar-a6a118282"
     }
   }
 ];
