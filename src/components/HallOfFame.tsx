@@ -89,7 +89,7 @@ const team = [
   "Responsive Web Design",
   "Frontend Development",
   "Accessibility"
-]
+],
     email: "violettttt@proton.me",
     image: "https://i.ibb.co/dw3kpkqx/Whats-App-Image-2026-06-22-at-9-43-51-AM.jpg",
     socials: {
