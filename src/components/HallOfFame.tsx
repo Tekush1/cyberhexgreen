@@ -81,7 +81,7 @@ const team = [
     }
   },
    {
-    name: "Prerna Eshwar",
+    name: "Prerna ishwar",
     role: "Frontend Developer",
    expertise: [
   "User Experience (UX)",
