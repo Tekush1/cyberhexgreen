@@ -26,11 +26,11 @@ export const FeaturesSection = () => {
       label: 'Read Blog →',
     },
     {
-      icon: <Shield size={22} />,
-      title: 'Scam Reporter',
-      description: 'Report suspicious accounts and online fraud. Our team investigates and alerts the community.',
-      link: '/contact',
-      label: 'Report Now →',
+icon: <Shield size={22} />,
+title: 'Host a CTF Event',
+description: 'Planning a Capture The Flag competition? We design, manage, and host end-to-end CTF events for universities, communities, and organizations.',
+link: '/contact',
+label: 'Organize Your CTF →',
     },
   ];
 
