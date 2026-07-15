@@ -233,7 +233,6 @@ export const Mentors = () => {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center">
                     <BookOpen className="w-4 h-4 text-primary mr-2" />
-                    <span className="text-gray-300">{mentor.experience}</span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 text-primary mr-2" />
