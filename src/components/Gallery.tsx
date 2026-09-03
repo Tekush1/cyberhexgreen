@@ -43,10 +43,10 @@ const events: Event[] = [
     description:
       'Null Origin is a 24-hour Jeopardy-style Capture The Flag challenge by CyberHx, open to participants of all skill levels. Compete across categories like Web Exploitation, Cryptography, Reverse Engineering, Forensics, OSINT and Pwn, and climb the live leaderboard.',
 
-    date: 'TBA',
+    date: 'Qualifier round on 18 sep 2026',
     duration: '24 Hours',
-    participants: 'TBA',
-    prize: 'TBA',
+    participants: '3500+',
+    prize: 'worth 10 lakh INR',
 
     tags: [
       'CTF',
