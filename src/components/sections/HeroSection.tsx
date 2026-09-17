@@ -82,7 +82,7 @@ export const HeroSection = () => {
 
           {/* CTF Platform — secondary */}
           <a
-            href="https://ctf.cyberhx.com"
+            href="https://ctf.cyberhx.com/host-your-ctf"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 border border-gray-700 text-gray-300 font-medium px-8 py-3.5 rounded-lg hover:border-primary/50 hover:text-white transition-all duration-200 text-sm"
