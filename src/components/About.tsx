@@ -138,7 +138,7 @@ const Terminal = () => {
               ' | |   | | | |_ ',
               ' |_|   |_| |___|',
               '',
-              'CyberHx{y8u_d1d_1t}',
+              'Null0rigin{y8u_d1d',
             ],
             type: 'success'
           };
