@@ -123,7 +123,7 @@ const Terminal = () => {
             'timeline/      - Event schedule',
             'gallery/       - Photo gallery',
             'prizes/        - Rewards & prizes',
-            'flag.txt',
+            'team/          - Meet the team',
           ],
           type: 'success'
         };
