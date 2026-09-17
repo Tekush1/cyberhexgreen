@@ -31,20 +31,8 @@ const team = [
     }
   },
 
-  {
-    name: "Rinshi Trivedi",
-    role: "Social Media Manager",
-    expertise: [
-      "Event Coordination",
-      "Strategic Planning",
-      "Team Management"
-    ],
-    email: "rinshitrivedi195@gmail.com",
-    image: "https://i.ibb.co/5p939Cj/Chat-GPT-Image-Jun-5-2026-02-55-29-PM.png",
-    socials: {
-      instagram: "https://www.instagram.com/iamrinshitrivedi"
-    }
-  },
+  
+
 
   {
     name: "Ritesh Ekbote",
@@ -85,7 +73,7 @@ const team = [
     role: "Frontend Developer",
    expertise: [
   "User Experience (UX)",
-  "User Interface (UI)",
+  "User Interface ",
   "Responsive Web Design",
   "Frontend Development",
   "Accessibility"
