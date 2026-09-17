@@ -1,3 +1,5 @@
+import React from "react";
+
 import {
   ArrowRight,
   Award,
@@ -10,6 +12,11 @@ import {
   Trophy,
   Users,
   Zap,
+  Building2,
+  CalendarDays,
+  Wallet,
+  Monitor,
+  MessageSquare,
 } from "lucide-react";
 
 const capabilities = [
@@ -88,6 +95,75 @@ const process = [
 ];
 
 export default function HostYourCTF() {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitStatus, setSubmitStatus] = React.useState<"idle" | "success" | "error">("idle");
+
+  const [hostForm, setHostForm] = React.useState({
+    name: "",
+    email: "",
+    phone: "",
+    organization: "",
+    organizationUrl: "",
+    eventName: "",
+    eventFormat: "",
+    eventDate: "",
+    participants: "",
+    budget: "",
+    requirements: "",
+    message: "",
+  });
+
+  const handleHostChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setHostForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleHostSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus("idle");
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_key: "ae826816-f65e-4d6f-8491-3362df582e13",
+          subject: `CTF Hosting Request — ${hostForm.eventName}`,
+          ...hostForm,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitStatus("success");
+        setHostForm({
+          name: "",
+          email: "",
+          phone: "",
+          organization: "",
+          organizationUrl: "",
+          eventName: "",
+          eventFormat: "",
+          eventDate: "",
+          participants: "",
+          budget: "",
+          requirements: "",
+          message: "",
+        });
+      } else {
+        setSubmitStatus("error");
+      }
+    } catch {
+      setSubmitStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen overflow-hidden bg-[#050505] text-white">
       {/* =========================================================
@@ -533,47 +609,260 @@ export default function HostYourCTF() {
       </section>
 
       {/* =========================================================
-          FINAL CTA
+          HOST REQUEST FORM
       ========================================================= */}
 
-      <section id="get-started" className="px-6 pb-20 lg:px-8">
-        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px] border border-white/10 bg-[#090909] px-7 py-24 text-center sm:px-12">
-          <div className="pointer-events-none absolute left-1/2 top-[-120px] h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-lime-400/[0.07] blur-[100px]" />
+      <section id="get-started" className="px-6 pb-24 lg:px-8">
+        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#090909]">
+          <div className="pointer-events-none absolute left-1/2 top-[-180px] h-[420px] w-[700px] -translate-x-1/2 rounded-full bg-lime-400/[0.055] blur-[130px]" />
 
-          <div className="relative">
-            <p className="text-[11px] font-medium tracking-[0.2em] text-lime-400">
-              LET'S BUILD IT
-            </p>
+          <div className="relative px-6 py-16 sm:px-10 lg:px-14 lg:py-20">
+            <div className="max-w-2xl">
+              <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-lime-400/15 bg-lime-400/[0.04] px-4 py-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
+                <span className="text-[10px] font-medium tracking-[0.2em] text-lime-400">
+                  HOST WITH CYBERHX
+                </span>
+              </div>
 
-            <h2 className="mx-auto mt-6 max-w-4xl text-4xl font-semibold tracking-[-0.05em] sm:text-6xl">
-              Ready to host your next CTF?
-            </h2>
+              <h2 className="text-4xl font-semibold leading-[1.02] tracking-[-0.05em] sm:text-6xl">
+                Tell us about
+                <br />
+                <span className="text-white/30">your event.</span>
+              </h2>
 
-            <p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-white/40">
-              Bring your competition to CyberHX and give your participants
-              an event experience built for cybersecurity.
-            </p>
-
-            <div className="mt-9 flex flex-wrap justify-center gap-4">
-              <a
-                href="mailto:hello@cyberhx.com"
-                className="group inline-flex items-center gap-3 rounded-full bg-lime-400 px-7 py-4 text-sm font-semibold text-black transition hover:bg-lime-300"
-              >
-                Host Your CTF
-
-                <ArrowRight
-                  size={17}
-                  className="transition-transform group-hover:translate-x-1"
-                />
-              </a>
-
-              <a
-                href="mailto:hello@cyberhx.com"
-                className="inline-flex items-center rounded-full border border-white/10 px-7 py-4 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white"
-              >
-                Talk to our team
-              </a>
+              <p className="mt-6 max-w-xl text-sm leading-7 text-white/40 sm:text-base">
+                Share a few details about your organization and competition.
+                Our team will review the requirements and get back to you.
+              </p>
             </div>
+
+            <form onSubmit={handleHostSubmit} className="mt-14">
+              <div className="grid gap-x-5 gap-y-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    Your name *
+                  </label>
+                  <input
+                    name="name"
+                    value={hostForm.name}
+                    onChange={handleHostChange}
+                    required
+                    placeholder="Full name"
+                    className="w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    Work email *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={hostForm.email}
+                    onChange={handleHostChange}
+                    required
+                    placeholder="you@organization.com"
+                    className="w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    Phone number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={hostForm.phone}
+                    onChange={handleHostChange}
+                    placeholder="+91 98765 43210"
+                    className="w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    Organization *
+                  </label>
+                  <input
+                    name="organization"
+                    value={hostForm.organization}
+                    onChange={handleHostChange}
+                    required
+                    placeholder="College, company or community"
+                    className="w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    <Building2 size={13} />
+                    Organization website *
+                  </label>
+                  <input
+                    type="url"
+                    name="organizationUrl"
+                    value={hostForm.organizationUrl}
+                    onChange={handleHostChange}
+                    required
+                    placeholder="https://example.com"
+                    className="w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    Event name *
+                  </label>
+                  <input
+                    name="eventName"
+                    value={hostForm.eventName}
+                    onChange={handleHostChange}
+                    required
+                    placeholder="e.g. Cyber Security CTF 2027"
+                    className="w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    <Monitor size={13} />
+                    Event format *
+                  </label>
+                  <select
+                    name="eventFormat"
+                    value={hostForm.eventFormat}
+                    onChange={handleHostChange}
+                    required
+                    className="w-full appearance-none rounded-xl border border-white/[0.09] bg-[#0b0b0b] px-4 py-3.5 text-sm text-white outline-none transition focus:border-lime-400/40"
+                  >
+                    <option value="">Select format</option>
+                    <option value="online">Online</option>
+                    <option value="offline">Offline</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    <CalendarDays size={13} />
+                    Tentative event date
+                  </label>
+                  <input
+                    type="date"
+                    name="eventDate"
+                    value={hostForm.eventDate}
+                    onChange={handleHostChange}
+                    className="w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition focus:border-lime-400/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    Expected participants
+                  </label>
+                  <select
+                    name="participants"
+                    value={hostForm.participants}
+                    onChange={handleHostChange}
+                    className="w-full appearance-none rounded-xl border border-white/[0.09] bg-[#0b0b0b] px-4 py-3.5 text-sm text-white outline-none transition focus:border-lime-400/40"
+                  >
+                    <option value="">Select expected scale</option>
+                    <option value="under-100">Under 100</option>
+                    <option value="100-500">100 – 500</option>
+                    <option value="500-1000">500 – 1,000</option>
+                    <option value="1000-5000">1,000 – 5,000</option>
+                    <option value="5000-plus">5,000+</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                    <Wallet size={13} />
+                    Organization budget
+                  </label>
+                  <select
+                    name="budget"
+                    value={hostForm.budget}
+                    onChange={handleHostChange}
+                    className="w-full appearance-none rounded-xl border border-white/[0.09] bg-[#0b0b0b] px-4 py-3.5 text-sm text-white outline-none transition focus:border-lime-400/40"
+                  >
+                    <option value="">Select budget range</option>
+                    <option value="under-25k">Under ₹25,000</option>
+                    <option value="25k-50k">₹25,000 – ₹50,000</option>
+                    <option value="50k-1l">₹50,000 – ₹1,00,000</option>
+                    <option value="1l-2.5l">₹1,00,000 – ₹2,50,000</option>
+                    <option value="2.5l-plus">₹2,50,000+</option>
+                    <option value="not-decided">Not decided yet</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <label className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                  <MessageSquare size={13} />
+                  What do you need from CyberHX? *
+                </label>
+                <textarea
+                  name="requirements"
+                  value={hostForm.requirements}
+                  onChange={handleHostChange}
+                  required
+                  rows={5}
+                  placeholder="Tell us what you need — CTF infrastructure, challenge hosting, registrations, leaderboard, certificates, promotion, participant management, technical support, etc."
+                  className="w-full resize-none rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm leading-6 text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                />
+              </div>
+
+              <div className="mt-6">
+                <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                  Anything else we should know?
+                </label>
+                <textarea
+                  name="message"
+                  value={hostForm.message}
+                  onChange={handleHostChange}
+                  rows={4}
+                  placeholder="Timeline, special requirements, challenge categories, sponsorship details, or any other context."
+                  className="w-full resize-none rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm leading-6 text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40"
+                />
+              </div>
+
+              {submitStatus === "success" && (
+                <div className="mt-6 rounded-xl border border-lime-400/20 bg-lime-400/[0.05] px-4 py-3 text-sm text-lime-300">
+                  Request submitted successfully. Our team will get back to you soon.
+                </div>
+              )}
+
+              {submitStatus === "error" && (
+                <div className="mt-6 rounded-xl border border-red-400/20 bg-red-400/[0.05] px-4 py-3 text-sm text-red-300">
+                  Something went wrong. Please try again or contact us directly.
+                </div>
+              )}
+
+              <div className="mt-8 flex flex-col items-start justify-between gap-5 border-t border-white/[0.08] pt-7 sm:flex-row sm:items-center">
+                <p className="max-w-md text-xs leading-5 text-white/25">
+                  No file upload required. Just share the event details and your
+                  requirements — we’ll take it from there.
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="group inline-flex w-full items-center justify-center gap-3 rounded-full bg-lime-400 px-7 py-4 text-sm font-semibold text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                >
+                  {isSubmitting ? "Submitting..." : "Send Event Request"}
+                  {!isSubmitting && (
+                    <ArrowRight
+                      size={17}
+                      className="transition-transform group-hover:translate-x-1"
+                    />
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </section>
