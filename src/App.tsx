@@ -6,6 +6,7 @@ import { LoadingSpinner } from './components/shared/LoadingSpinner';
 import { HiringPopup } from './components/HiringPopup';
 import { HiringBanner } from './components/HiringBanner';
 import { FloatingHiringButton } from './components/FloatingHiringButton';
+import HostYourCTF from "./pages/HostYourCTF";
 
 // Lazy load pages
 const HomePage = lazy(() => import('./pages/HomePage').then(module => ({ default: module.HomePage })));
@@ -63,6 +64,7 @@ function App() {
               <Route path="/terms" element={<TermsOfServicePage />} />
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />
+              <Route path="/host-your-ctf" element={<HostYourCTF />} />
             </Routes>
           </Suspense>
         </main>

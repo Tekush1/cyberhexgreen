@@ -88,7 +88,7 @@ export const HeroSection = () => {
             className="inline-flex items-center justify-center gap-2 border border-gray-700 text-gray-300 font-medium px-8 py-3.5 rounded-lg hover:border-primary/50 hover:text-white transition-all duration-200 text-sm"
           >
             <Cpu size={18} />
-            CTF Platform
+            Host on Cyberhx
           </a>
         </motion.div>
 
@@ -99,8 +99,8 @@ export const HeroSection = () => {
           transition={{ delay: 0.55, duration: 0.6 }}
           className="text-xs text-gray-600 mb-10"
         >
-          🔴 Registration for NullOrigin CTFs is now open —{' '}
-          <a href="https://unstop.com/hackathons/null-origin-24-hour-ctf-challenge-cyber-hx-1698744" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 underline underline-offset-2">
+          🔴 Registration for CTFs —{' '}
+          <a href="https://ctf.cyberhx.com" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 underline underline-offset-2">
             secure your spot
           </a>
         </motion.p>
