@@ -138,7 +138,7 @@ const Terminal = () => {
               ' | |   | | | |_ ',
               ' |_|   |_| |___|',
               '',
-              'Null0rigin{y8u_d1d',
+              'Null0rigin{y8u_d1d_',
             ],
             type: 'success'
           };
