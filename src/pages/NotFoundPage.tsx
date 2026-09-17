@@ -10,8 +10,8 @@ const NotFoundPage = () => {
           PAGE NOT FOUND
         </h1>
         <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
-          The route you are looking for does not exist or has been moved.
           1t!_c0ngr4t5 final part you are more than beginner
+          
         </p>
         <Link to="/" className="inline-block px-8 py-3 border border-green-400 text-green-400 hover:bg-green-400 hover:text-black transition-all duration-300 font-mono text-sm tracking-widest">
           ← RETURN HOME
