@@ -5,8 +5,6 @@ import {
   Linkedin,
   Mail,
   Search,
-  Filter,
-  Star,
   Instagram
 } from 'lucide-react';
 
@@ -14,14 +12,10 @@ import { motion } from 'framer-motion';
 
 import { Modal } from './shared/Modal';
 import { BecomeMentorForm } from './forms/BecomeMentorForm';
-import { useNavigate } from 'react-router-dom';
 
 export const HallOfFame = () => {
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
-
-  const navigate = useNavigate();
 
   const team = [
     // =========================
@@ -31,6 +25,7 @@ export const HallOfFame = () => {
     {
       name: "Kushagra Dwivedi",
       type: "mentor",
+      organizer: true,
       role: "Founder of CyberHX | Web & Network Pentester",
       expertise: [
         "Cybersecurity",
@@ -81,8 +76,10 @@ export const HallOfFame = () => {
         "https://i.ibb.co/DgWyfDyg/Whats-App-Image-2026-06-21-at-12-34-09-AM.jpg",
       socials: {
         github: "https://github.com/mithunmadhukuttan",
-        linkedin: "https://www.linkedin.com/in/mithun-m-achary",
-        instagram: "https://www.instagram.com/Ashwamit2199"
+        linkedin:
+          "https://www.linkedin.com/in/mithun-m-achary",
+        instagram:
+          "https://www.instagram.com/Ashwamit2199"
       }
     },
 
@@ -107,6 +104,7 @@ export const HallOfFame = () => {
     {
       name: "Aman Singh Tomar",
       type: "mentor",
+      organizer: true,
       role: "Cyber Security Engineer | CEH v12 | Security Researcher",
       expertise: [
         "Pentesting",
@@ -137,31 +135,6 @@ export const HallOfFame = () => {
         github: "https://github.com/sa7v1x3n",
         linkedin:
           "https://linkedin.com/in/sathwikaputrevu"
-      }
-    },
-
-    // =========================
-    // VOLUNTEERS
-    // =========================
-
-    {
-      name: "Sejal Tiwari",
-      type: "volunteer",
-      role: "Volunteer",
-      expertise: [
-        "Event Coordination",
-        "Technical Operations",
-        "Team Management"
-      ],
-      email: "tiwarisejal80@gmail.com",
-      image:
-        "https://i.ibb.co/0pCqJfQY/Whats-App-Image-2025-04-29-at-8-31-07-PM.jpg",
-      socials: {
-        github: "https://github.com/Sejalhere",
-        linkedin:
-          "https://www.linkedin.com/in/sejaltiwari13",
-        instagram:
-          "https://www.instagram.com/sejal._.13"
       }
     },
 
@@ -213,6 +186,31 @@ export const HallOfFame = () => {
     },
 
     // =========================
+    // VOLUNTEERS
+    // =========================
+
+    {
+      name: "Sejal Tiwari",
+      type: "volunteer",
+      role: "Volunteer",
+      expertise: [
+        "Event Coordination",
+        "Technical Operations",
+        "Team Management"
+      ],
+      email: "tiwarisejal80@gmail.com",
+      image:
+        "https://i.ibb.co/0pCqJfQY/Whats-App-Image-2025-04-29-at-8-31-07-PM.jpg",
+      socials: {
+        github: "https://github.com/Sejalhere",
+        linkedin:
+          "https://www.linkedin.com/in/sejaltiwari13",
+        instagram:
+          "https://www.instagram.com/sejal._.13"
+      }
+    },
+
+    // =========================
     // PAST INTERNS
     // =========================
 
@@ -238,52 +236,200 @@ export const HallOfFame = () => {
     }
   ];
 
-  const categories = [
-    {
-      id: 'all',
-      label: 'All Members'
-    },
-    {
-      id: 'mentor',
-      label: 'Mentors'
-    },
-    {
-      id: 'volunteer',
-      label: 'Volunteers'
-    },
-    {
-      id: 'past-intern',
-      label: 'Past Interns'
-    },
-    {
-      id: 'team',
-      label: 'Team Members'
-    }
-  ];
+  const matchesSearch = (member: typeof team[number]) => {
+    const query = searchQuery.toLowerCase().trim();
 
-  const filteredTeam = team.filter((member) => {
-    const matchesCategory =
-      selectedCategory === 'all' ||
-      member.type === selectedCategory;
+    if (!query) return true;
 
-    const matchesSearch =
-      member.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      member.role
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
+    return (
+      member.name.toLowerCase().includes(query) ||
+      member.role.toLowerCase().includes(query) ||
       member.expertise.some((exp) =>
-        exp
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase())
-      );
+        exp.toLowerCase().includes(query)
+      )
+    );
+  };
 
-    return matchesCategory && matchesSearch;
-  });
+  const mentors = team.filter(
+    (member) => member.type === 'mentor' && matchesSearch(member)
+  );
+
+  const teamMembers = team.filter(
+    (member) => member.type === 'team' && matchesSearch(member)
+  );
+
+  const volunteers = team.filter(
+    (member) =>
+      member.type === 'volunteer' && matchesSearch(member)
+  );
+
+  const pastInterns = team.filter(
+    (member) =>
+      member.type === 'past-intern' && matchesSearch(member)
+  );
+
+  const MemberCard = ({
+    member,
+    index
+  }: {
+    member: typeof team[number];
+    index: number;
+  }) => {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.08 }}
+        className="glass-effect rounded-xl overflow-hidden hover-scale"
+      >
+        {/* Profile */}
+
+        <div className="relative p-6 pb-4">
+
+          <div className="flex items-start gap-4">
+
+            <img
+              src={member.image}
+              alt={member.name}
+              className="w-20 h-20 rounded-full object-cover"
+            />
+
+            <div className="flex-1">
+
+              <h3 className="text-xl font-semibold text-white">
+                {member.name}
+              </h3>
+
+              <p className="text-primary text-sm mt-1">
+                {member.role}
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Badges */}
+
+        <div className="px-6 pb-3 flex flex-wrap gap-2">
+
+          {member.organizer && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+              Organizer
+            </span>
+          )}
+
+          {member.type === 'mentor' && !member.organizer && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+              Mentor
+            </span>
+          )}
+
+          {member.type === 'volunteer' && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20">
+              Volunteer
+            </span>
+          )}
+
+          {member.type === 'past-intern' && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              Past Intern
+            </span>
+          )}
+
+          {member.type === 'team' && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              Team Member
+            </span>
+          )}
+
+        </div>
+
+        {/* Expertise */}
+
+        <div className="px-6 pb-4">
+
+          <div className="flex flex-wrap gap-2">
+
+            {member.expertise.map((exp, i) => (
+              <span
+                key={i}
+                className="px-3 py-1 bg-dark-100 text-primary rounded-full text-sm"
+              >
+                {exp}
+              </span>
+            ))}
+
+          </div>
+
+        </div>
+
+        {/* Email */}
+
+        <div className="px-6 pb-4">
+
+          <div className="flex items-center text-gray-400">
+
+            <Mail className="w-4 h-4 text-primary mr-2 flex-shrink-0" />
+
+            <span className="text-sm truncate">
+              {member.email}
+            </span>
+
+          </div>
+
+        </div>
+
+        {/* Socials */}
+
+        <div className="px-6 py-4 bg-dark-100 flex items-center justify-center space-x-6">
+
+          {member.socials.github && (
+            <a
+              href={member.socials.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-primary transition-colors"
+              aria-label={`${member.name} GitHub`}
+            >
+              <Github className="w-5 h-5" />
+            </a>
+          )}
+
+          {member.socials.linkedin && (
+            <a
+              href={member.socials.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-primary transition-colors"
+              aria-label={`${member.name} LinkedIn`}
+            >
+              <Linkedin className="w-5 h-5" />
+            </a>
+          )}
+
+          {member.socials.instagram && (
+            <a
+              href={member.socials.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-primary transition-colors"
+              aria-label={`${member.name} Instagram`}
+            >
+              <Instagram className="w-5 h-5" />
+            </a>
+          )}
+
+        </div>
+
+      </motion.div>
+    );
+  };
 
   return (
     <section className="py-24 bg-dark-300">
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* =========================
@@ -312,252 +458,190 @@ export const HallOfFame = () => {
         </div>
 
         {/* =========================
-            SEARCH + FILTER
+            SEARCH
         ========================= */}
 
-        <div className="mb-12">
+        <div className="mb-16">
 
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+          <div className="relative max-w-3xl mx-auto">
 
-            {/* Search */}
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={20}
+            />
 
-            <div className="relative flex-1">
-
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
-
-              <input
-                type="text"
-                placeholder="Search members..."
-                value={searchQuery}
-                onChange={(e) =>
-                  setSearchQuery(e.target.value)
-                }
-                className="w-full bg-dark-100 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary"
-              />
-
-            </div>
-
-            {/* Categories */}
-
-            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-
-              {categories.map((category) => (
-
-                <button
-                  key={category.id}
-                  onClick={() =>
-                    setSelectedCategory(category.id)
-                  }
-                  className={`flex items-center px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
-                    selectedCategory === category.id
-                      ? 'bg-primary text-dark-300'
-                      : 'bg-dark-100 text-gray-300 hover:bg-dark-200'
-                  }`}
-                >
-
-                  <Filter className="w-4 h-4 mr-2" />
-
-                  <span>
-                    {category.label}
-                  </span>
-
-                </button>
-
-              ))}
-
-            </div>
+            <input
+              type="text"
+              placeholder="Search members..."
+              value={searchQuery}
+              onChange={(e) =>
+                setSearchQuery(e.target.value)
+              }
+              className="w-full bg-dark-100 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white focus:outline-none focus:border-primary"
+            />
 
           </div>
 
         </div>
 
         {/* =========================
-            TEAM GRID
+            OUR MENTORS
         ========================= */}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {mentors.length > 0 && (
+          <section className="mb-20">
 
-          {filteredTeam.map((member, index) => (
+            <div className="mb-8">
 
-            <motion.div
-              key={`${member.name}-${index}`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-effect rounded-xl overflow-hidden hover-scale"
-            >
+              <h3 className="text-2xl md:text-3xl font-bold text-white">
+                Our Mentors
+              </h3>
 
-              {/* Profile */}
-
-              <div className="relative p-6 pb-4">
-
-                <div className="flex items-start gap-4">
-
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-20 h-20 rounded-full object-cover"
-                  />
-
-                  <div className="flex-1">
-
-                    <h3 className="text-xl font-semibold text-white">
-                      {member.name}
-                    </h3>
-
-                    <p className="text-primary text-sm mt-1">
-                      {member.role}
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* Category Badge */}
-
-              <div className="px-6 pb-3">
-
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
-                    member.type === 'mentor'
-                      ? 'bg-primary/10 text-primary border-primary/20'
-                      : member.type === 'past-intern'
-                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                      : member.type === 'volunteer'
-                      ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                      : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                  }`}
-                >
-                  {member.type === 'mentor'
-                    ? 'Mentor'
-                    : member.type === 'past-intern'
-                    ? 'Past Intern'
-                    : member.type === 'volunteer'
-                    ? 'Volunteer'
-                    : 'Team Member'}
-                </span>
-
-              </div>
-
-              {/* Expertise */}
-
-              <div className="px-6 pb-4">
-
-                <div className="flex flex-wrap gap-2">
-
-                  {member.expertise.map((exp, i) => (
-
-                    <span
-                      key={i}
-                      className="px-3 py-1 bg-dark-100 text-primary rounded-full text-sm"
-                    >
-                      {exp}
-                    </span>
-
-                  ))}
-
-                </div>
-
-              </div>
-
-              {/* Email */}
-
-              <div className="px-6 pb-4">
-
-                <div className="flex items-center text-gray-400">
-
-                  <Mail className="w-4 h-4 text-primary mr-2" />
-
-                  <span className="text-sm truncate">
-                    {member.email}
-                  </span>
-
-                </div>
-
-              </div>
-
-              {/* Socials */}
-
-              <div className="px-6 py-4 bg-dark-100 flex items-center justify-center space-x-6">
-
-                {member.socials.github && (
-
-                  <a
-                    href={member.socials.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-primary transition-colors"
-                    aria-label={`${member.name} GitHub`}
-                  >
-                    <Github className="w-5 h-5" />
-                  </a>
-
-                )}
-
-                {member.socials.linkedin && (
-
-                  <a
-                    href={member.socials.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-primary transition-colors"
-                    aria-label={`${member.name} LinkedIn`}
-                  >
-                    <Linkedin className="w-5 h-5" />
-                  </a>
-
-                )}
-
-                {member.socials.instagram && (
-
-                  <a
-                    href={member.socials.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-primary transition-colors"
-                    aria-label={`${member.name} Instagram`}
-                  >
-                    <Instagram className="w-5 h-5" />
-                  </a>
-
-                )}
-
-              </div>
-
-            </motion.div>
-
-          ))}
-
-        </div>
-
-        {/* Empty State */}
-
-        {filteredTeam.length === 0 && (
-
-          <div className="text-center py-16">
-
-            <div className="flex justify-center mb-4">
-
-              <Search className="w-10 h-10 text-gray-600" />
+              <p className="text-gray-400 mt-2">
+                Learn from experienced cybersecurity professionals and industry experts.
+              </p>
 
             </div>
 
-            <h3 className="text-xl font-semibold text-white mb-2">
-              No members found
-            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-            <p className="text-gray-400">
-              Try searching with a different name, role, or expertise.
-            </p>
+              {mentors.map((member, index) => (
+                <MemberCard
+                  key={member.name}
+                  member={member}
+                  index={index}
+                />
+              ))}
 
-          </div>
+            </div>
 
+          </section>
         )}
+
+        {/* =========================
+            OUR TEAM
+        ========================= */}
+
+        {teamMembers.length > 0 && (
+          <section className="mb-20">
+
+            <div className="mb-8">
+
+              <h3 className="text-2xl md:text-3xl font-bold text-white">
+                Our Team
+              </h3>
+
+              <p className="text-gray-400 mt-2">
+                The people working behind the community.
+              </p>
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+              {teamMembers.map((member, index) => (
+                <MemberCard
+                  key={member.name}
+                  member={member}
+                  index={index}
+                />
+              ))}
+
+            </div>
+
+          </section>
+        )}
+
+        {/* =========================
+            VOLUNTEERS
+        ========================= */}
+
+        {volunteers.length > 0 && (
+          <section className="mb-20">
+
+            <div className="mb-8">
+
+              <h3 className="text-2xl md:text-3xl font-bold text-white">
+                Volunteers
+              </h3>
+
+              <p className="text-gray-400 mt-2">
+                The people who help make our events and community possible.
+              </p>
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+              {volunteers.map((member, index) => (
+                <MemberCard
+                  key={member.name}
+                  member={member}
+                  index={index}
+                />
+              ))}
+
+            </div>
+
+          </section>
+        )}
+
+        {/* =========================
+            PAST INTERNS — LAST
+        ========================= */}
+
+        {pastInterns.length > 0 && (
+          <section>
+
+            <div className="mb-8">
+
+              <h3 className="text-2xl md:text-3xl font-bold text-white">
+                Past Interns
+              </h3>
+
+              <p className="text-gray-400 mt-2">
+                Former interns who contributed to CyberHX and grew with the community.
+              </p>
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+              {pastInterns.map((member, index) => (
+                <MemberCard
+                  key={member.name}
+                  member={member}
+                  index={index}
+                />
+              ))}
+
+            </div>
+
+          </section>
+        )}
+
+        {/* =========================
+            NO RESULTS
+        ========================= */}
+
+        {mentors.length === 0 &&
+          teamMembers.length === 0 &&
+          volunteers.length === 0 &&
+          pastInterns.length === 0 && (
+            <div className="text-center py-16">
+
+              <Search className="w-10 h-10 text-gray-600 mx-auto mb-4" />
+
+              <h3 className="text-xl font-semibold text-white mb-2">
+                No members found
+              </h3>
+
+              <p className="text-gray-400">
+                Try searching with a different name, role, or expertise.
+              </p>
+
+            </div>
+          )}
 
       </div>
 
