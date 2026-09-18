@@ -727,10 +727,28 @@ export const About = () => {
       ],
       socials: {
         linkedin: "https://in.linkedin.com/in/kushagra-dwivedi-0342062b8",
-        instagram: "https://www.instagram.com/iamkushagra.dwivedi",
-        github: "https://github.com/tekush1"
+        instagram: "https://www.instagram.com/iamkushagra.dwivedi"
       }
+    },
+
+  {
+    name: "Aman Singh Tomar",
+    role: "Cyber Security Engineer | Security Researcher",
+    image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
+    achievements: [
+      "CEH Certified – EC-Council (2025)",
+      "Built StegAll – Open Source Steganography Toolkit",
+      "Bug Bounty – Vulnerability Disclosure Recognition"
+    ],
+    expertise: [
+      "Penetration Testing",
+      "Network Security",
+      "Web Security"
+    ],
+    socials: {
+      linkedin: "https://www.linkedin.com/in/aman-singh-tomar"
     }
+  }
   ];
 
   const containerVariants = {
