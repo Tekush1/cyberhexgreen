@@ -736,9 +736,7 @@ export const About = () => {
     role: "Cyber Security Engineer | Security Researcher",
     image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
     achievements: [
-      "CEH Certified – EC-Council (2025)",
-      "Built StegAll – Open Source Steganography Toolkit",
-      "Bug Bounty – Vulnerability Disclosure Recognition"
+      "CTF National Player"
     ],
     expertise: [
       "Penetration Testing",
