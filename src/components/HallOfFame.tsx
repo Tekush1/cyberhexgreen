@@ -22,25 +22,7 @@ export const HallOfFame = () => {
     // MENTORS
     // =========================
 
-    {
-      name: "Kushagra Dwivedi",
-      type: "mentor",
-      organizer: true,
-      role: "Founder of CyberHX | Web & Network Pentester",
-      expertise: [
-        "Cybersecurity",
-        "Ethical Hacking",
-        "DevSecOps"
-      ],
-      email: "kushdwivedikd@gmail.com",
-      image:
-        "https://i.ibb.co/kscBzpxZ/Whats-App-Image-2025-07-01-at-1-02-59-AM.jpg",
-      socials: {
-        github: "https://github.com/tekush1",
-        linkedin:
-          "https://www.linkedin.com/in/kushagra-dwivedi-0342062b/"
-      }
-    },
+   
 
     {
       name: "Prasad Chinchore",
@@ -101,24 +83,6 @@ export const HallOfFame = () => {
       }
     },
 
-    {
-      name: "Aman Singh Tomar",
-      type: "mentor",
-      organizer: true,
-      role: "Cyber Security Engineer | CEH v12 | Security Researcher",
-      expertise: [
-        "Pentesting",
-        "Network Security"
-      ],
-      email: "amantomar50948@gmail.com",
-      image:
-        "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
-      socials: {
-        github: "https://github.com/Amansinghtomar12",
-        linkedin:
-          "https://www.linkedin.com/in/aman-singh-tomar"
-      }
-    },
 
     {
       name: "Sathwika Putrevu",

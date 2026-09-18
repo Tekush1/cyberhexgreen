@@ -717,7 +717,6 @@ export const About = () => {
       image: "https://i.ibb.co/dw8SKDgt/kush1.jpg" ,
       achievements: [
         "Ethical hacker government",
-        "SIH Finalist 2024",
         "CTF National Player"
       ],
       expertise: [
