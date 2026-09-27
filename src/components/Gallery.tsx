@@ -89,7 +89,7 @@ const events: Event[] = [
   
       website: 'https://nullorigin.cyberhx.com',
   
-      ctftime: 'https://ctftime.org/event/3454',
+      ctftime: 'https://ctftime.org/event/3346',
   
       leaderboard: 'https://ctf.cyberhx.com/leaderboard',
   
