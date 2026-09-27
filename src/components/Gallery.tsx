@@ -37,45 +37,63 @@ interface Event {
 const events: Event[] = [
   {
     id: 2,
+  
     title: 'Null Origin CTF',
-    subtitle: '24-Hour Capture The Flag Challenge by CyberHx',
-
+  
+    subtitle: 'International 24-Hour Capture The Flag Challenge',
+  
     description:
-      'Null Origin is a 24-hour Jeopardy-style Capture The Flag challenge by CyberHx, open to participants of all skill levels. Compete across categories like Web Exploitation, Cryptography, Reverse Engineering, Forensics, OSINT and Pwn, and climb the live leaderboard.',
-
-    date: 'Qualifier round on 18 sep 2026',
+      'Null Origin CTF 2026 was an international 24-hour Jeopardy-style Capture The Flag competition organized by CyberHX. The event brought together cybersecurity enthusiasts, students, ethical hackers, researchers and CTF teams from around the world. Participants competed across Web Exploitation, Cryptography, Reverse Engineering, Digital Forensics, OSINT and Pwn, with challenges ranging from beginner-friendly to expert-level difficulty.',
+  
+    date: '18–25 September 2026',
+  
     duration: '24 Hours',
-    participants: '3500+',
-    prize: 'worth 10 lakh INR',
-
+  
+    participants: '6000+ Hackers',
+  
+    prize: '₹10 Lakh+ Rewards',
+  
     tags: [
-      'CTF',
+      'International CTF',
       'Web Exploitation',
       'Reverse Engineering',
       'Cryptography',
       'OSINT',
-      'Forensics',
-      'Pwn'
+      'Digital Forensics',
+      'Pwn',
+      'Jeopardy CTF',
     ],
-
-    status: 'live',
+  
+    status: 'completed',
+  
     category: 'Hacking',
-
-    link: 'https://unstop.com/hackathons/null-origin-24-hour-ctf-challenge-cyber-hx-1698744',
-
+  
+    link: 'https://nullorigin.cyberhx.com',
+  
     highlights: [
+      '6000+ Hackers',
+      '3500+ Teams',
       '24-Hour CTF',
-      'Open to All Skill Levels',
-      'Live Leaderboard'
+      '₹10 Lakh+ Rewards',
+      'International Participation',
+      'chained challneges',
     ],
-
-    location: 'Online',
-
-    image: 'https://i.ibb.co/9kz9C6jC/722217335-18086037686297664-317017320748858629-n.jpg',
-
+  
+    location: 'Online — Globally',
+  
+    image:
+      'https://i.ibb.co/9kz9C6jC/722217335-18086037686297664-317017320748858629-n.jpg',
+  
     social: {
       instagram: 'https://instagram.com/nulloriginctf',
+  
       website: 'https://nullorigin.cyberhx.com',
+  
+      ctftime: 'https://ctftime.org/event/3454',
+  
+      leaderboard: 'https://ctf.cyberhx.com/leaderboard',
+  
+      certificates: 'https://creds.cyberhx.com',
     },
   },
   {
