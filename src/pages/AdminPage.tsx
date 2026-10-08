@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { InterviewsPanel } from '../components/admin/InterviewsPanel';
+import { MeetingsPanel, type MeetingKind, type MeetingPrefill } from '../components/admin/MeetingsPanel';
+import { ApplicationsPanel, CtfRequestsPanel } from '../components/admin/RequestsPanels';
+import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
+import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, CheckCircle, XCircle, Clock, Eye, Search,
   RefreshCw, LogIn, LogOut, Newspaper, Users, TrendingUp,
-  ChevronDown, ChevronUp, Loader2, AlertTriangle, Plus,
-  Trash2, Edit3, X, Save, Tag
+  ChevronDown, ChevronUp, Loader2, AlertTriangle,
+  Trash2
 } from 'lucide-react';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
@@ -234,10 +237,14 @@ const SubmissionCard = ({ sub, onApprove, onReject, onDelete, loading }: {
   );
 };
 
+type TabId = 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf' | 'availability';
+
 // ─── Main Admin Panel ─────────────────────────────────────────
 const AdminPage: React.FC = () => {
   const [authed, setAuthed] = useState(() => !!getAdminToken());
-  const [tab, setTab] = useState<'submissions' | 'posts' | 'interviews'>('submissions');
+  const [tab, setTab] = useState<TabId>('submissions');
+  const [newCounts, setNewCounts] = useState({ applications: 0, ctf: 0 });
+  const [prefill, setPrefill] = useState<MeetingPrefill | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -270,7 +277,21 @@ const AdminPage: React.FC = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (authed) loadData(); }, [authed]);
+  const loadCounts = async () => {
+    const [applications, ctf] = await Promise.all([
+      sbCount('job_applications', { status: 'eq.new' }),
+      sbCount('ctf_requests', { status: 'eq.new' }),
+    ]);
+    setNewCounts({ applications, ctf });
+  };
+
+  const goSchedule = (name: string, email: string, kind: MeetingKind) => {
+    setPrefill({ name, email, kind, nonce: Date.now() });
+    setTab('meetings');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => { if (authed) { loadData(); loadCounts(); } }, [authed]);
 
   const handleApprove = async (id: string) => {
     setActionLoading(a => ({ ...a, [id]: 'approve' }));
@@ -363,11 +384,21 @@ const AdminPage: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          {(['submissions', 'posts', 'interviews'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all capitalize border ${tab === t ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'}`}>
-              {t === 'submissions' ? `Submissions ${stats.pending > 0 ? `(${stats.pending} pending)` : ''}` : t === 'posts' ? 'Published Posts' : 'Interviews'}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1">
+          {([
+            { id: 'submissions', label: 'Submissions', badge: stats.pending },
+            { id: 'posts', label: 'Published Posts', badge: 0 },
+            { id: 'meetings', label: 'Meetings', badge: 0 },
+            { id: 'applications', label: 'Applications', badge: newCounts.applications },
+            { id: 'ctf', label: 'CTF Requests', badge: newCounts.ctf },
+            { id: 'availability', label: 'Availability', badge: 0 },
+          ] as { id: TabId; label: string; badge: number }[]).map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap flex items-center gap-2 ${tab === t.id ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'}`}>
+              {t.label}
+              {t.badge > 0 && (
+                <span className={`text-[11px] font-bold px-1.5 min-w-[20px] h-5 rounded-full flex items-center justify-center ${tab === t.id ? 'bg-[#05080f] text-[#a3e635]' : 'bg-[#a3e635] text-[#05080f]'}`}>{t.badge}</span>
+              )}
             </button>
           ))}
         </div>
@@ -412,7 +443,10 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
-        {tab === 'interviews' && <InterviewsPanel />}
+        {tab === 'meetings' && <MeetingsPanel prefill={prefill} />}
+        {tab === 'applications' && <ApplicationsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
+        {tab === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
+        {tab === 'availability' && <AvailabilityPanel />}
 
         {tab === 'posts' && (
           <div>

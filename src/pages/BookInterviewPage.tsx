@@ -2,6 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, CheckCircle, AlertCircle, Video, Loader2 } from 'lucide-react';
 
+type Kind = 'interview' | 'partnership' | 'ctf' | 'other';
+const KIND_TEXT: Record<Kind, { title: string; noun: string }> = {
+  interview: { title: 'Book your interview', noun: 'interview' },
+  partnership: { title: 'Book a partnership call', noun: 'call' },
+  ctf: { title: 'Book your CTF hosting call', noun: 'call' },
+  other: { title: 'Book a meeting with CyberHx', noun: 'meeting' },
+};
+
 type Booked = { meetLink: string | null; start: string; end: string };
 
 const dayKey = (iso: string) => new Date(iso).toLocaleDateString('en-CA'); // YYYY-MM-DD, local tz
@@ -19,6 +27,9 @@ const BookInterviewPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
+  const [kind, setKind] = useState<Kind>('interview');
+  const [topic, setTopic] = useState('');
+  const [slotMinutes, setSlotMinutes] = useState(30);
   const [slots, setSlots] = useState<string[]>([]);
   const [alreadyBooked, setAlreadyBooked] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState('');
@@ -27,7 +38,7 @@ const BookInterviewPage: React.FC = () => {
   const [done, setDone] = useState<Booked | null>(null);
 
   useEffect(() => {
-    document.title = 'Book your interview | CyberHx';
+    document.title = 'Book a meeting | CyberHx';
     const meta = document.createElement('meta');
     meta.name = 'robots';
     meta.content = 'noindex,nofollow';
@@ -45,6 +56,9 @@ const BookInterviewPage: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not load slots.');
       setName(data.name);
+      if (data.kind in KIND_TEXT) setKind(data.kind);
+      setTopic(data.topic || '');
+      if (data.slotMinutes) setSlotMinutes(data.slotMinutes);
       setAlreadyBooked(data.booked || null);
       setSlots(data.slots || []);
       setSelectedDay(data.slots?.[0] ? dayKey(data.slots[0]) : '');
@@ -106,7 +120,8 @@ const BookInterviewPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-dark-300 py-24 px-4">
       <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold gradient-text mb-3">Book your interview</h1>
+        <h1 className="text-4xl font-bold gradient-text mb-3">{KIND_TEXT[kind].title}</h1>
+        {kind === 'other' && topic && !done && !alreadyBooked && <p className="text-primary mb-2">{topic}</p>}
         {name && !done && !alreadyBooked && (
           <p className="text-gray-400">Hi {name}, pick a time that works for you.</p>
         )}
@@ -143,7 +158,7 @@ const BookInterviewPage: React.FC = () => {
         <div className={card}>
           <div className="flex items-center gap-3 text-primary mb-3">
             <Calendar className="w-6 h-6" />
-            <h2 className="text-xl font-semibold">Interview already booked</h2>
+            <h2 className="text-xl font-semibold">Already booked</h2>
           </div>
           <p className="text-gray-300">{fullLabel(alreadyBooked)}</p>
           <p className="text-gray-400 text-sm mt-3">Check your email for the calendar invite. Need to reschedule? Reply to our email.</p>
@@ -200,7 +215,7 @@ const BookInterviewPage: React.FC = () => {
               </div>
 
               <p className="text-xs text-gray-500 mb-4">
-                Times shown in your timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone}). 30-minute interview on Google Meet.
+                Times shown in your timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone}). {slotMinutes}-minute {KIND_TEXT[kind].noun} on Google Meet.
               </p>
 
               <button

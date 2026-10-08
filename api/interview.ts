@@ -4,7 +4,8 @@
 //   POST /api/interview  { t, start }            -> { meetLink, start, end }
 //
 // Admin (header `Authorization: Bearer <Supabase admin session token>`):
-//   POST /api/interview  { action:'create-link', name, email, days } -> { link }
+//   POST /api/interview  { action:'create-link', name, email, days, kind, topic } -> { link }
+//        kind = interview | partnership | ctf | other (topic is the custom title for 'other')
 //   GET  /api/interview?admin=list                                   -> { items: [...] }
 //   POST /api/interview  { action:'cancel', eventId }                -> { ok: true }
 //
@@ -23,8 +24,60 @@ const CONFIG = {
   workDays: [1, 2, 3, 4, 5, 6], // 0=Sun ... 6=Sat, in IST
   startHour: 10, // IST
   endHour: 18, // IST
-  eventTitle: 'CyberHx Interview',
+  eventTitle: 'CyberHx',
 };
+
+// ---------- Meeting kinds ----------
+type Kind = 'interview' | 'partnership' | 'ctf' | 'other';
+const KINDS: Kind[] = ['interview', 'partnership', 'ctf', 'other'];
+const KIND_TITLE: Record<Kind, string> = {
+  interview: 'CyberHx Interview',
+  partnership: 'CyberHx Partnership Meet',
+  ctf: 'CyberHx CTF Hosting Call',
+  other: 'CyberHx Meeting',
+};
+function eventTitle(kind: Kind, topic: string, name: string) {
+  return kind === 'other' && topic ? `CyberHx: ${topic} - ${name}` : `${KIND_TITLE[kind]} - ${name}`;
+}
+
+// ---------- Availability (edited in Admin -> Availability, stored in Supabase) ----------
+interface Win { s: string; e: string }
+interface Availability { slotMinutes: number; weekly: Record<string, Win[]>; dates: Record<string, Win[]> }
+
+const toMin = (t: string) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+const validWins = (ws: unknown): Win[] =>
+  Array.isArray(ws)
+    ? ws.filter((w) => w && /^\d{2}:\d{2}$/.test(w.s) && /^\d{2}:\d{2}$/.test(w.e) && toMin(w.e) > toMin(w.s))
+    : [];
+
+async function loadAvailability(): Promise<Availability> {
+  const fallback: Availability = {
+    slotMinutes: CONFIG.slotMinutes,
+    weekly: Object.fromEntries(
+      [0, 1, 2, 3, 4, 5, 6].map((d) => [String(d), CONFIG.workDays.includes(d) ? [{ s: `${CONFIG.startHour}:00`.padStart(5, '0'), e: `${CONFIG.endHour}:00`.padStart(5, '0') }] : []]),
+    ),
+    dates: {},
+  };
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !anon) return fallback;
+  try {
+    const res = await fetch(`${url}/rest/v1/meeting_availability?id=eq.1&select=config`, {
+      headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+    });
+    if (!res.ok) return fallback;
+    const c = (await res.json())?.[0]?.config;
+    if (!c || !c.weekly) return fallback;
+    const weekly: Record<string, Win[]> = {};
+    for (let d = 0; d < 7; d++) weekly[String(d)] = validWins(c.weekly[String(d)]);
+    const dates: Record<string, Win[]> = {};
+    for (const [k, v] of Object.entries(c.dates || {})) if (/^\d{4}-\d{2}-\d{2}$/.test(k)) dates[k] = validWins(v);
+    const slot = Number(c.slotMinutes);
+    return { slotMinutes: [15, 20, 30, 45, 60].includes(slot) ? slot : CONFIG.slotMinutes, weekly, dates };
+  } catch {
+    return fallback;
+  }
+}
 const CALENDAR_ID = process.env.INTERVIEW_CALENDAR_ID || 'primary';
 
 // ---------- Token ----------
@@ -33,6 +86,8 @@ interface TokenPayload {
   n: string; // candidate name
   e: string; // candidate email
   x: number; // expiry, unix seconds
+  k?: Kind; // meeting kind (missing on old links = interview)
+  tp?: string; // custom topic for kind 'other'
 }
 
 function verifyToken(token: string): TokenPayload | null {
@@ -158,30 +213,36 @@ async function listBookings() {
       start: ev.start?.dateTime,
       end: ev.end?.dateTime,
       meetLink: ev.hangoutLink || null,
+      kind: (KINDS.includes(ev.extendedProperties?.private?.kind) ? ev.extendedProperties.private.kind : 'interview') as Kind,
+      topic: ev.extendedProperties?.private?.topic || '',
     }));
 }
 
 // ---------- Slots ----------
-function candidateSlots(now: Date): number[] {
-  const slotMs = CONFIG.slotMinutes * 60_000;
+function candidateSlots(now: Date, av: Availability): number[] {
+  const slotMs = av.slotMinutes * 60_000;
   const earliest = now.getTime() + CONFIG.minNoticeHours * 3_600_000;
   const ist = new Date(now.getTime() + IST_OFFSET_MIN * 60_000);
   const out: number[] = [];
   for (let d = 0; d <= CONFIG.daysAhead; d++) {
     const day = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate() + d));
-    if (!CONFIG.workDays.includes(day.getUTCDay())) continue;
-    for (let m = CONFIG.startHour * 60; m + CONFIG.slotMinutes <= CONFIG.endHour * 60; m += CONFIG.slotMinutes) {
-      const startUtc = day.getTime() + m * 60_000 - IST_OFFSET_MIN * 60_000;
-      if (startUtc >= earliest) out.push(startUtc);
+    const dateKey = day.toISOString().slice(0, 10);
+    // a date override (even an empty one = day off) beats the weekly schedule
+    const windows = av.dates[dateKey] ?? av.weekly[String(day.getUTCDay())] ?? [];
+    for (const w of windows) {
+      for (let m = toMin(w.s); m + av.slotMinutes <= toMin(w.e); m += av.slotMinutes) {
+        const startUtc = day.getTime() + m * 60_000 - IST_OFFSET_MIN * 60_000;
+        if (startUtc >= earliest) out.push(startUtc);
+      }
     }
   }
-  return out.filter((s) => s + slotMs > earliest);
+  return out.filter((s) => s + slotMs > earliest).sort((a, b) => a - b);
 }
 
-async function freeSlots(now: Date): Promise<number[]> {
-  const cands = candidateSlots(now);
+async function freeSlots(now: Date, av: Availability): Promise<number[]> {
+  const cands = candidateSlots(now, av);
   if (!cands.length) return [];
-  const slotMs = CONFIG.slotMinutes * 60_000;
+  const slotMs = av.slotMinutes * 60_000;
   const busy = await busyRanges(new Date(cands[0]), new Date(cands[cands.length - 1] + slotMs));
   return cands.filter((s) => !busy.some(([bs, be]) => s < be && s + slotMs > bs));
 }
@@ -205,7 +266,7 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json({ items: await listBookings() });
       }
 
-      const { action, name, email, days, eventId } = req.body;
+      const { action, name, email, days, eventId, kind, topic } = req.body;
 
       if (action === 'create-link') {
         const cleanName = String(name || '').trim().slice(0, 80);
@@ -214,11 +275,18 @@ export default async function handler(req: any, res: any) {
         if (!cleanName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
           return res.status(400).json({ error: 'Valid name and email are required.' });
         }
+        const cleanKind: Kind = KINDS.includes(kind) ? kind : 'interview';
+        const cleanTopic = cleanKind === 'other' ? String(topic || '').trim().slice(0, 80) : '';
+        if (cleanKind === 'other' && !cleanTopic) {
+          return res.status(400).json({ error: 'Please write a topic for this meeting.' });
+        }
         const token = signToken({
           id: crypto.randomUUID(),
           n: cleanName,
           e: cleanEmail,
           x: Math.floor(Date.now() / 1000) + validDays * 86400,
+          k: cleanKind,
+          ...(cleanTopic ? { tp: cleanTopic } : {}),
         });
         const origin = process.env.SITE_URL || `https://${req.headers.host}`;
         return res.status(200).json({ link: `${origin.replace(/\/$/, '')}/book-interview?t=${token}` });
@@ -243,10 +311,11 @@ export default async function handler(req: any, res: any) {
       if (!invite) return res.status(401).json({ error: 'This link is invalid or has expired.' });
 
       const booked = await existingBooking(invite.id);
-      if (booked) return res.status(200).json({ name: invite.n, booked });
+      if (booked) return res.status(200).json({ name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', booked });
 
-      const slots = (await freeSlots(new Date())).map((s) => new Date(s).toISOString());
-      return res.status(200).json({ name: invite.n, slots });
+      const av = await loadAvailability();
+      const slots = (await freeSlots(new Date(), av)).map((s) => new Date(s).toISOString());
+      return res.status(200).json({ name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', slotMinutes: av.slotMinutes, slots });
     }
 
     if (req.method === 'POST') {
@@ -262,23 +331,26 @@ export default async function handler(req: any, res: any) {
       }
 
       // Re-validate: slot must be one we offer AND still free right now.
-      const free = await freeSlots(new Date());
+      const av = await loadAvailability();
+      const free = await freeSlots(new Date(), av);
       if (!free.includes(startMs)) {
         return res.status(409).json({ error: 'Sorry, that slot was just taken. Please pick another.' });
       }
 
-      const endMs = startMs + CONFIG.slotMinutes * 60_000;
+      const endMs = startMs + av.slotMinutes * 60_000;
+      const kind: Kind = invite.k && KINDS.includes(invite.k) ? invite.k : 'interview';
+      const topic = invite.tp || '';
       const event = await gcal(
         `/calendars/${encodeURIComponent(CALENDAR_ID)}/events?conferenceDataVersion=1&sendUpdates=all`,
         {
           method: 'POST',
           body: JSON.stringify({
-            summary: `${CONFIG.eventTitle} - ${invite.n}`,
-            description: `Interview with ${invite.n} (${invite.e}).\nBooked via the CyberHx website.`,
+            summary: eventTitle(kind, topic, invite.n),
+            description: `${kind === 'other' && topic ? topic : KIND_TITLE[kind]} with ${invite.n} (${invite.e}).\nBooked via the CyberHx website.`,
             start: { dateTime: new Date(startMs).toISOString() },
             end: { dateTime: new Date(endMs).toISOString() },
             attendees: [{ email: invite.e, displayName: invite.n }],
-            extendedProperties: { private: { inviteId: invite.id } },
+            extendedProperties: { private: { inviteId: invite.id, kind, topic } },
             conferenceData: {
               createRequest: {
                 requestId: crypto.randomUUID(),
