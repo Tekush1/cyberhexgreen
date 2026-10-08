@@ -130,7 +130,7 @@ export const Navigation = () => {
             aria-label="CyberHx Home"
           >
             <motion.img
-              src="https://i.ibb.co/nsrCZC39/Chat-GPT-Image-Sep-17-2026-11-47-37-PM.png"
+              src="https://i.ibb.co/jkrNC6sT/cyberhx-logo.png"
               alt="CyberHx"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
