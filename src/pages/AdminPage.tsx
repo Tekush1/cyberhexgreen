@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { InterviewsPanel } from '../components/admin/InterviewsPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, CheckCircle, XCircle, Clock, Eye, Search,
@@ -10,13 +11,37 @@ import {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 
-// ─── Admin password (change this!) ──────────────────────────
-const ADMIN_PASSWORD = 'Admin@12324';
-// ────────────────────────────────────────────────────────────
+// ─── Auth: Supabase Auth (email + password). Access token lives in sessionStorage. ───
+const TOKEN_KEY = 'cyberhx_admin_token';
+export const getAdminToken = () => sessionStorage.getItem(TOKEN_KEY) || '';
+
+async function adminSignIn(email: string, password: string): Promise<string> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) throw new Error('Invalid email or password.');
+  // Confirm this user is on the admins allow-list (server-side check via RLS function)
+  const chk = await fetch(`${SUPABASE_URL}/rest/v1/rpc/is_admin`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${data.access_token}`, 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  if (!chk.ok || (await chk.json()) !== true) throw new Error('This account is not an admin.');
+  return data.access_token as string;
+}
+
+// Session expired (JWT lives ~1h) → force re-login
+const guard = (res: Response) => {
+  if (res.status === 401) { sessionStorage.removeItem(TOKEN_KEY); window.location.reload(); }
+  return res;
+};
 
 const sbHeaders = () => ({
   apikey: SUPABASE_KEY,
-  Authorization: `Bearer ${SUPABASE_KEY}`,
+  Authorization: `Bearer ${getAdminToken() || SUPABASE_KEY}`,
   'Content-Type': 'application/json',
   Prefer: 'return=representation',
 });
@@ -24,33 +49,33 @@ const sbHeaders = () => ({
 async function sbGet(table: string, params: Record<string, string> = {}) {
   const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), { headers: sbHeaders() });
+  const res = guard(await fetch(url.toString(), { headers: sbHeaders() }));
   return res.json();
 }
 
 async function sbRpc(fn: string, body: object) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+  const res = guard(await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: sbHeaders(),
     body: JSON.stringify(body),
-  });
+  }));
   return { ok: res.ok };
 }
 
 async function sbDelete(table: string, id: string) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+  const res = guard(await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'DELETE',
     headers: sbHeaders(),
-  });
+  }));
   return { ok: res.ok };
 }
 
 async function sbPatch(table: string, id: string, body: object) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+  const res = guard(await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: sbHeaders(),
     body: JSON.stringify(body),
-  });
+  }));
   return { ok: res.ok };
 }
 
@@ -78,18 +103,19 @@ const STATUS_COLORS = {
 
 // ─── Login Screen ─────────────────────────────────────────────
 const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
+  const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    if (pw === ADMIN_PASSWORD) {
-      sessionStorage.setItem('cyberhx_admin', '1');
+    try {
+      const token = await adminSignIn(email.trim(), pw);
+      sessionStorage.setItem(TOKEN_KEY, token);
       onLogin();
-    } else {
-      setError('Wrong password. Try again.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Login failed.');
     }
     setLoading(false);
   };
@@ -107,10 +133,16 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-gray-400 text-xs font-medium mb-1.5 block">Admin Password</label>
+            <label className="text-gray-400 text-xs font-medium mb-1.5 block">Admin Email</label>
+            <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
+              placeholder="admin@example.com" autoComplete="username"
+              className="w-full bg-[#05080f] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#a3e635]/50 transition-colors" />
+          </div>
+          <div>
+            <label className="text-gray-400 text-xs font-medium mb-1.5 block">Password</label>
             <input type="password" value={pw} onChange={e => { setPw(e.target.value); setError(''); }}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="Enter password"
+              placeholder="Enter password" autoComplete="current-password"
               className="w-full bg-[#05080f] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#a3e635]/50 transition-colors" />
           </div>
           {error && <p className="text-red-400 text-sm flex items-center gap-1.5"><AlertTriangle size={14} />{error}</p>}
@@ -204,8 +236,8 @@ const SubmissionCard = ({ sub, onApprove, onReject, onDelete, loading }: {
 
 // ─── Main Admin Panel ─────────────────────────────────────────
 const AdminPage: React.FC = () => {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem('cyberhx_admin') === '1');
-  const [tab, setTab] = useState<'submissions' | 'posts'>('submissions');
+  const [authed, setAuthed] = useState(() => !!getAdminToken());
+  const [tab, setTab] = useState<'submissions' | 'posts' | 'interviews'>('submissions');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -308,7 +340,7 @@ const AdminPage: React.FC = () => {
             <button onClick={loadData} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0a0f1a] border border-white/8 text-gray-400 hover:text-white transition-colors text-sm">
               <RefreshCw size={15} />Refresh
             </button>
-            <button onClick={() => { sessionStorage.removeItem('cyberhx_admin'); setAuthed(false); }}
+            <button onClick={() => { sessionStorage.removeItem(TOKEN_KEY); setAuthed(false); }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors text-sm">
               <LogOut size={15} />Logout
             </button>
@@ -332,10 +364,10 @@ const AdminPage: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {(['submissions', 'posts'] as const).map(t => (
+          {(['submissions', 'posts', 'interviews'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all capitalize border ${tab === t ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'}`}>
-              {t === 'submissions' ? `Submissions ${stats.pending > 0 ? `(${stats.pending} pending)` : ''}` : 'Published Posts'}
+              {t === 'submissions' ? `Submissions ${stats.pending > 0 ? `(${stats.pending} pending)` : ''}` : t === 'posts' ? 'Published Posts' : 'Interviews'}
             </button>
           ))}
         </div>
@@ -379,6 +411,8 @@ const AdminPage: React.FC = () => {
             )}
           </div>
         )}
+
+        {tab === 'interviews' && <InterviewsPanel />}
 
         {tab === 'posts' && (
           <div>

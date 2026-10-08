@@ -27,6 +27,7 @@ const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollaborationsPage = lazy(() => import('./pages/CollaborationsPage'));
+const BookInterviewPage = lazy(() => import('./pages/BookInterviewPage'));
 
 function App() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
@@ -56,6 +57,7 @@ function App() {
               <Route path="/register" element={<RegistrationPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/book-interview" element={<BookInterviewPage />} />
               {/* Security pages */}
               <Route path="/responsible-disclosure" element={<ResponsibleDisclosurePage />} />
               <Route path="/hall-of-fame" element={<HallOfFamePage />} />
