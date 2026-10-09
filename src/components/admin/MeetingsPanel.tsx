@@ -15,6 +15,19 @@ export interface MeetingPrefill {
   nonce: number;
 }
 
+interface PendingLink {
+  code: string;
+  link: string;
+  name: string;
+  email: string;
+  group: boolean;
+  guests: string[];
+  kind: MeetingKind;
+  topic: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
 interface Booking {
   eventId: string;
   name: string;
@@ -209,6 +222,8 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState<Booking[]>([]);
+  const [pending, setPending] = useState<PendingLink[]>([]);
+  const [copiedCode, setCopiedCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | MeetingKind>('all');
 
@@ -245,6 +260,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
     try {
       const data = await api(undefined, '?admin=list');
       setItems(data.items || []);
+      setPending(data.pending || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load.');
     } finally {
@@ -297,6 +313,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
       setLinkTopic(kind === 'other' ? topic.trim() : '');
       setLinkTo(mode === 'group' ? guests : [email.trim()]);
       setLinkName(name);
+      load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed.');
     } finally {
@@ -360,6 +377,22 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
     }
   };
 
+  const removePending = async (p: PendingLink) => {
+    if (!confirm(`Delete the unused link for ${p.name}? It will stop working.`)) return;
+    try {
+      await api({ method: 'POST', body: JSON.stringify({ action: 'delete-link', code: p.code }) });
+      setPending((prev) => prev.filter((x) => x.code !== p.code));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed.');
+    }
+  };
+
+  const copyPending = async (p: PendingLink) => {
+    await navigator.clipboard.writeText(p.link);
+    setCopiedCode(p.code);
+    setTimeout(() => setCopiedCode(''), 1500);
+  };
+
   const copy = async () => {
     await navigator.clipboard.writeText(link);
     setCopied(true);
@@ -376,6 +409,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   }, [linkKind, linkTopic, linkTo, linkName, link]);
 
   const shown = filter === 'all' ? items : items.filter((i) => (i.kind || 'interview') === filter);
+  const shownPending = filter === 'all' ? pending : pending.filter((i) => i.kind === filter);
 
   // slot picker data: every slot inside your hours, taken ones are shown as "Booked"
   const pickDays = useMemo(() => {
@@ -615,7 +649,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
       {/* Bookings */}
       <div>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 className="text-white font-medium">Booked meetings</h3>
+          <h3 className="text-white font-medium">Meetings &amp; links</h3>
           <div className="flex items-center gap-1.5 flex-wrap">
             {(['all', ...KIND_ORDER] as const).map((f) => (
               <button
@@ -633,8 +667,37 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
             </button>
           </div>
         </div>
-        {!loading && shown.length === 0 && <p className="text-gray-500 text-sm">No meetings booked yet.</p>}
+        {!loading && shown.length === 0 && shownPending.length === 0 && <p className="text-gray-500 text-sm">No meetings or links yet.</p>}
         <div className="space-y-3">
+          {shownPending.map((p) => (
+            <div key={p.code} className="bg-[#0a0f1a] border border-dashed border-white/15 rounded-2xl p-4 flex items-center gap-4 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-white text-sm font-medium truncate">{p.name}</p>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full border ${KINDS[p.kind].badge}`}>
+                    {p.kind === 'other' && p.topic ? p.topic : KINDS[p.kind].label}
+                  </span>
+                  {p.group && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full border border-white/15 text-gray-300 flex items-center gap-1">
+                      <Users size={10} /> Group · {p.guests.length}
+                    </span>
+                  )}
+                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-yellow-500/30 text-yellow-300 flex items-center gap-1">
+                    <Clock size={10} /> Waiting for slot
+                  </span>
+                </div>
+                <p className="text-gray-500 text-xs mt-0.5 truncate">{p.group ? `${p.guests.length} people invited` : p.email}</p>
+                <p className="text-gray-400 text-xs mt-1 break-all">{p.link}</p>
+                <p className="text-gray-600 text-[11px] mt-0.5">Expires {fmt(p.expiresAt)} IST</p>
+              </div>
+              <button onClick={() => copyPending(p)} className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
+                {copiedCode === p.code ? <Check size={12} /> : <Copy size={12} />} {copiedCode === p.code ? 'Copied' : 'Copy link'}
+              </button>
+              <button onClick={() => removePending(p)} className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Delete link">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
           {shown.map((b) => {
             const k = b.kind || 'interview';
             const n = b.attendees?.length || 0;

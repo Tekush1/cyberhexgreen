@@ -6,7 +6,7 @@
 // Admin (header `Authorization: Bearer <Supabase admin session token>`):
 //   POST /api/interview  { action:'create-link', name, email, days, kind, topic } -> { link }
 //        kind = interview | partnership | ctf | other (topic is the custom title for 'other')
-//   GET  /api/interview?admin=list                                   -> { items: [...] }
+//   GET  /api/interview?admin=list                                   -> { items: [...booked], pending: [...unbooked links] }
 //   POST /api/interview  { action:'cancel', eventId }                -> { ok: true }
 //   POST /api/interview  { action:'create-link', ..., emails:[...], hideGuests, dur }  -> group link (one slot, many invitees)
 //   GET  /api/interview?admin=slots&dur=60                           -> { slotMinutes, slots, taken }
@@ -196,6 +196,54 @@ async function loadShortLink(code: string): Promise<TokenPayload | null> {
   }
 }
 
+/** Links the admin created that nobody has booked yet (admin session only: RLS lets only admins read the table). */
+async function listPendingLinks(auth: string, origin: string, bookedIds: Set<string>) {
+  const { url, anon } = sb();
+  if (!url || !anon) return [];
+  try {
+    const q = new URLSearchParams({
+      select: 'code,payload,expires_at,created_at',
+      expires_at: `gt.${new Date().toISOString()}`,
+      order: 'created_at.desc',
+      limit: '100',
+    });
+    const r = await fetch(`${url}/rest/v1/meeting_links?${q}`, { headers: { apikey: anon, Authorization: auth }, cache: 'no-store' });
+    if (!r.ok) {
+      console.error('pending links: could not read', r.status);
+      return [];
+    }
+    const rows = (await r.json()) as Array<{ code: string; payload: TokenPayload; expires_at: string; created_at: string }>;
+    return rows
+      .filter((row) => row.payload && row.payload.id && !bookedIds.has(row.payload.id))
+      .map((row) => {
+        const p = row.payload;
+        const guests = p.g && p.g.length ? p.g : [p.e];
+        return {
+          code: row.code,
+          link: `${origin}/meet/${row.code}`,
+          name: p.n,
+          email: p.e,
+          group: guests.length > 1,
+          guests,
+          kind: (p.k && KINDS.includes(p.k) ? p.k : 'interview') as Kind,
+          topic: p.tp || '',
+          expiresAt: row.expires_at,
+          createdAt: row.created_at,
+        };
+      });
+  } catch (e) {
+    console.error('pending links: error', e instanceof Error ? e.message : e);
+    return [];
+  }
+}
+
+async function deleteShortLink(auth: string, code: string): Promise<boolean> {
+  const { url, anon } = sb();
+  if (!url || !anon || !CODE_RE.test(code)) return false;
+  const r = await fetch(`${url}/rest/v1/meeting_links?code=eq.${code}`, { method: 'DELETE', headers: { apikey: anon, Authorization: auth } });
+  return r.ok;
+}
+
 async function verifyToken(token: string): Promise<TokenPayload | null> {
   const secret = process.env.INTERVIEW_LINK_SECRET;
   if (!secret || typeof token !== 'string') return null;
@@ -349,6 +397,7 @@ async function listBookings() {
       const group = priv.group === '1' || guests.length > 1;
       return {
         eventId: ev.id,
+        inviteId: priv.inviteId as string,
         name: priv.name || guests[0]?.displayName || ev.summary,
         email: guests[0]?.email || '',
         status: guests[0]?.responseStatus || 'needsAction',
@@ -488,7 +537,10 @@ export default async function handler(req: any, res: any) {
             taken: st.taken.map((s) => new Date(s).toISOString()),
           });
         }
-        return res.status(200).json({ items: await listBookings() });
+        const items = await listBookings();
+        const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
+        const pending = await listPendingLinks(String(req.headers.authorization), origin, new Set(items.map((i: any) => i.inviteId)));
+        return res.status(200).json({ items, pending });
       }
 
       const { action, name, email, days, eventId, kind, topic, emails, hideGuests, start, dur, custom, force } = req.body;
@@ -522,6 +574,11 @@ export default async function handler(req: any, res: any) {
         if (code) return res.status(200).json({ link: `${origin}/meet/${code}`, short: true });
         // fallback: self-contained encrypted link (long, but works with no database setup)
         return res.status(200).json({ link: `${origin}/book-interview?t=${signToken(payload)}`, short: false });
+      }
+
+      if (action === 'delete-link') {
+        const ok = await deleteShortLink(String(req.headers.authorization), String(req.body.code || ''));
+        return ok ? res.status(200).json({ ok: true }) : res.status(400).json({ error: 'Could not delete this link.' });
       }
 
       if (action === 'book-now') {
