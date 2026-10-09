@@ -94,8 +94,9 @@ export const AvailabilityPanel: React.FC = () => {
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
-  const today = useMemo(() => { const t = new Date(); return keyOf(t.getFullYear(), t.getMonth(), t.getDate()); }, []);
-  const [view, setView] = useState(() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), 1); });
+  // dates are IST everywhere (the booking API generates slots in IST), so "today" must be IST too
+  const today = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }), []);
+  const [view, setView] = useState(() => { const [y, m] = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('-').map(Number); return new Date(y, m - 1, 1); });
   const [selected, setSelected] = useState('');
 
   const dirty = JSON.stringify(cfg) !== savedJson;

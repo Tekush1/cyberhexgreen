@@ -31,6 +31,8 @@ const BookInterviewPage: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [slotMinutes, setSlotMinutes] = useState(30);
   const [slots, setSlots] = useState<string[]>([]);
+  const [taken, setTaken] = useState<string[]>([]);
+  const [groupSize, setGroupSize] = useState(0);
   const [alreadyBooked, setAlreadyBooked] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
@@ -61,6 +63,8 @@ const BookInterviewPage: React.FC = () => {
       if (data.slotMinutes) setSlotMinutes(data.slotMinutes);
       setAlreadyBooked(data.booked || null);
       setSlots(data.slots || []);
+      setTaken(data.taken || []);
+      setGroupSize(data.groupSize || 0);
       setSelectedDay(data.slots?.[0] ? dayKey(data.slots[0]) : '');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load slots.');
@@ -80,13 +84,15 @@ const BookInterviewPage: React.FC = () => {
   }, [token]);
 
   const days = useMemo(() => {
-    const map = new Map<string, string[]>();
-    slots.forEach((s) => {
+    // every slot inside the host's hours; taken ones stay visible but are marked "Booked"
+    const free = new Set(slots);
+    const map = new Map<string, { iso: string; taken: boolean }[]>();
+    [...slots, ...taken].sort().forEach((s) => {
       const k = dayKey(s);
-      map.set(k, [...(map.get(k) || []), s]);
+      map.set(k, [...(map.get(k) || []), { iso: s, taken: !free.has(s) }]);
     });
     return Array.from(map.entries());
-  }, [slots]);
+  }, [slots, taken]);
 
   const book = async () => {
     if (!selectedSlot) return;
@@ -123,7 +129,10 @@ const BookInterviewPage: React.FC = () => {
         <h1 className="text-4xl font-bold gradient-text mb-3">{KIND_TEXT[kind].title}</h1>
         {kind === 'other' && topic && !done && !alreadyBooked && <p className="text-primary mb-2">{topic}</p>}
         {name && !done && !alreadyBooked && (
-          <p className="text-gray-400">Hi {name}, pick a time that works for you.</p>
+          <p className="text-gray-400">
+            Hi {name}, pick a time that works for you.
+            {groupSize > 1 && <span className="block text-sm text-gray-500 mt-1">One booking covers all {groupSize} people - everyone gets the calendar invite.</span>}
+          </p>
         )}
       </div>
 
@@ -174,7 +183,9 @@ const BookInterviewPage: React.FC = () => {
           )}
 
           {slots.length === 0 && !error && (
-            <p className="text-gray-300">No slots are open right now. Please check back soon or reply to our email.</p>
+            <p className="text-gray-300">
+              {taken.length > 0 ? 'All slots are booked right now.' : 'No slots are open right now.'} Please check back soon or reply to our email.
+            </p>
           )}
 
           {days.length > 0 && (
@@ -193,23 +204,28 @@ const BookInterviewPage: React.FC = () => {
                         : 'border-gray-700 text-gray-300 hover:border-gray-500'
                     }`}
                   >
-                    {dayLabel(list[0])}
+                    {dayLabel(list[0].iso)}
                   </button>
                 ))}
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-6">
-                {(days.find(([k]) => k === selectedDay)?.[1] || []).map((s) => (
+                {(days.find(([k]) => k === selectedDay)?.[1] || []).map(({ iso: s, taken: isTaken }) => (
                   <button
                     key={s}
+                    disabled={isTaken}
                     onClick={() => setSelectedSlot(s)}
+                    title={isTaken ? 'Already booked' : ''}
                     className={`py-2 rounded-lg border text-sm transition-colors ${
-                      selectedSlot === s
-                        ? 'border-primary bg-primary text-dark-300 font-medium'
-                        : 'border-gray-700 text-gray-200 hover:border-primary'
+                      isTaken
+                        ? 'border-gray-800 bg-gray-900/40 text-gray-600 line-through cursor-not-allowed'
+                        : selectedSlot === s
+                          ? 'border-primary bg-primary text-dark-300 font-medium'
+                          : 'border-gray-700 text-gray-200 hover:border-primary'
                     }`}
                   >
                     {timeLabel(s)}
+                    {isTaken && <span className="block text-[10px] no-underline">Booked</span>}
                   </button>
                 ))}
               </div>
