@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Link2, Copy, Check, Mail, Video, Trash2, Loader2, RefreshCw, AlertTriangle,
-  UserCheck, Handshake, Flag, PenLine, CalendarClock, Users, Upload, X, Clock,
+  UserCheck, Handshake, Flag, PenLine, CalendarClock, Users, Upload, X, Clock, UserPlus,
 } from 'lucide-react';
 import { TOKEN_KEY } from './adminApi';
 
@@ -21,6 +21,7 @@ interface Booking {
   email: string;
   status: string;
   group?: boolean;
+  canAdd?: boolean;
   attendees?: { email: string; status: string }[];
   start: string;
   end: string;
@@ -80,11 +81,100 @@ const input =
   'w-full bg-[#05080f] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#a3e635]/50';
 
 const EMAIL_FIND = /[^\s,;<>"'()]+@[^\s,;<>"'()]+\.[^\s,;<>"'()]+/g;
-const MAX_GUESTS = 20;
+const MAX_LINK_GUESTS = 50; // people on one booking link
+const MAX_DIRECT_GUESTS = 100; // people when you book the time yourself
+const DURATIONS = [30, 45, 60, 90, 120, 180];
+const istToday = () => new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
 const IST = { timeZone: 'Asia/Kolkata' } as const;
 const istDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', IST);
 const istDayLabel = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { ...IST, weekday: 'short', day: 'numeric', month: 'short' });
 const istTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { ...IST, hour: 'numeric', minute: '2-digit' });
+
+/** Chips + type/paste/import. Shared by the create form and the "Add people" box. */
+const GuestInput: React.FC<{ guests: string[]; setGuests: (g: string[]) => void; max: number; extra?: React.ReactNode }> = ({ guests, setGuests, max, extra }) => {
+  const [draft, setDraft] = useState('');
+  const [msg, setMsg] = useState('');
+
+  const add = (text: string) => {
+    const found = Array.from(new Set((text.match(EMAIL_FIND) || []).map((x) => x.toLowerCase().replace(/\.+$/, ''))));
+    if (!found.length) {
+      if (text.trim()) setMsg('No valid email found.');
+      return;
+    }
+    const next = [...guests];
+    let added = 0, dup = 0, over = 0;
+    for (const e of found) {
+      if (next.includes(e)) dup++;
+      else if (next.length >= max) over++;
+      else { next.push(e); added++; }
+    }
+    setGuests(next);
+    setMsg(`${added} added${dup ? `, ${dup} duplicate` : ''}${over ? `, ${over} skipped (max ${max})` : ''}`);
+  };
+
+  return (
+    <div>
+      <label className="text-gray-400 text-xs font-medium mb-1.5 flex items-center justify-between">
+        <span>Emails ({guests.length}/{max})</span>
+        {guests.length > 0 && (
+          <button type="button" onClick={() => { setGuests([]); setMsg(''); }} className="text-gray-500 hover:text-red-400">Clear all</button>
+        )}
+      </label>
+      <div className="bg-[#05080f] border border-white/10 rounded-xl p-2 flex flex-wrap gap-1.5 max-h-48 overflow-y-auto focus-within:border-[#a3e635]/50">
+        {guests.map((g) => (
+          <span key={g} className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">
+            {g}
+            <button type="button" onClick={() => setGuests(guests.filter((x) => x !== g))} className="p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-red-400" aria-label={`Remove ${g}`}>
+              <X size={11} />
+            </button>
+          </span>
+        ))}
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (['Enter', ',', ' ', ';'].includes(e.key) && draft.trim()) {
+              e.preventDefault();
+              add(draft);
+              setDraft('');
+            } else if (e.key === 'Backspace' && !draft && guests.length) {
+              setGuests(guests.slice(0, -1));
+            }
+          }}
+          onPaste={(e) => {
+            const t = e.clipboardData.getData('text');
+            if (/[\s,;]/.test(t.trim())) {
+              e.preventDefault();
+              add(t);
+            }
+          }}
+          onBlur={() => {
+            if (draft.trim()) { add(draft); setDraft(''); }
+          }}
+          placeholder={guests.length ? 'Add another…' : 'Type an email and press Enter, or paste a whole list'}
+          className="flex-1 min-w-[200px] bg-transparent px-2 py-1 text-sm text-white placeholder-gray-600 focus:outline-none"
+        />
+      </div>
+      <div className="flex items-center gap-3 mt-2 flex-wrap">
+        <label className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5 cursor-pointer">
+          <Upload size={12} /> Import list (.csv / .txt)
+          <input
+            type="file"
+            accept=".csv,.txt,text/csv,text/plain"
+            className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              if (f) add(await f.text());
+              e.target.value = '';
+            }}
+          />
+        </label>
+        {extra}
+        {msg && <span className="text-[11px] text-gray-500">{msg}</span>}
+      </div>
+    </div>
+  );
+};
 
 interface SlotData { slotMinutes: number; slots: string[]; taken: string[] }
 
@@ -96,10 +186,15 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const [days, setDays] = useState('7');
   const [mode, setMode] = useState<'single' | 'group'>('single');
   const [guests, setGuests] = useState<string[]>([]);
-  const [draft, setDraft] = useState('');
   const [hideGuests, setHideGuests] = useState(true);
-  const [notice, setNotice] = useState('');
-  const [when, setWhen] = useState<'link' | 'now'>('link');
+  const [when, setWhen] = useState<'link' | 'now' | 'custom'>('link');
+  const [dur, setDur] = useState(''); // '' = one slot
+  const [customDate, setCustomDate] = useState('');
+  const [customTime, setCustomTime] = useState('');
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [addGuestsList, setAddGuestsList] = useState<string[]>([]);
+  const [addBusy, setAddBusy] = useState(false);
+  const [emailsCopied, setEmailsCopied] = useState(false);
   const [slotData, setSlotData] = useState<SlotData | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [pickDay, setPickDay] = useState('');
@@ -165,7 +260,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const loadSlotPicker = useCallback(async () => {
     setSlotsLoading(true);
     try {
-      const d: SlotData = await api(undefined, '?admin=slots');
+      const d: SlotData = await api(undefined, `?admin=slots${dur ? `&dur=${dur}` : ''}`);
       setSlotData(d);
       setPickDay((cur) => (cur && [...d.slots, ...d.taken].some((s) => istDay(s) === cur) ? cur : d.slots[0] ? istDay(d.slots[0]) : ''));
       setPickSlot('');
@@ -174,39 +269,17 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
     } finally {
       setSlotsLoading(false);
     }
-  }, [api]);
+  }, [api, dur]);
 
   useEffect(() => {
     if (when === 'now') loadSlotPicker();
   }, [when, loadSlotPicker]);
 
-  // ----- guest list (add one by one, paste many, or import a file) -----
-  const addGuests = (text: string) => {
-    const found = (text.match(EMAIL_FIND) || []).map((x) => x.toLowerCase());
-    if (!found.length) {
-      if (text.trim()) setNotice('No valid email found.');
-      return;
-    }
-    const next = [...guests];
-    let added = 0, dup = 0, over = 0;
-    for (const e of found) {
-      if (next.includes(e)) dup++;
-      else if (next.length >= MAX_GUESTS) over++;
-      else { next.push(e); added++; }
-    }
-    setGuests(next);
-    setNotice(`${added} added${dup ? `, ${dup} duplicate` : ''}${over ? `, ${over} skipped (max ${MAX_GUESTS})` : ''}`);
-  };
-
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) addGuests(await f.text());
-    e.target.value = '';
-  };
-
   const topicMissing = kind === 'other' && !topic.trim();
-  const emailOk = mode === 'group' ? guests.length > 0 : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const canGenerate = !busy && !!name.trim() && emailOk && !topicMissing && (when === 'link' || !!pickSlot);
+  const maxGuests = when === 'link' ? MAX_LINK_GUESTS : MAX_DIRECT_GUESTS;
+  const emailOk = mode === 'group' ? guests.length > 0 && guests.length <= maxGuests : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const timeOk = when === 'link' || (when === 'now' && !!pickSlot) || (when === 'custom' && !!customDate && !!customTime && customDate >= istToday());
+  const canGenerate = !busy && !!name.trim() && emailOk && !topicMissing && timeOk;
 
   const createLink = async () => {
     setBusy(true);
@@ -214,7 +287,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
     setLink('');
     setOkMsg(null);
     try {
-      const base = { action: 'create-link', name, days: Number(days), kind, topic: kind === 'other' ? topic : '' };
+      const base = { action: 'create-link', name, days: Number(days), kind, topic: kind === 'other' ? topic : '', ...(dur ? { dur: Number(dur) } : {}) };
       const data = await api({
         method: 'POST',
         body: JSON.stringify(mode === 'group' ? { ...base, emails: guests, hideGuests } : { ...base, email }),
@@ -231,24 +304,48 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
     }
   };
 
-  const bookNow = async () => {
+  const bookNow = async (force = false): Promise<void> => {
     setBusy(true);
     setError('');
     setLink('');
     setOkMsg(null);
     try {
       const body = {
-        action: 'book-now', name, start: pickSlot, kind, topic: kind === 'other' ? topic : '', hideGuests,
+        action: 'book-now', name, kind, topic: kind === 'other' ? topic : '', hideGuests,
+        ...(dur ? { dur: Number(dur) } : {}),
+        ...(when === 'custom' ? { custom: { date: customDate, time: customTime }, force } : { start: pickSlot }),
         ...(mode === 'group' ? { emails: guests } : { email }),
       };
       const d = await api({ method: 'POST', body: JSON.stringify(body) });
       setOkMsg({ text: `Booked ${istDayLabel(d.start)}, ${istTime(d.start)} IST. Invite sent to ${d.guests} ${d.guests > 1 ? 'people' : 'person'}.`, meet: d.meetLink });
-      await Promise.all([load(), loadSlotPicker()]);
+      await Promise.all([load(), when === 'now' ? loadSlotPicker() : Promise.resolve()]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed.');
-      loadSlotPicker();
+      const msg = e instanceof Error ? e.message : 'Failed.';
+      if (when === 'custom' && !force && /already have something/i.test(msg)) {
+        setBusy(false);
+        if (confirm(`${msg}\n\nBook it anyway (double-book)?`)) return bookNow(true);
+        return;
+      }
+      setError(msg);
+      if (when === 'now') loadSlotPicker();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const addPeople = async (b: Booking) => {
+    setAddBusy(true);
+    setError('');
+    try {
+      const d = await api({ method: 'POST', body: JSON.stringify({ action: 'add-attendees', eventId: b.eventId, emails: addGuestsList }) });
+      setOkMsg({ text: `${d.added} added${d.skipped ? `, ${d.skipped} already invited` : ''}. Invites sent.`, meet: null });
+      setAddGuestsList([]);
+      setAddingTo(null);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed.');
+    } finally {
+      setAddBusy(false);
     }
   };
 
@@ -269,10 +366,12 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
     setTimeout(() => setCopied(false), 1500);
   };
 
+  // Group links are short now, but a long BCC list can still overflow mail apps - so the guest list is
+  // copied separately ("Copy all emails") and the mailto only carries subject + body.
   const mailto = useMemo(() => {
     const k = KINDS[linkKind];
     const group = linkTo.length > 1;
-    const to = group ? `?bcc=${linkTo.join(',')}&` : `${linkTo[0] || ''}?`;
+    const to = group ? '?' : `${linkTo[0] || ''}?`;
     return `mailto:${to}subject=${encodeURIComponent(k.mailSubject(linkTopic))}&body=${encodeURIComponent(k.mailBody(group ? 'all' : linkName, link, linkTopic))}`;
   }, [linkKind, linkTopic, linkTo, linkName, link]);
 
@@ -372,60 +471,20 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
               <label className="text-gray-400 text-xs font-medium mb-1.5 block">Meeting / group name</label>
               <input value={name} onChange={(e) => setName(e.target.value.slice(0, 80))} placeholder="e.g. Core team sync, Mentor onboarding" className={input} />
             </div>
-            <div>
-              <label className="text-gray-400 text-xs font-medium mb-1.5 flex items-center justify-between">
-                <span>Emails ({guests.length}/{MAX_GUESTS})</span>
-                {guests.length > 0 && (
-                  <button type="button" onClick={() => { setGuests([]); setNotice(''); }} className="text-gray-500 hover:text-red-400">Clear all</button>
-                )}
-              </label>
-              <div className="bg-[#05080f] border border-white/10 rounded-xl p-2 flex flex-wrap gap-1.5 focus-within:border-[#a3e635]/50">
-                {guests.map((g) => (
-                  <span key={g} className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">
-                    {g}
-                    <button type="button" onClick={() => setGuests(guests.filter((x) => x !== g))} className="p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-red-400" aria-label={`Remove ${g}`}>
-                      <X size={11} />
-                    </button>
-                  </span>
-                ))}
-                <input
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (['Enter', ',', ' ', ';'].includes(e.key) && draft.trim()) {
-                      e.preventDefault();
-                      addGuests(draft);
-                      setDraft('');
-                    } else if (e.key === 'Backspace' && !draft && guests.length) {
-                      setGuests(guests.slice(0, -1));
-                    }
-                  }}
-                  onPaste={(e) => {
-                    const t = e.clipboardData.getData('text');
-                    if (/[\s,;]/.test(t.trim())) {
-                      e.preventDefault();
-                      addGuests(t);
-                    }
-                  }}
-                  onBlur={() => {
-                    if (draft.trim()) { addGuests(draft); setDraft(''); }
-                  }}
-                  placeholder={guests.length ? 'Add another…' : 'Type an email and press Enter, or paste a whole list'}
-                  className="flex-1 min-w-[200px] bg-transparent px-2 py-1 text-sm text-white placeholder-gray-600 focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center gap-3 mt-2 flex-wrap">
-                <label className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5 cursor-pointer">
-                  <Upload size={12} /> Import list (.csv / .txt)
-                  <input type="file" accept=".csv,.txt,text/csv,text/plain" onChange={onFile} className="hidden" />
-                </label>
+            <GuestInput
+              guests={guests}
+              setGuests={setGuests}
+              max={maxGuests}
+              extra={
                 <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
                   <input type="checkbox" checked={hideGuests} onChange={(e) => setHideGuests(e.target.checked)} className="accent-[#a3e635]" />
                   Hide guest list from attendees
                 </label>
-                {notice && <span className="text-[11px] text-gray-500">{notice}</span>}
-              </div>
-            </div>
+              }
+            />
+            {when === 'link' && guests.length > MAX_LINK_GUESTS && (
+              <p className="text-amber-400 text-xs">A booking link holds up to {MAX_LINK_GUESTS} people. Remove some, or choose "I pick the date & time" (up to {MAX_DIRECT_GUESTS}).</p>
+            )}
           </div>
         )}
 
@@ -433,8 +492,32 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
         <div className="flex gap-2 flex-wrap mb-4 items-center">
           <span className="text-gray-500 text-xs mr-1 flex items-center gap-1"><Clock size={12} /> Time:</span>
           <button type="button" onClick={() => setWhen('link')} className={seg(when === 'link')}>They pick (send link)</button>
-          <button type="button" onClick={() => setWhen('now')} className={seg(when === 'now')}>I pick the date & time</button>
+          <button type="button" onClick={() => setWhen('now')} className={seg(when === 'now')}>I pick a free slot</button>
+          <button type="button" onClick={() => setWhen('custom')} className={seg(when === 'custom')}>Any date & time</button>
+          <span className="ml-auto flex items-center gap-2">
+            <label className="text-gray-500 text-xs">Length</label>
+            <select value={dur} onChange={(e) => { setDur(e.target.value); setPickSlot(''); }} className="bg-[#05080f] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#a3e635]/50">
+              <option value="">Default (1 slot)</option>
+              {DURATIONS.map((n) => <option key={n} value={n}>{n} min</option>)}
+            </select>
+          </span>
         </div>
+
+        {when === 'custom' && (
+          <div className="mb-4 p-4 rounded-xl bg-[#05080f] border border-white/10">
+            <div className="grid grid-cols-2 gap-3 max-w-md">
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1.5 block">Date</label>
+                <input type="date" value={customDate} min={istToday()} onChange={(e) => setCustomDate(e.target.value)} className={`${input} [color-scheme:dark]`} />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1.5 block">Time (IST)</label>
+                <input type="time" value={customTime} onChange={(e) => setCustomTime(e.target.value)} className={`${input} [color-scheme:dark]`} />
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-600 mt-2">Works even outside your normal hours. If you already have something at that time, you'll be asked before double-booking.</p>
+          </div>
+        )}
 
         {when === 'now' && (
           <div className="mb-4 p-4 rounded-xl bg-[#05080f] border border-white/10">
@@ -482,7 +565,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
             </div>
           )}
           <button
-            onClick={when === 'link' ? createLink : bookNow}
+            onClick={() => (when === 'link' ? createLink() : bookNow())}
             disabled={!canGenerate}
             className="px-5 py-2.5 bg-[#a3e635] text-[#05080f] font-bold rounded-xl hover:bg-[#bef264] disabled:opacity-50 flex items-center justify-center gap-2"
           >
@@ -514,8 +597,16 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                 {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? 'Copied' : 'Copy link'}
               </button>
               <a href={mailto} className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
-                <Mail size={12} /> {linkTo.length > 1 ? 'Open in mail app (all in BCC)' : 'Open in mail app'}
+                <Mail size={12} /> Open in mail app
               </a>
+              {linkTo.length > 1 && (
+                <button
+                  onClick={async () => { await navigator.clipboard.writeText(linkTo.join(', ')); setEmailsCopied(true); setTimeout(() => setEmailsCopied(false), 1500); }}
+                  className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5"
+                >
+                  {emailsCopied ? <Check size={12} /> : <Users size={12} />} {emailsCopied ? 'Copied' : `Copy all ${linkTo.length} emails (paste in BCC)`}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -591,6 +682,14 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                     )}
                   </p>
                 </div>
+                {(b.group || b.canAdd) && (
+                  <button
+                    onClick={() => { setAddingTo(addingTo === b.eventId ? null : b.eventId); setAddGuestsList([]); }}
+                    className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5"
+                  >
+                    <UserPlus size={12} /> Add people
+                  </button>
+                )}
                 {b.meetLink && (
                   <a href={b.meetLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
                     <Video size={12} /> Join Meet
@@ -599,6 +698,18 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                 <button onClick={() => cancel(b)} className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Cancel meeting">
                   <Trash2 size={14} />
                 </button>
+                {addingTo === b.eventId && (
+                  <div className="basis-full pt-3 border-t border-white/5">
+                    <GuestInput guests={addGuestsList} setGuests={setAddGuestsList} max={MAX_DIRECT_GUESTS} />
+                    <button
+                      onClick={() => addPeople(b)}
+                      disabled={!addGuestsList.length || addBusy}
+                      className="mt-3 px-4 py-2 bg-[#a3e635] text-[#05080f] text-sm font-bold rounded-xl hover:bg-[#bef264] disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {addBusy ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />} Invite {addGuestsList.length || ''} {addGuestsList.length === 1 ? 'person' : 'people'}
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}

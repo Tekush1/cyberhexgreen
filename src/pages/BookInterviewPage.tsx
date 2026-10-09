@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Calendar, CheckCircle, AlertCircle, Video, Loader2 } from 'lucide-react';
 
 type Kind = 'interview' | 'partnership' | 'ctf' | 'other';
@@ -22,7 +22,8 @@ const fullLabel = (iso: string) =>
 
 const BookInterviewPage: React.FC = () => {
   const [params] = useSearchParams();
-  const token = params.get('t') || '';
+  const { code } = useParams(); // short link: /meet/<code>
+  const token = code || params.get('t') || ''; // old long link: /book-interview?t=...
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -60,7 +61,7 @@ const BookInterviewPage: React.FC = () => {
       setName(data.name);
       if (data.kind in KIND_TEXT) setKind(data.kind);
       setTopic(data.topic || '');
-      if (data.slotMinutes) setSlotMinutes(data.slotMinutes);
+      if (data.durationMinutes || data.slotMinutes) setSlotMinutes(data.durationMinutes || data.slotMinutes);
       setAlreadyBooked(data.booked || null);
       setSlots(data.slots || []);
       setTaken(data.taken || []);

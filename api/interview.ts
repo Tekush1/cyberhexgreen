@@ -8,22 +8,25 @@
 //        kind = interview | partnership | ctf | other (topic is the custom title for 'other')
 //   GET  /api/interview?admin=list                                   -> { items: [...] }
 //   POST /api/interview  { action:'cancel', eventId }                -> { ok: true }
-//   POST /api/interview  { action:'create-link', ..., emails:[...], hideGuests }  -> group link (one slot, many invitees)
-//   GET  /api/interview?admin=slots                                  -> { slotMinutes, slots, taken }
-//   POST /api/interview  { action:'book-now', name, emails, kind, topic, start } -> admin books the slot directly
+//   POST /api/interview  { action:'create-link', ..., emails:[...], hideGuests, dur }  -> group link (one slot, many invitees)
+//   GET  /api/interview?admin=slots&dur=60                           -> { slotMinutes, slots, taken }
+//   POST /api/interview  { action:'book-now', name, emails, kind, topic, dur, hideGuests,
+//                          start | custom:{date,time}, force? }       -> admin books directly (free slot, or ANY IST date/time)
+//   POST /api/interview  { action:'add-attendees', eventId, emails[] } -> invite more people to a group / admin-made meeting
 //
 // The token is created with `node scripts/make-interview-link.mjs` and is HMAC-signed,
 // so only people you sent a link to can see slots or book.
 // Required env vars: see INTERVIEW_BOOKING_SETUP.md
 
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 
 // ---------- Config (edit to taste) ----------
 const IST_OFFSET_MIN = 330; // Asia/Kolkata, no DST
 const CONFIG = {
   slotMinutes: 30,
-  daysAhead: 14,
-  minNoticeHours: 2,
+  daysAhead: 30, // default; editable in Admin -> Availability
+  minNoticeHours: 2, // default; editable in Admin -> Availability
   workDays: [1, 2, 3, 4, 5, 6], // 0=Sun ... 6=Sat, in IST
   startHour: 10, // IST
   endHour: 18, // IST
@@ -45,7 +48,7 @@ function eventTitle(kind: Kind, topic: string, name: string) {
 
 // ---------- Availability (edited in Admin -> Availability, stored in Supabase) ----------
 interface Win { s: string; e: string }
-interface Availability { slotMinutes: number; weekly: Record<string, Win[]>; dates: Record<string, Win[]> }
+interface Availability { slotMinutes: number; daysAhead: number; minNoticeHours: number; weekly: Record<string, Win[]>; dates: Record<string, Win[]> }
 
 const toMin = (t: string) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
 const validWins = (ws: unknown): Win[] =>
@@ -56,6 +59,8 @@ const validWins = (ws: unknown): Win[] =>
 async function loadAvailability(): Promise<Availability> {
   const fallback: Availability = {
     slotMinutes: CONFIG.slotMinutes,
+    daysAhead: CONFIG.daysAhead,
+    minNoticeHours: CONFIG.minNoticeHours,
     weekly: Object.fromEntries(
       [0, 1, 2, 3, 4, 5, 6].map((d) => [String(d), CONFIG.workDays.includes(d) ? [{ s: `${CONFIG.startHour}:00`.padStart(5, '0'), e: `${CONFIG.endHour}:00`.padStart(5, '0') }] : []]),
     ),
@@ -63,12 +68,19 @@ async function loadAvailability(): Promise<Availability> {
   };
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  if (!url || !anon) return fallback;
+  if (!url || !anon) {
+    console.error('availability: SUPABASE_URL / SUPABASE_ANON_KEY missing on the server - using default hours');
+    return fallback;
+  }
   try {
     const res = await fetch(`${url}/rest/v1/meeting_availability?id=eq.1&select=config`, {
       headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+      cache: 'no-store',
     });
-    if (!res.ok) return fallback;
+    if (!res.ok) {
+      console.error('availability: Supabase read failed', res.status, '- using default hours');
+      return fallback;
+    }
     const c = (await res.json())?.[0]?.config;
     if (!c || !c.weekly) return fallback;
     const weekly: Record<string, Win[]> = {};
@@ -76,8 +88,17 @@ async function loadAvailability(): Promise<Availability> {
     const dates: Record<string, Win[]> = {};
     for (const [k, v] of Object.entries(c.dates || {})) if (/^\d{4}-\d{2}-\d{2}$/.test(k)) dates[k] = validWins(v);
     const slot = Number(c.slotMinutes);
-    return { slotMinutes: [15, 20, 30, 45, 60].includes(slot) ? slot : CONFIG.slotMinutes, weekly, dates };
-  } catch {
+    const ahead = Number(c.daysAhead);
+    const notice = Number(c.minNoticeHours);
+    return {
+      slotMinutes: [15, 20, 30, 45, 60].includes(slot) ? slot : CONFIG.slotMinutes,
+      daysAhead: Number.isFinite(ahead) && ahead >= 1 ? Math.min(ahead, 90) : CONFIG.daysAhead,
+      minNoticeHours: Number.isFinite(notice) && notice >= 0 ? Math.min(notice, 168) : CONFIG.minNoticeHours,
+      weekly,
+      dates,
+    };
+  } catch (e) {
+    console.error('availability: read error', e instanceof Error ? e.message : e);
     return fallback;
   }
 }
@@ -93,37 +114,139 @@ interface TokenPayload {
   tp?: string; // custom topic for kind 'other'
   g?: string[]; // group meeting: every invitee email (one link, one slot, many guests)
   hg?: boolean; // group meeting: hide the guest list from attendees
+  d?: number; // meeting length in minutes (missing = one slot)
 }
 
-function verifyToken(token: string): TokenPayload | null {
-  const secret = process.env.INTERVIEW_LINK_SECRET;
-  if (!secret || typeof token !== 'string') return null;
-  const [body, sig] = token.split('.');
-  if (!body || !sig) return null;
-  const expected = crypto.createHmac('sha256', secret).update(body).digest('base64url');
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+// New links are ENCRYPTED (AES-256-GCM) + compressed, so nobody can read the invitee emails out of the URL
+// and a 50-person link stays short. Old HMAC-signed links keep working.
+const sealKey = () => crypto.createHash('sha256').update(`interview-token-v2:${process.env.INTERVIEW_LINK_SECRET || ''}`).digest();
+
+function sealToken(payload: TokenPayload): string {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', sealKey(), iv);
+  const data = Buffer.concat([c.update(zlib.deflateRawSync(Buffer.from(JSON.stringify(payload)))), c.final()]);
+  return `e.${Buffer.concat([iv, c.getAuthTag(), data]).toString('base64url')}`;
+}
+
+function openSealed(raw: string): TokenPayload | null {
   try {
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as TokenPayload;
-    if (!payload.id || !payload.e || payload.x < Date.now() / 1000) return null;
-    return payload;
+    const buf = Buffer.from(raw, 'base64url');
+    if (buf.length < 29) return null;
+    const d = crypto.createDecipheriv('aes-256-gcm', sealKey(), buf.subarray(0, 12));
+    d.setAuthTag(buf.subarray(12, 28));
+    const plain = Buffer.concat([d.update(buf.subarray(28)), d.final()]);
+    return JSON.parse(zlib.inflateRawSync(plain).toString('utf8')) as TokenPayload;
   } catch {
     return null;
   }
 }
 
-function signToken(payload: TokenPayload): string {
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const sig = crypto.createHmac('sha256', process.env.INTERVIEW_LINK_SECRET || '').update(body).digest('base64url');
-  return `${body}.${sig}`;
+// ---------- Short links:  https://site/meet/k7m2xq9p ----------
+// The payload (name, emails, length...) lives in Supabase `meeting_links` (run supabase/meeting_links.sql once);
+// the link only carries an 8-character random code. If that table isn't set up yet we quietly fall back
+// to the long encrypted link, so nothing breaks.
+const CODE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789'; // no look-alikes (i l o 0 1)
+const CODE_RE = new RegExp(`^[${CODE_CHARS}]{8}$`);
+const newCode = () => Array.from(crypto.randomBytes(8), (b) => CODE_CHARS[b % CODE_CHARS.length]).join('');
+
+const sb = () => ({
+  url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  anon: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY,
+});
+
+/** Saves the payload under a fresh code using the ADMIN's own session. Returns the code, or null if unavailable. */
+async function storeShortLink(auth: string, payload: TokenPayload): Promise<string | null> {
+  const { url, anon } = sb();
+  if (!url || !anon) return null;
+  for (let i = 0; i < 5; i++) {
+    const code = newCode();
+    try {
+      const r = await fetch(`${url}/rest/v1/meeting_links`, {
+        method: 'POST',
+        headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ code, payload, expires_at: new Date(payload.x * 1000).toISOString() }),
+      });
+      if (r.ok) return code;
+      if (r.status === 409) continue; // code already taken -> try another
+      console.error('short link: could not store (run supabase/meeting_links.sql?)', r.status);
+      return null;
+    } catch (e) {
+      console.error('short link: store error', e instanceof Error ? e.message : e);
+      return null;
+    }
+  }
+  return null;
 }
 
+async function loadShortLink(code: string): Promise<TokenPayload | null> {
+  const { url, anon } = sb();
+  if (!url || !anon) return null;
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/get_meeting_link`, {
+      method: 'POST',
+      headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_code: code }),
+      cache: 'no-store',
+    });
+    if (!r.ok) return null;
+    const p = (await r.json()) as TokenPayload | null;
+    return p && typeof p === 'object' ? p : null;
+  } catch {
+    return null;
+  }
+}
+
+async function verifyToken(token: string): Promise<TokenPayload | null> {
+  const secret = process.env.INTERVIEW_LINK_SECRET;
+  if (!secret || typeof token !== 'string') return null;
+  if (CODE_RE.test(token)) {
+    const p = await loadShortLink(token);
+    return p && p.id && p.e && p.x >= Date.now() / 1000 ? p : null;
+  }
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  let payload: TokenPayload | null = null;
+  if (body === 'e') {
+    payload = openSealed(sig); // new encrypted link
+  } else {
+    // legacy HMAC-signed link (also what scripts/make-interview-link.mjs makes)
+    const expected = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+    try {
+      payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as TokenPayload;
+    } catch {
+      return null;
+    }
+  }
+  if (!payload || !payload.id || !payload.e || payload.x < Date.now() / 1000) return null;
+  return payload;
+}
+
+const signToken = sealToken;
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_GUESTS = 20;
-function cleanEmails(list: unknown): string[] {
+const MAX_LINK_GUESTS = 50; // people in one booking LINK
+const MAX_GUESTS = 100; // people in one meeting the admin books directly
+function cleanEmails(list: unknown, max = MAX_GUESTS): string[] {
   const raw = Array.isArray(list) ? list : typeof list === 'string' ? list.split(/[\s,;]+/) : [];
-  return Array.from(new Set(raw.map((x) => String(x).trim().toLowerCase()).filter((x) => EMAIL_RE.test(x)))).slice(0, MAX_GUESTS);
+  return Array.from(new Set(raw.map((x) => String(x).trim().toLowerCase()).filter((x) => EMAIL_RE.test(x) && x.length <= 200))).slice(0, max);
+}
+const DURATIONS = [15, 20, 30, 45, 60, 90, 120, 180];
+/** Meeting length in minutes; never shorter than one slot. */
+const cleanDur = (d: unknown, slot: number) => {
+  const n = Number(d);
+  return DURATIONS.includes(n) && n > slot ? n : slot;
+};
+
+// "2026-10-12" + "09:30" (IST) -> unix ms
+function istToMs(date: string, time: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+  const [y, mo, d] = date.split('-').map(Number);
+  const [h, mi] = time.split(':').map(Number);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+  return Date.UTC(y, mo - 1, d, h, mi) - IST_OFFSET_MIN * 60_000;
 }
 const attendeesOf = (inv: TokenPayload): string[] => (inv.g && inv.g.length ? inv.g : [inv.e]);
 
@@ -212,10 +335,10 @@ async function listBookings() {
   const q = new URLSearchParams({
     q: CONFIG.eventTitle,
     timeMin: new Date(Date.now() - 7 * 86_400_000).toISOString(),
-    timeMax: new Date(Date.now() + 90 * 86_400_000).toISOString(),
+    timeMax: new Date(Date.now() + 120 * 86_400_000).toISOString(),
     singleEvents: 'true',
     orderBy: 'startTime',
-    maxResults: '100',
+    maxResults: '250',
   });
   const data = await gcal(`/calendars/${encodeURIComponent(CALENDAR_ID)}/events?${q}`);
   return (data.items || [])
@@ -230,6 +353,7 @@ async function listBookings() {
         email: guests[0]?.email || '',
         status: guests[0]?.responseStatus || 'needsAction',
         group,
+        canAdd: priv.group === '1' || priv.adm === '1',
         attendees: guests.map((a: any) => ({ email: a.email, status: a.responseStatus || 'needsAction' })),
         start: ev.start?.dateTime,
         end: ev.end?.dateTime,
@@ -240,29 +364,34 @@ async function listBookings() {
     });
 }
 
-// Creates the Calendar event (+ Meet link). If two people grabbed the same slot at the same
-// instant, the booking created first wins and the later one is removed again.
+// Creates the Calendar event (+ Meet link) WITHOUT inviting anyone yet. If two people grabbed the same
+// slot at the same instant, the booking created first wins and the later one is silently removed -
+// nobody gets a stray invite or cancellation mail. Only the winner's guests are invited.
 async function createEvent(o: {
-  inviteId: string; kind: Kind; topic: string; name: string; emails: string[]; hide: boolean; startMs: number; endMs: number;
+  inviteId: string; kind: Kind; topic: string; name: string; emails: string[]; hide: boolean;
+  startMs: number; endMs: number; admin?: boolean; allowOverlap?: boolean;
 }) {
   const cal = encodeURIComponent(CALENDAR_ID);
   const group = o.emails.length > 1;
-  const event = await gcal(`/calendars/${cal}/events?conferenceDataVersion=1&sendUpdates=all`, {
+  const event = await gcal(`/calendars/${cal}/events?conferenceDataVersion=1&sendUpdates=none`, {
     method: 'POST',
     body: JSON.stringify({
       summary: eventTitle(o.kind, o.topic, o.name),
       description: `${o.kind === 'other' && o.topic ? o.topic : KIND_TITLE[o.kind]} with ${o.name} (${o.emails.join(', ')}).\nBooked via the CyberHx website.`,
       start: { dateTime: new Date(o.startMs).toISOString() },
       end: { dateTime: new Date(o.endMs).toISOString() },
-      attendees: o.emails.map((email) => (group ? { email } : { email, displayName: o.name })),
       guestsCanSeeOtherGuests: !(group && o.hide),
       transparency: 'opaque',
-      extendedProperties: { private: { inviteId: o.inviteId, kind: o.kind, topic: o.topic, name: o.name, ...(group ? { group: '1' } : {}) } },
+      extendedProperties: {
+        private: { inviteId: o.inviteId, kind: o.kind, topic: o.topic, name: o.name, ...(group ? { group: '1' } : {}), ...(o.admin ? { adm: '1' } : {}) },
+      },
       conferenceData: {
         createRequest: { requestId: crypto.randomUUID(), conferenceSolutionKey: { type: 'hangoutsMeet' } },
       },
     }),
   });
+  const remove = () =>
+    gcal(`/calendars/${cal}/events/${encodeURIComponent(event.id)}?sendUpdates=none`, { method: 'DELETE' }).catch(() => {});
 
   // race check: another website booking overlapping this slot that was created before ours?
   const q = new URLSearchParams({
@@ -272,7 +401,7 @@ async function createEvent(o: {
     maxResults: '20',
   });
   const near = await gcal(`/calendars/${cal}/events?${q}`);
-  const lost = (near.items || []).some(
+  const lost = !o.allowOverlap && (near.items || []).some(
     (e: any) =>
       e.id !== event.id &&
       e.status !== 'cancelled' &&
@@ -281,19 +410,30 @@ async function createEvent(o: {
       ((e.created || '') < (event.created || '') || ((e.created || '') === (event.created || '') && e.id < event.id)),
   );
   if (lost) {
-    await gcal(`/calendars/${cal}/events/${encodeURIComponent(event.id)}?sendUpdates=all`, { method: 'DELETE' }).catch(() => {});
+    await remove();
     throw new SlotTakenError();
   }
-  return event;
+
+  // we own the slot -> now invite everyone (this is the moment the invite emails go out)
+  try {
+    const done = await gcal(`/calendars/${cal}/events/${encodeURIComponent(event.id)}?conferenceDataVersion=1&sendUpdates=all`, {
+      method: 'PATCH',
+      body: JSON.stringify({ attendees: o.emails.map((email) => (group ? { email } : { email, displayName: o.name })) }),
+    });
+    return { ...event, ...done, hangoutLink: done.hangoutLink || event.hangoutLink };
+  } catch (e) {
+    await remove();
+    throw e;
+  }
 }
 
 // ---------- Slots ----------
 function candidateSlots(now: Date, av: Availability): number[] {
   const slotMs = av.slotMinutes * 60_000;
-  const earliest = now.getTime() + CONFIG.minNoticeHours * 3_600_000;
+  const earliest = now.getTime() + av.minNoticeHours * 3_600_000;
   const ist = new Date(now.getTime() + IST_OFFSET_MIN * 60_000);
   const out: number[] = [];
-  for (let d = 0; d <= CONFIG.daysAhead; d++) {
+  for (let d = 0; d <= av.daysAhead; d++) {
     const day = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate() + d));
     const dateKey = day.toISOString().slice(0, 10);
     // a date override (even an empty one = day off) beats the weekly schedule
@@ -308,16 +448,19 @@ function candidateSlots(now: Date, av: Availability): number[] {
   return out.filter((s) => s + slotMs > earliest).sort((a, b) => a - b);
 }
 
-// free = bookable now, taken = inside your hours but already booked / busy (shown as "Booked" on the page)
-async function slotState(now: Date, av: Availability): Promise<{ free: number[]; taken: number[] }> {
+// free = a start time where the WHOLE meeting (durationMin, default one slot) fits inside your hours and
+// nothing is busy; taken = every other start time inside your hours (shown as "Booked" on the page).
+async function slotState(now: Date, av: Availability, durationMin?: number): Promise<{ free: number[]; taken: number[] }> {
   const cands = candidateSlots(now, av);
   if (!cands.length) return { free: [], taken: [] };
   const slotMs = av.slotMinutes * 60_000;
+  const need = Math.max(1, Math.ceil((durationMin || av.slotMinutes) / av.slotMinutes));
   const busy = await busyRanges(new Date(cands[0]), new Date(cands[cands.length - 1] + slotMs));
   const isBusy = (s: number) => busy.some(([bs, be]) => s < be && s + slotMs > bs);
-  return { free: cands.filter((s) => !isBusy(s)), taken: cands.filter(isBusy) };
+  const open = new Set(cands.filter((s) => !isBusy(s)));
+  const fits = (s: number) => Array.from({ length: need }, (_, i) => s + i * slotMs).every((x) => open.has(x));
+  return { free: cands.filter(fits), taken: cands.filter((s) => !fits(s)) };
 }
-const freeSlots = async (now: Date, av: Availability) => (await slotState(now, av)).free;
 
 // ---------- Handler ----------
 export default async function handler(req: any, res: any) {
@@ -337,9 +480,10 @@ export default async function handler(req: any, res: any) {
       if (req.method === 'GET') {
         if (req.query?.admin === 'slots') {
           const av = await loadAvailability();
-          const st = await slotState(new Date(), av);
+          const dur = cleanDur(req.query?.dur, av.slotMinutes);
+          const st = await slotState(new Date(), av, dur);
           return res.status(200).json({
-            slotMinutes: av.slotMinutes,
+            slotMinutes: dur,
             slots: st.free.map((s) => new Date(s).toISOString()),
             taken: st.taken.map((s) => new Date(s).toISOString()),
           });
@@ -347,11 +491,11 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json({ items: await listBookings() });
       }
 
-      const { action, name, email, days, eventId, kind, topic, emails, hideGuests, start } = req.body;
+      const { action, name, email, days, eventId, kind, topic, emails, hideGuests, start, dur, custom, force } = req.body;
 
       if (action === 'create-link') {
         const cleanName = String(name || '').trim().slice(0, 80);
-        const guestList = cleanEmails(emails);
+        const guestList = cleanEmails(emails, MAX_LINK_GUESTS);
         const isGroup = Array.isArray(emails) || (typeof emails === 'string' && emails.trim() !== '');
         const cleanEmail = isGroup ? guestList[0] || '' : String(email || '').trim().toLowerCase();
         const validDays = Math.min(Math.max(Number(days) || 7, 1), 60);
@@ -363,7 +507,7 @@ export default async function handler(req: any, res: any) {
         if (cleanKind === 'other' && !cleanTopic) {
           return res.status(400).json({ error: 'Please write a topic for this meeting.' });
         }
-        const token = signToken({
+        const payload: TokenPayload = {
           id: crypto.randomUUID(),
           n: cleanName,
           e: cleanEmail,
@@ -371,34 +515,84 @@ export default async function handler(req: any, res: any) {
           k: cleanKind,
           ...(cleanTopic ? { tp: cleanTopic } : {}),
           ...(isGroup ? { g: guestList, hg: !!hideGuests } : {}),
-        });
-        const origin = process.env.SITE_URL || `https://${req.headers.host}`;
-        return res.status(200).json({ link: `${origin.replace(/\/$/, '')}/book-interview?t=${token}` });
+          ...(Number(dur) > 0 ? { d: cleanDur(dur, 0) || undefined } : {}),
+        };
+        const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
+        const code = await storeShortLink(String(req.headers.authorization), payload);
+        if (code) return res.status(200).json({ link: `${origin}/meet/${code}`, short: true });
+        // fallback: self-contained encrypted link (long, but works with no database setup)
+        return res.status(200).json({ link: `${origin}/book-interview?t=${signToken(payload)}`, short: false });
       }
 
       if (action === 'book-now') {
         const cleanName = String(name || '').trim().slice(0, 80);
         const guestList = Array.isArray(emails) || (typeof emails === 'string' && emails.trim() !== '') ? cleanEmails(emails) : cleanEmails([email]);
-        const startMs = Date.parse(String(start || ''));
         const cleanKind: Kind = KINDS.includes(kind) ? kind : 'interview';
         const cleanTopic = cleanKind === 'other' ? String(topic || '').trim().slice(0, 80) : '';
         if (!cleanName || !guestList.length) return res.status(400).json({ error: 'Name/title and at least one valid email are required.' });
-        if (Number.isNaN(startMs)) return res.status(400).json({ error: 'Pick a date and time first.' });
         if (cleanKind === 'other' && !cleanTopic) return res.status(400).json({ error: 'Please write a topic for this meeting.' });
         const av = await loadAvailability();
-        if (!(await freeSlots(new Date(), av)).includes(startMs)) {
-          return res.status(409).json({ error: 'That slot is no longer free. Pick another.' });
+        const mins = cleanDur(dur, av.slotMinutes);
+
+        let startMs: number;
+        if (custom && typeof custom === 'object') {
+          // any IST date/time, even outside your normal hours - only a calendar clash can stop it
+          const t = istToMs(String(custom.date || ''), String(custom.time || ''));
+          if (t === null) return res.status(400).json({ error: 'Please choose a valid date and time.' });
+          if (t < Date.now()) return res.status(400).json({ error: 'That date/time is in the past.' });
+          startMs = t;
+          if (!force) {
+            const busy = await busyRanges(new Date(startMs), new Date(startMs + mins * 60_000));
+            if (busy.some(([bs, be]) => startMs < be && startMs + mins * 60_000 > bs)) {
+              return res.status(409).json({ conflict: true, error: 'You already have something booked at that time.' });
+            }
+          }
+        } else {
+          startMs = Date.parse(String(start || ''));
+          if (Number.isNaN(startMs)) return res.status(400).json({ error: 'Pick a date and time first.' });
+          if (!(await slotState(new Date(), av, mins)).free.includes(startMs)) {
+            return res.status(409).json({ error: 'That slot is no longer free. Pick another.' });
+          }
         }
         try {
           const event = await createEvent({
             inviteId: crypto.randomUUID(), kind: cleanKind, topic: cleanTopic, name: cleanName,
-            emails: guestList, hide: !!hideGuests, startMs, endMs: startMs + av.slotMinutes * 60_000,
+            emails: guestList, hide: !!hideGuests, startMs, endMs: startMs + mins * 60_000, admin: true,
+            allowOverlap: !!(custom && force), // admin knowingly double-books
           });
-          return res.status(200).json({ meetLink: event.hangoutLink || null, start: new Date(startMs).toISOString(), guests: guestList.length });
+          return res.status(200).json({ eventId: event.id, meetLink: event.hangoutLink || null, start: new Date(startMs).toISOString(), guests: guestList.length });
         } catch (e) {
           if (e instanceof SlotTakenError) return res.status(409).json({ error: 'That slot was just taken. Pick another.' });
           throw e;
         }
+      }
+
+      if (action === 'add-attendees') {
+        const add = cleanEmails(emails);
+        if (!add.length) return res.status(400).json({ error: 'No valid email addresses found.' });
+        const cal = encodeURIComponent(CALENDAR_ID);
+        const id = encodeURIComponent(String(eventId || ''));
+        const ev = await gcal(`/calendars/${cal}/events/${id}`);
+        const priv = ev.extendedProperties?.private;
+        if (!priv?.inviteId || (priv.group !== '1' && priv.adm !== '1')) {
+          return res.status(400).json({ error: 'People can only be added to group meetings.' });
+        }
+        const current: Array<{ email: string }> = ev.attendees || [];
+        const have = new Set(current.map((a) => String(a.email).toLowerCase()));
+        const fresh = add.filter((e) => !have.has(e));
+        if (current.length + fresh.length > MAX_GUESTS) {
+          return res.status(400).json({ error: `Maximum ${MAX_GUESTS} people per meeting.` });
+        }
+        if (fresh.length) {
+          await gcal(`/calendars/${cal}/events/${id}?sendUpdates=all`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              attendees: [...current, ...fresh.map((e) => ({ email: e }))],
+              extendedProperties: { private: { ...priv, group: '1' } },
+            }),
+          });
+        }
+        return res.status(200).json({ added: fresh.length, skipped: add.length - fresh.length });
       }
 
       if (action === 'cancel') {
@@ -416,7 +610,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'GET') {
-      const invite = verifyToken(String(req.query?.t || ''));
+      const invite = await verifyToken(String(req.query?.t || ''));
       if (!invite) return res.status(401).json({ error: 'This link is invalid or has expired.' });
 
       const groupSize = invite.g && invite.g.length > 1 ? invite.g.length : 0;
@@ -424,9 +618,10 @@ export default async function handler(req: any, res: any) {
       if (booked) return res.status(200).json({ name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', groupSize, booked });
 
       const av = await loadAvailability();
-      const st = await slotState(new Date(), av);
+      const mins = cleanDur(invite.d, av.slotMinutes);
+      const st = await slotState(new Date(), av, mins);
       return res.status(200).json({
-        name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', groupSize, slotMinutes: av.slotMinutes,
+        name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', groupSize, slotMinutes: av.slotMinutes, durationMinutes: mins,
         slots: st.free.map((s) => new Date(s).toISOString()),
         taken: st.taken.map((s) => new Date(s).toISOString()),
       });
@@ -434,7 +629,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-      const invite = verifyToken(String(body.t || ''));
+      const invite = await verifyToken(String(body.t || ''));
       if (!invite) return res.status(401).json({ error: 'This link is invalid or has expired.' });
 
       const startMs = Date.parse(String(body.start || ''));
@@ -446,12 +641,13 @@ export default async function handler(req: any, res: any) {
 
       // Re-validate: slot must be one we offer AND still free right now.
       const av = await loadAvailability();
-      const free = await freeSlots(new Date(), av);
+      const mins = cleanDur(invite.d, av.slotMinutes);
+      const free = (await slotState(new Date(), av, mins)).free;
       if (!free.includes(startMs)) {
         return res.status(409).json({ error: 'Sorry, that slot was just taken. Please pick another.' });
       }
 
-      const endMs = startMs + av.slotMinutes * 60_000;
+      const endMs = startMs + mins * 60_000;
       const kind: Kind = invite.k && KINDS.includes(invite.k) ? invite.k : 'interview';
       let event;
       try {

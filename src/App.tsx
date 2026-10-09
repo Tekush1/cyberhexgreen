@@ -58,6 +58,7 @@ function App() {
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/book-interview" element={<BookInterviewPage />} />
+              <Route path="/meet/:code" element={<BookInterviewPage />} />
               {/* Security pages */}
               <Route path="/responsible-disclosure" element={<ResponsibleDisclosurePage />} />
               <Route path="/hall-of-fame" element={<HallOfFamePage />} />

@@ -5,6 +5,8 @@ import { sbSelect, sbUpsert } from './adminApi';
 interface Win { s: string; e: string }
 interface Config {
   slotMinutes: number;
+  daysAhead: number;
+  minNoticeHours: number;
   weekly: Record<string, Win[]>;
   dates: Record<string, Win[]>;
 }
@@ -12,6 +14,8 @@ interface Config {
 const DEFAULT_WIN: Win = { s: '10:00', e: '18:00' };
 const DEFAULT_CONFIG: Config = {
   slotMinutes: 30,
+  daysAhead: 30,
+  minNoticeHours: 2,
   weekly: { '0': [], '1': [{ ...DEFAULT_WIN }], '2': [{ ...DEFAULT_WIN }], '3': [{ ...DEFAULT_WIN }], '4': [{ ...DEFAULT_WIN }], '5': [{ ...DEFAULT_WIN }], '6': [{ ...DEFAULT_WIN }] },
   dates: {},
 };
@@ -27,6 +31,8 @@ const WEEK: { dow: number; name: string; short: string }[] = [
   { dow: 0, name: 'Sunday', short: 'Sun' },
 ];
 const SLOT_OPTIONS = [15, 20, 30, 45, 60];
+const AHEAD_OPTIONS = [7, 14, 30, 45, 60, 90];
+const NOTICE_OPTIONS = [0, 1, 2, 4, 12, 24, 48];
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const keyOf = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -113,6 +119,8 @@ export const AvailabilityPanel: React.FC = () => {
       const c = res.data?.[0]?.config;
       const next: Config = {
         slotMinutes: SLOT_OPTIONS.includes(Number(c?.slotMinutes)) ? Number(c?.slotMinutes) : DEFAULT_CONFIG.slotMinutes,
+        daysAhead: Number(c?.daysAhead) >= 1 ? Math.min(Number(c?.daysAhead), 90) : DEFAULT_CONFIG.daysAhead,
+        minNoticeHours: c?.minNoticeHours !== undefined && Number(c?.minNoticeHours) >= 0 ? Math.min(Number(c?.minNoticeHours), 168) : DEFAULT_CONFIG.minNoticeHours,
         weekly: c?.weekly && Object.keys(c.weekly).length ? { ...DEFAULT_CONFIG.weekly, ...c.weekly } : DEFAULT_CONFIG.weekly,
         dates: c?.dates || {},
       };
@@ -140,7 +148,7 @@ export const AvailabilityPanel: React.FC = () => {
       if (!r.ok) return setError(r.error);
       dates[k] = r.value;
     }
-    const next: Config = { slotMinutes: cfg.slotMinutes, weekly, dates };
+    const next: Config = { slotMinutes: cfg.slotMinutes, daysAhead: cfg.daysAhead, minNoticeHours: cfg.minNoticeHours, weekly, dates };
     setSaving(true);
     const res = await sbUpsert('meeting_availability', { id: 1, config: next, updated_at: new Date().toISOString() });
     setSaving(false);
@@ -202,12 +210,28 @@ export const AvailabilityPanel: React.FC = () => {
               People can only book inside these times (all times are <b className="text-gray-300">IST</b>). Slots that clash with something already on your Google Calendar are hidden automatically.
             </p>
           </div>
-          <div>
-            <label className="text-gray-400 text-xs font-medium mb-1.5 block">Meeting length</label>
-            <select value={cfg.slotMinutes} onChange={(e) => setCfg((c) => ({ ...c, slotMinutes: Number(e.target.value) }))}
-              className="bg-[#05080f] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#a3e635]/50">
-              {SLOT_OPTIONS.map((n) => <option key={n} value={n}>{n} minutes</option>)}
-            </select>
+          <div className="flex gap-3 flex-wrap">
+            <div>
+              <label className="text-gray-400 text-xs font-medium mb-1.5 block">Slot length</label>
+              <select value={cfg.slotMinutes} onChange={(e) => setCfg((c) => ({ ...c, slotMinutes: Number(e.target.value) }))}
+                className="bg-[#05080f] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#a3e635]/50">
+                {SLOT_OPTIONS.map((n) => <option key={n} value={n}>{n} minutes</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-gray-400 text-xs font-medium mb-1.5 block">Bookable up to</label>
+              <select value={cfg.daysAhead} onChange={(e) => setCfg((c) => ({ ...c, daysAhead: Number(e.target.value) }))}
+                className="bg-[#05080f] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#a3e635]/50">
+                {(AHEAD_OPTIONS.includes(cfg.daysAhead) ? AHEAD_OPTIONS : [...AHEAD_OPTIONS, cfg.daysAhead].sort((a, b) => a - b)).map((n) => <option key={n} value={n}>{n} days ahead</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-gray-400 text-xs font-medium mb-1.5 block">Minimum notice</label>
+              <select value={cfg.minNoticeHours} onChange={(e) => setCfg((c) => ({ ...c, minNoticeHours: Number(e.target.value) }))}
+                className="bg-[#05080f] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#a3e635]/50">
+                {(NOTICE_OPTIONS.includes(cfg.minNoticeHours) ? NOTICE_OPTIONS : [...NOTICE_OPTIONS, cfg.minNoticeHours].sort((a, b) => a - b)).map((n) => <option key={n} value={n}>{n === 0 ? 'No notice needed' : `${n} hour${n > 1 ? 's' : ''} before`}</option>)}
+              </select>
+            </div>
           </div>
         </div>
       </div>

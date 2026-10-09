@@ -57,3 +57,7 @@ The admin panel now uses Supabase Auth. Run `supabase/admin_security.sql` once (
 ## Test before going live
 1. Generate a link for a second email you own, open it in an incognito window, book a slot.
 2. Check: event + Meet link on your calendar, invite mail in the second inbox, the slot disappears from the page, and Cancel in /admin → Interviews works.
+
+## Short links (`/meet/k7m2xq9p`)
+Run `supabase/meeting_links.sql` once in Supabase -> SQL Editor. After that every generated link looks like
+`https://your-site.com/meet/k7m2xq9p`. Without that SQL the app still works and falls back to the long encrypted link.
