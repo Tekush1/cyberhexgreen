@@ -168,3 +168,21 @@ img[loading="lazy"] { transition: filter 0.3s; }
   .mascot-pop { animation: none; }
   .btn:hover, .btn:active { transform: none; }
 }
+
+/* Red event button (Browse events) with a soft pulse ring */
+.btn-red { background: #ef3b3b; color: #fff; position: relative; }
+.btn-red:hover { background: #ff5050; }
+.btn-red::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 18px;
+  border: 2px solid rgba(239, 59, 59, 0.55);
+  animation: red-ring 1.8s ease-out infinite; pointer-events: none;
+}
+@keyframes red-ring {
+  0%   { opacity: .9; transform: scale(.96); }
+  100% { opacity: 0;  transform: scale(1.12); }
+}
+@keyframes float-y { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-10px) rotate(var(--r,0deg)); } }
+.float-y { animation: float-y 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .btn-red::after, .float-y { animation: none; }
+}

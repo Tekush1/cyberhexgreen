@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Mascot } from '../shared/Mascot';
 
 export const CallToActionSection = () => (
-  <section className="bg-dark-200 px-5 pb-24 pt-36 sm:px-6 sm:pt-44 lg:px-8">
+  <section className="border-t-2 border-line bg-ink px-5 pb-24 pt-36 sm:px-6 sm:pt-44 lg:px-8">
     <div className="sticker sticker-lime relative mx-auto max-w-6xl overflow-visible px-6 py-12 sm:px-12 sm:py-16">
       <Mascot
         pose="trophy"

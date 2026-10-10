@@ -1,100 +1,105 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Users } from 'lucide-react';
 import { Mascot } from '../shared/Mascot';
-import { events } from '../../data/events';
+import { SiteIcon, type IconName } from '../shared/SiteIcon';
 import { plans } from '../../data/hosting';
+import { cppt } from '../../data/pentest';
 
 const startingPrice = Math.min(...plans.map((p) => p.usd));
 
-export const HeroSection = () => {
-  // Latest event leads: live/upcoming first, otherwise the most recent one.
-  const featured = events.find((e) => e.status !== 'completed') ?? events[0];
+// The three things CyberHx offers, shown as one strip under the hero copy.
+const offers: { icon: IconName; title: string; detail: string; to: string; external?: boolean }[] = [
+  { icon: 'calendar-fire', title: 'Play our CTFs', detail: 'Open events for everyone', to: '/gallery' },
+  { icon: 'ctf-green', title: 'Host your CTF', detail: `Plans from $${startingPrice}`, to: '/host-your-ctf#plans' },
+  { icon: 'toolbox', title: 'Pentest Lab + CPPT', detail: `Certification for $${cppt.usd}`, to: cppt.href, external: true },
+];
 
-  return (
-    <section className="relative overflow-hidden bg-ink pt-24 sm:pt-28">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:px-8 lg:pb-24">
-        {/* Copy */}
-        <div className="relative z-10">
-          {featured && (
-            <Link
-              to="/gallery"
-              className="inline-flex max-w-full items-center gap-2.5 rounded-full border-2 border-line bg-panel py-1.5 pl-1.5 pr-4 text-sm text-white/80 transition-colors hover:border-glow"
-            >
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                  featured.status === 'live'
-                    ? 'bg-red-500 text-white'
-                    : featured.status === 'upcoming'
-                    ? 'bg-lime text-ink'
-                    : 'bg-glow text-ink'
-                }`}
-              >
-                {featured.status === 'live' ? 'Live now' : featured.status === 'upcoming' ? 'Coming up' : 'Just wrapped'}
-              </span>
-              <span className="truncate">
-                {featured.title}, {featured.participants.replace(' Hackers', '')} hackers
-              </span>
-            </Link>
-          )}
+export const HeroSection = () => (
+  <section className="relative overflow-hidden bg-ink pt-24 sm:pt-28">
+    <div className="mx-auto grid max-w-7xl items-center gap-4 px-5 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-0 lg:px-8">
+      {/* Copy */}
+      <div className="relative z-10 order-2 lg:order-1">
+        <h1 className="font-display text-[3rem] text-white sm:text-7xl lg:text-[5.6rem]">
+          Hack our CTFs.
+          <span className="mt-1 block text-glow">Host your own.</span>
+        </h1>
 
-          <h1 className="font-display mt-7 text-[2.9rem] text-white sm:text-7xl lg:text-[5.4rem]">
-            Play our CTFs.
-            <span className="mt-1 block text-glow">Or let us host yours.</span>
-          </h1>
+        <p className="mt-7 max-w-xl text-lg leading-8 text-muted">
+          CyberHx runs capture-the-flag events for India's security crowd. We host complete CTFs for colleges and
+          companies from ${startingPrice}, and train you on our Pentest Lab with the ${cppt.usd} CPPT certification.
+        </p>
 
-          <p className="mt-7 max-w-xl text-lg leading-8 text-muted">
-            CyberHx runs capture-the-flag events for India's security crowd. We also build the challenges and host
-            the whole CTF for colleges, clubs and companies, starting at ${startingPrice}.
-          </p>
-
-          <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-            <Link to="/gallery" className="btn btn-lime">
-              Browse events
-            </Link>
-            <Link to="/host-your-ctf#plans" className="btn btn-ghost">
-              See hosting prices
-            </Link>
-          </div>
+        <div className="mt-10 flex flex-col gap-5 sm:flex-row">
+          <Link to="/gallery" className="btn btn-red">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" aria-hidden="true" />
+            Browse events
+          </Link>
+          <Link to="/host-your-ctf#plans" className="btn btn-ghost">
+            See hosting prices
+          </Link>
         </div>
-
-        {/* Event ticket with the flag-bearer standing on it */}
-        {featured && (
-          <div className="relative mx-auto w-full max-w-md pt-56 sm:pt-64 lg:max-w-none lg:pl-10 lg:pt-52">
-            <Mascot
-              pose="flag"
-              alt="CyberHx mascot holding a CTF flag"
-              eager
-              className="mascot-pop absolute -top-2 right-0 z-10 w-[17rem] sm:w-[20rem] lg:-top-6 lg:right-2 lg:w-[23rem]"
-            />
-
-            <Link to="/gallery" className="sticker sticker-glow group relative z-20 block overflow-hidden">
-              <div className="relative aspect-[16/8] overflow-hidden border-b-2 border-line">
-                <img
-                  src={featured.image}
-                  alt={featured.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  loading="eager"
-                />
-              </div>
-              <div className="p-5 sm:p-6">
-                <h2 className="font-display text-2xl text-white sm:text-3xl">{featured.title}</h2>
-                <p className="mt-1.5 text-muted">{featured.subtitle}</p>
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar size={15} className="text-glow" />
-                    {featured.date}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Users size={15} className="text-glow" />
-                    {featured.participants}
-                  </span>
-                  <span className="font-bold text-sun">{featured.prize}</span>
-                </div>
-              </div>
-            </Link>
-          </div>
-        )}
       </div>
-    </section>
-  );
-};
+
+      {/* Mascot on a sticker disc */}
+      <div className="relative order-1 mx-auto h-[22rem] w-full max-w-[26rem] sm:h-[28rem] sm:max-w-[32rem] lg:order-2 lg:h-[36rem] lg:max-w-none">
+        <div className="absolute bottom-4 left-1/2 aspect-square w-[78%] -translate-x-1/2 rounded-full border-[3px] border-glow bg-panel shadow-[8px_8px_0_0_#0b3a4a]" />
+        <div
+          className="absolute bottom-[16%] left-1/2 aspect-square w-[58%] -translate-x-1/2 rounded-full border-2 border-dashed border-line"
+          aria-hidden="true"
+        />
+        <div className="absolute inset-x-0 bottom-0 flex justify-center">
+          <Mascot
+            pose="flag"
+            alt="CyberHx mascot holding a CTF flag"
+            eager
+            className="mascot-pop h-[21rem] w-auto sm:h-[27rem] lg:h-[34rem]"
+          />
+        </div>
+        <SiteIcon
+          name="trophy"
+          size={72}
+          alt=""
+          className="float-y absolute left-[4%] top-[18%] hidden sm:block [--r:-10deg]"
+        />
+        <SiteIcon
+          name="bug"
+          size={56}
+          alt=""
+          className="float-y absolute bottom-[12%] right-[2%] [--r:12deg] [animation-delay:-2s]"
+        />
+        <SiteIcon
+          name="shield"
+          size={60}
+          alt=""
+          className="float-y absolute bottom-[30%] left-0 [--r:8deg] [animation-delay:-3.5s]"
+        />
+      </div>
+    </div>
+
+    {/* Offer strip */}
+    <div className="mx-auto mt-14 max-w-7xl px-5 pb-16 sm:px-6 lg:mt-10 lg:px-8 lg:pb-24">
+      <div className="sticker grid divide-y-2 divide-line overflow-hidden md:grid-cols-3 md:divide-x-2 md:divide-y-0">
+        {offers.map((o) => {
+          const inner = (
+            <>
+              <SiteIcon name={o.icon} size={64} alt="" />
+              <span>
+                <span className="font-display block text-xl text-white">{o.title}</span>
+                <span className="mt-1 block text-muted">{o.detail}</span>
+              </span>
+            </>
+          );
+          const cls = 'flex items-center gap-4 p-5 transition-colors hover:bg-white/[0.04] sm:p-6';
+          return o.external ? (
+            <a key={o.title} href={o.to} target="_blank" rel="noopener noreferrer" className={cls}>
+              {inner}
+            </a>
+          ) : (
+            <Link key={o.title} to={o.to} className={cls}>
+              {inner}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+);

@@ -3,14 +3,6 @@ import { SiteIcon, type IconName } from '../shared/SiteIcon';
 
 const items: { icon: IconName; title: string; text: string; href: string; cta: string; external?: boolean }[] = [
   {
-    icon: 'toolbox',
-    title: 'Pentest Lab',
-    text: 'Real machines to break into, with Nmap, Gobuster and Metasploit, mapped to MITRE ATT&CK.',
-    href: 'https://pentestlab.cyberhx.com',
-    cta: 'Open the lab',
-    external: true,
-  },
-  {
     icon: 'ctf-green',
     title: 'CTF Platform',
     text: 'Practice challenges from beginner to hard, with hints and a scoreboard between events.',
@@ -32,10 +24,17 @@ const items: { icon: IconName; title: string; text: string; href: string; cta: s
     href: '/responsible-disclosure',
     cta: 'Report a bug',
   },
+  {
+    icon: 'podium',
+    title: 'Hall of fame',
+    text: 'Researchers and players who made CyberHx better and safer.',
+    href: '/hall-of-fame',
+    cta: 'See the hall of fame',
+  },
 ];
 
 export const PlatformsSection = () => (
-  <section className="border-t-2 border-line bg-dark-200 py-20 sm:py-28">
+  <section className="border-t-2 border-line bg-ink py-20 sm:py-28">
     <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
       <h2 className="font-display max-w-2xl text-4xl text-white sm:text-5xl">Practice between events</h2>
       <div className="mt-12 grid gap-x-14 sm:grid-cols-2">

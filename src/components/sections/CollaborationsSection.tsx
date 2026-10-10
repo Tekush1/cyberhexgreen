@@ -28,7 +28,7 @@ const collaborations: {
 ];
 
 export const CollaborationsSection = () => (
-  <section className="border-t-2 border-line bg-ink py-20 sm:py-24">
+  <section className="border-t-2 border-line bg-dark-200 py-20 sm:py-24">
     <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
       <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div className="flex flex-col items-start gap-5 sm:flex-row">
