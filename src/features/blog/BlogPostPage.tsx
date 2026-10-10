@@ -5,6 +5,7 @@ import { Mascot } from '../../components/shared/Mascot';
 import { Markdown } from './Markdown';
 import { addView, checkAdmin, explain, getPost, likePost, relatedPosts, type Post, type PostCard as Card } from './api';
 import { Byline, Cover, PostCard } from './PostCard';
+import { Seo, breadcrumbLd, SITE } from '../seo/Seo';
 import { compactNumber, tocFrom } from './utils';
 
 const likedKey = (id: string) => `cyberhx-liked:${id}`;
@@ -22,16 +23,6 @@ const safeSet = (k: string, v: string | null, store: Storage = localStorage) => 
   } catch {
     /* ignore */
   }
-};
-
-const setMeta = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
-  let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`);
-  if (!el) {
-    el = document.createElement('meta');
-    el.setAttribute(attr, name);
-    document.head.appendChild(el);
-  }
-  el.content = content;
 };
 
 const WhatsAppIcon = () => (
@@ -90,19 +81,6 @@ export default function BlogPostPage() {
     };
   }, [slug]);
 
-  // Title and share previews.
-  useEffect(() => {
-    if (!post) return;
-    const prev = document.title;
-    document.title = `${post.title} · CyberHx Blog`;
-    setMeta('description', post.excerpt);
-    setMeta('og:title', post.title, 'property');
-    setMeta('og:description', post.excerpt, 'property');
-    if (post.cover_image) setMeta('og:image', post.cover_image, 'property');
-    return () => {
-      document.title = prev;
-    };
-  }, [post]);
 
   // Reading progress.
   useEffect(() => {
@@ -197,8 +175,34 @@ export default function BlogPostPage() {
     { label: 'Share on WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(`${post.title} ${url}`)}`, icon: <WhatsAppIcon /> },
   ];
 
+  const absImg = post.cover_image && /^https?:\/\//.test(post.cover_image) ? post.cover_image : undefined;
+  const articleLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.excerpt,
+    image: [absImg || `${SITE}/og-image.png`],
+    datePublished: post.published_at || undefined,
+    dateModified: post.updated_at || post.published_at || undefined,
+    author: { '@type': 'Person', name: post.author_name },
+    publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/og-image.png` } },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE}/blog/${post.slug}` },
+    articleSection: post.category,
+    keywords: (post.tags || []).join(', ') || undefined,
+    wordCount: post.content.split(/\s+/).filter(Boolean).length,
+  };
+
   return (
     <div className="min-h-screen bg-ink pb-24 pt-16 text-white sm:pt-[72px]">
+      <Seo
+        title={`${post.title} · CyberHx Blog`}
+        description={post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`}
+        path={`/blog/${post.slug}`}
+        image={absImg}
+        type="article"
+        keywords={(post.tags || []).join(', ')}
+        jsonLd={[articleLd, breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Blog', path: '/blog' }, { name: post.title, path: `/blog/${post.slug}` }])]}
+      />
       {/* Reading progress */}
       <div className="fixed inset-x-0 top-16 z-40 h-0.5 sm:top-[72px]" aria-hidden="true">
         <div className="h-full bg-lime transition-[width] duration-150" style={{ width: `${progress * 100}%` }} />

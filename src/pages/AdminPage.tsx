@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Seo } from '../features/seo/Seo';
 import { MeetingsPanel, type MeetingKind, type MeetingPrefill } from '../components/admin/MeetingsPanel';
 import { ApplicationsPanel, CtfRequestsPanel } from '../components/admin/RequestsPanels';
 import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
@@ -339,6 +340,7 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#05080f] pt-14 sm:pt-16">
+      <Seo title="Admin · CyberHx" description="CyberHx admin." path="/admin" noindex />
       {/* Toast */}
       <AnimatePresence>
         {toast && (

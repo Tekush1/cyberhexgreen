@@ -5,6 +5,7 @@ import { Mascot } from "../components/shared/Mascot";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
 import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
+import { Seo } from "../features/seo/Seo";
 
 /* =============================================================
    HOST YOUR CTF — build your CTF like a PC.
@@ -540,6 +541,12 @@ export default function HostYourCTF() {
 
   return (
     <div className="min-h-screen overflow-x-clip bg-ink pb-24 pt-16 text-white sm:pt-[72px] lg:pb-0">
+      <Seo
+        title="Host Your CTF — Build a Custom Capture-the-Flag Event | CyberHx"
+        description="Build your own CTF like a PC: pick challenge types, difficulty, hours and players. Hosting and a live scoreboard from $49. Run one round or a qualifier plus grand finale."
+        path="/host-your-ctf"
+        keywords="host a ctf, buy ctf challenges, ctf hosting india, college ctf event, capture the flag platform"
+      />
       {/* Store bar */}
       <div className="sticky top-16 z-40 border-b border-line bg-ink/90 backdrop-blur sm:top-[72px]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5 sm:px-6 lg:px-8">

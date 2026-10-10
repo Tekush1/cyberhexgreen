@@ -4,6 +4,7 @@ import { PenLine, Search, X } from 'lucide-react';
 import { Mascot } from '../../components/shared/Mascot';
 import { explain, isConfigured, listCategories, listPosts, PAGE_SIZE, type Category, type PostCard as Card } from './api';
 import { Byline, CardSkeleton, Cover, PostCard } from './PostCard';
+import { Seo } from '../seo/Seo';
 
 export default function BlogListPage() {
   const [params, setParams] = useSearchParams();
@@ -84,6 +85,30 @@ export default function BlogListPage() {
 
   return (
     <div className="min-h-screen bg-ink pb-24 pt-28 text-white">
+      <Seo
+        title={category ? `${category} — CyberHx Blog` : tag ? `#${tag} — CyberHx Blog` : 'CyberHx Blog — CTF Write-ups, Scam Alerts & Security Tutorials'}
+        description="CTF write-ups, scam breakdowns and cybersecurity tutorials from the CyberHx community in India. Learn, practice and stay safe."
+        path={category ? `/blog?category=${encodeURIComponent(category)}` : '/blog'}
+        keywords="cybersecurity blog india, ctf writeups, scam alert, ethical hacking tutorials, malware analysis, bug bounty"
+        jsonLd={
+          posts.length
+            ? {
+                '@context': 'https://schema.org',
+                '@type': 'Blog',
+                name: 'CyberHx Blog',
+                url: 'https://cyberhx.com/blog',
+                blogPost: posts.slice(0, 12).map((p) => ({
+                  '@type': 'BlogPosting',
+                  headline: p.title,
+                  url: `https://cyberhx.com/blog/${p.slug}`,
+                  datePublished: p.published_at || undefined,
+                  author: { '@type': 'Person', name: p.author_name },
+                  image: p.cover_image && /^https?:\/\//.test(p.cover_image) ? p.cover_image : undefined,
+                })),
+              }
+            : undefined
+        }
+      />
       <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
         {/* Header */}
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">

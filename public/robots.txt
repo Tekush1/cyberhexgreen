@@ -10,9 +10,13 @@ Allow: /privacy
 Allow: /terms
 
 Disallow: /admin
+Disallow: /blog/write
+Disallow: /blog/edit
 Disallow: /register
 Disallow: /book-session
 Disallow: /become-mentor
+Disallow: /book-interview
+Disallow: /meet/
 
 # Google
 User-agent: Googlebot

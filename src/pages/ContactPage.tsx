@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, Loader, CheckCircle, XCircle, Briefcase, User, GraduationCap, Code, Calendar, FileText, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Seo } from '../features/seo/Seo';
 
 export const ContactPage = () => {
   const [activeTab, setActiveTab] = useState<'contact' | 'internship'>('contact');
@@ -159,6 +160,11 @@ export const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-dark-300 py-24">
+      <Seo
+        title="Contact CyberHx — Host a CTF, Partner, or Ask Us"
+        description="Get in touch with CyberHx to host a CTF, partner with us, or ask a security question. Based in Bhopal, serving all of India."
+        path="/contact"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <motion.h1

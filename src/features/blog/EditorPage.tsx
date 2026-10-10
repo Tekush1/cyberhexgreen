@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react';
+import { Seo } from '../seo/Seo';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -485,6 +486,7 @@ export default function EditorPage() {
 
   return (
     <div className="min-h-screen bg-ink pb-28 pt-16 text-white sm:pt-[72px]">
+      <Seo title="Write a post · CyberHx Blog" description="Write and publish on the CyberHx blog." path="/blog/write" noindex />
       {/* Top bar */}
       <div className="sticky top-16 z-40 border-b-2 border-line bg-ink/95 backdrop-blur sm:top-[72px]">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
