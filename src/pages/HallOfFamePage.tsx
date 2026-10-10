@@ -1,4 +1,5 @@
 import React from 'react';
+import { SiteIcon } from '../components/shared/SiteIcon';
 import { Shield, Award, Star, ExternalLink, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -87,6 +88,7 @@ const HallOfFamePage = () => {
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
             <div>
+              <SiteIcon name="podium" size={72} alt="Podium" className="mb-4" />
               <h2 className="text-2xl font-bold text-white mb-2">Security researchers</h2>
               <p className="text-gray-500 text-sm">
                 Individuals who responsibly disclosed vulnerabilities in our platform.

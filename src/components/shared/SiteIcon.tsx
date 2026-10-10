@@ -13,7 +13,11 @@ type IconName =
   | 'ctf-orange'
   | 'ctf-green'
   | 'docker'
-  | 'eyes';
+  | 'eyes'
+  | 'ghost'
+  | 'podium'
+  | 'trophy'
+  | 'hexagon';
 
 const ICON_FILES: Record<IconName, string> = {
   code: 'icon-01.png',
@@ -30,6 +34,10 @@ const ICON_FILES: Record<IconName, string> = {
   'ctf-green': 'icon-12.png',
   docker: 'icon-14.png',
   eyes: 'icon-15.png',
+  ghost: 'icon-16.png',
+  podium: 'icon-17.png',
+  trophy: 'icon-18.png',
+  hexagon: 'icon-19.png',
 };
 
 interface SiteIconProps {

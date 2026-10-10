@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { SiteIcon } from '../components/shared/SiteIcon';
 
 const NotFoundPage = () => {
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-4">
+      <div className="flex justify-center mb-4"><SiteIcon name="ghost" size={120} alt="Ghost" /></div>
       <div className="font-mono">
         <p className="text-green-400 text-lg mb-2 opacity-70">ERROR 404</p>
         <h1 className="text-6xl font-bold text-green-400 mb-4" style={{ textShadow: '0 0 20px #00ff41' }}>

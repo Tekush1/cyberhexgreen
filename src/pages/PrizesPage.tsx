@@ -198,6 +198,7 @@ export const PrizesPage = () => {
         </motion.div>
 
         <div className="mb-16">
+          <div className="flex justify-center mb-6"><SiteIcon name="trophy" size={96} alt="Trophy" /></div>
           <h2 className="text-2xl font-bold text-white text-center mb-8">Special Recognition Awards</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {specialAwards.map((award, index) => (
