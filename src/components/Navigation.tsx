@@ -34,7 +34,7 @@ export const Navigation = () => {
   useEffect(() => {
     setIsOpen(false);
     setPlatformsOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, location.hash]);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
@@ -67,6 +67,7 @@ export const Navigation = () => {
     }`;
 
   return (
+    <>
     <nav
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-200 ${
         isScrolled || isOpen ? 'border-b-2 border-line bg-ink/95 backdrop-blur-md' : 'border-b-2 border-transparent'
@@ -140,57 +141,59 @@ export const Navigation = () => {
         </button>
       </div>
 
+    </nav>
+
       {/* Mobile sheet */}
-      {isOpen && (
-        <div className="fixed inset-x-0 bottom-0 top-16 overflow-y-auto bg-ink lg:hidden">
-          <div className="flex min-h-full flex-col px-5 pb-10 pt-4">
+    {isOpen && (
+      <div className="fixed inset-x-0 bottom-0 top-16 z-50 overflow-y-auto bg-ink sm:top-[72px] lg:hidden">
+        <div className="flex min-h-full flex-col px-5 pb-10 pt-4">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `font-display border-b-2 border-line py-4 text-3xl ${isActive ? 'text-lime' : 'text-white'}`
+            }
+          >
+            Home
+          </NavLink>
+          {links.map((l) => (
             <NavLink
-              to="/"
-              end
+              key={l.to}
+              to={l.to}
               className={({ isActive }) =>
                 `font-display border-b-2 border-line py-4 text-3xl ${isActive ? 'text-lime' : 'text-white'}`
               }
             >
-              Home
+              {l.name}
             </NavLink>
-            {links.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                className={({ isActive }) =>
-                  `font-display border-b-2 border-line py-4 text-3xl ${isActive ? 'text-lime' : 'text-white'}`
-                }
+          ))}
+
+          <p className="mt-8 text-sm font-semibold text-muted">Our platforms</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {platforms.map((p) => (
+              <a
+                key={p.name}
+                href={p.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sticker flex flex-col items-start gap-2 p-4"
               >
-                {l.name}
-              </NavLink>
+                <SiteIcon name={p.icon} size={56} alt="" />
+                <span className="font-semibold text-white">{p.name}</span>
+              </a>
             ))}
+          </div>
 
-            <p className="mt-8 text-sm font-semibold text-muted">Our platforms</p>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              {platforms.map((p) => (
-                <a
-                  key={p.name}
-                  href={p.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="sticker flex flex-col items-start gap-2 p-4"
-                >
-                  <SiteIcon name={p.icon} size={56} alt="" />
-                  <span className="font-semibold text-white">{p.name}</span>
-                </a>
-              ))}
-            </div>
-
-            <div className="relative mt-auto pt-24">
-              <Mascot pose="jump" alt="" className="absolute -top-2 right-2 w-32" />
-              <Link to="/host-your-ctf#build" className="btn btn-lime w-full">
-                See hosting pricing
-              </Link>
-            </div>
+          <div className="relative mt-auto pt-24">
+            <Mascot pose="jump" alt="" className="absolute -top-2 right-2 w-32" />
+            <Link to="/host-your-ctf#build" className="btn btn-lime w-full">
+              See hosting pricing
+            </Link>
           </div>
         </div>
-      )}
-    </nav>
+      </div>
+    )}
+    </>
   );
 };
 

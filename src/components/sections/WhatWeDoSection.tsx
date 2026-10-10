@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { SiteIcon } from '../shared/SiteIcon';
 import { Local } from '../shared/Local';
 import { plans, builderCategories, builderPricing as P } from '../../data/hosting';
 import { events } from '../../data/events';
-import { cppt, pentestLabUrl } from '../../data/pentest';
 
 // Example build shown as a receipt. Prices come from the builder data, so they stay in sync.
 const price = (cat: string, tier: string) =>
@@ -34,11 +32,11 @@ export const WhatWeDoSection = () => {
       <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
         <h2 className="font-display max-w-2xl text-4xl text-white sm:text-5xl">Play one. Build one. Get certified.</h2>
 
-        <div className="mt-12 grid gap-5 lg:grid-cols-[1.15fr_1fr] lg:grid-rows-2">
+        <div className="mt-12 grid gap-5 lg:grid-cols-[1.15fr_1fr]">
           {/* Build your CTF */}
           <Link
             to="/host-your-ctf#build"
-            className="sticker sticker-lime lift group relative grid gap-6 overflow-hidden p-6 sm:grid-cols-[1fr_15rem] sm:p-8 lg:row-span-2"
+            className="sticker sticker-lime lift group relative grid gap-6 overflow-hidden p-6 sm:grid-cols-[1fr_15rem] sm:p-8"
           >
             <div className="flex flex-col">
               <h3 className="font-display text-3xl text-white sm:text-4xl">Build your own CTF</h3>
@@ -109,25 +107,6 @@ export const WhatWeDoSection = () => {
             </div>
           </Link>
 
-          {/* Pentest Lab + CPPT */}
-          <a
-            href={pentestLabUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="sticker sticker-sun lift group relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center"
-          >
-            <SiteIcon name="toolbox" size={80} alt="" className="shrink-0 transition-transform duration-300 group-hover:-rotate-6" />
-            <div className="flex-1">
-              <h3 className="font-display text-2xl text-white">Pentest Lab + CPPT</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Train on real machines between events, then earn a certification anyone can verify.
-              </p>
-            </div>
-            <div className="shrink-0 sm:text-right">
-              <div className="font-display text-4xl text-sun">${cppt.usd}</div>
-              <Local usd={cppt.usd} className="block text-xs text-muted" />
-            </div>
-          </a>
         </div>
       </div>
     </section>
