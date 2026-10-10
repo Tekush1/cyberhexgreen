@@ -1,6 +1,7 @@
 import React from 'react';
-import { Trophy, Gift, Briefcase, Award, Star, Users, Rocket, Medal, Shield, Terminal, BookOpen, Zap, Lock, GamepadIcon } from 'lucide-react';
+import { Trophy, Briefcase, Award, Star, Users, Rocket, Shield, Terminal, BookOpen, Zap, GamepadIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { SiteIcon } from '../components/shared/SiteIcon';
 
 interface Prize {
   title: string;
@@ -16,7 +17,7 @@ export const PrizesPage = () => {
       title: "Cyber Champion",
       amount: "₹10,000",
       description: "For the most innovative cybersecurity solution",
-      icon: <Shield className="w-12 h-12" />,
+      icon: <SiteIcon name="shield" size={48} alt="" />,
       benefits: [
         "Free CyberHx Pro membership (1 year)",
         "Direct mentorship from security experts",
@@ -28,7 +29,7 @@ export const PrizesPage = () => {
       title: "Security Specialist",
       amount: "₹5,000",
       description: "For exceptional technical implementation",
-      icon: <Lock className="w-12 h-12" />,
+      icon: <SiteIcon name="padlock" size={48} alt="" />,
       benefits: [
         "CyberHx Premium access (6 months)",
         "Advanced CTF challenges unlock",
@@ -40,7 +41,7 @@ export const PrizesPage = () => {
       title: "Ethical Hacker",
       amount: "₹3,000",
       description: "For outstanding penetration testing skills",
-      icon: <Terminal className="w-12 h-12" />,
+      icon: <SiteIcon name="network" size={48} alt="" />,
       benefits: [
         "CyberHx Standard access (3 months)",
         "Exclusive hacking workshops",

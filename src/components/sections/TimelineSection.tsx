@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Target, AlertTriangle, Users, BookOpen, Eye, Lock, Zap } from 'lucide-react';
+import { Shield, Target, AlertTriangle, BookOpen, Lock } from 'lucide-react';
+import { SiteIcon } from '../shared/SiteIcon';
 
 export const TimelineSection = () => {
   const successStories = [
@@ -31,25 +32,25 @@ export const TimelineSection = () => {
 
   const platformFeatures = [
     {
-      icon: <Shield className="w-8 h-8" />,
+      icon: <SiteIcon name="shield" size={40} alt="" />,
       title: "Advanced Security Training",
       description: "Comprehensive courses covering ethical hacking, penetration testing, and digital forensics",
       color: "#00ff41"
     },
     {
-      icon: <AlertTriangle className="w-8 h-8" />,
+      icon: <SiteIcon name="swords" size={40} alt="" />,
       title: "Real-time Scam Detection",
       description: "AI-powered system to identify and report fraudulent activities instantly",
       color: "#ff3e3e"
     },
     {
-      icon: <Eye className="w-8 h-8" />,
+      icon: <SiteIcon name="eyes" size={40} alt="" />,
       title: "Community Protection",
       description: "Collaborative platform where users help protect each other from digital threats",
       color: "#0ff"
     },
     {
-      icon: <BookOpen className="w-8 h-8" />,
+      icon: <SiteIcon name="code" size={40} alt="" />,
       title: "Expert Knowledge Base",
       description: "Curated content from cybersecurity professionals and industry experts",
       color: "#ffd700"

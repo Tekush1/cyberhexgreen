@@ -1,34 +1,35 @@
 import React from 'react';
-import { Shield, Eye, AlertTriangle, Users, BookOpen, Target, ArrowRight, Zap, Lock, Search } from 'lucide-react';
+import { Shield, Eye, AlertTriangle, Users, ArrowRight, Lock, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CountUp } from '../CountUp';
 import { ParticleBackground } from '../ParticleBackground';
+import { SiteIcon } from '../shared/SiteIcon';
 
 export const ImpactSection = () => {
   const impactStats = [
     {
-      icon: <Shield size={48} />,
+      icon: <SiteIcon name="shield" size={64} alt="Shield" />,
       value: 10,
       suffix: '+',
       label: 'Scams Detected',
       description: 'Threats identified'
     },
     {
-      icon: <Users size={48} />,
+      icon: <SiteIcon name="user" size={64} alt="Users" />,
       value: 500,
       suffix: '+',
       label: 'Users Protected',
       description: 'People saved from fraud'
     },
     {
-      icon: <BookOpen size={48} />,
+      icon: <SiteIcon name="code" size={64} alt="Learn" />,
       value: 100,
       suffix: '+',
       label: 'Learning Modules',
       description: 'Security courses'
     },
     {
-      icon: <Target size={48} />,
+      icon: <SiteIcon name="target" size={64} alt="Target" />,
       value: 50,
       suffix: '+',
       label: 'CTF Challenges',
