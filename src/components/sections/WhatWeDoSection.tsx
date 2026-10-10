@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { SiteIcon } from '../shared/SiteIcon';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Local } from '../shared/Local';
+import { ArrowUpRight } from 'lucide-react';
 import { plans, builderCategories, builderPricing as P } from '../../data/hosting';
 import { events } from '../../data/events';
 
@@ -23,7 +24,12 @@ const receipt = [
 const receiptTotal = receipt.reduce((s, r) => s + r.usd, 0);
 const cheapestPlan = Math.min(...plans.map((p) => p.usd));
 
-const latest = events[0];
+// "6000+ Hackers" -> "6K+", "1.4K+" stays as is.
+const compact = (s: string) => {
+  const t = s.replace(/\s*hackers?/i, '').trim();
+  const m = t.match(/^(\d{4,})\+$/);
+  return m ? `${+(Number(m[1]) / 1000).toFixed(1)}K+` : t;
+};
 
 export const WhatWeDoSection = () => {
   const reduce = useReducedMotion();
@@ -89,23 +95,42 @@ export const WhatWeDoSection = () => {
           </Link>
 
           {/* Play our CTFs */}
-          <Link to="/gallery" className="sticker lift group relative grid overflow-hidden sm:grid-cols-[11rem_1fr]">
-            <div className="relative flex items-center justify-center overflow-hidden border-b-2 border-line bg-panel py-10 sm:border-b-0 sm:border-r-2 sm:py-0">
-              <SiteIcon
-                name="ctf-green"
-                size={128}
-                alt=""
-                className="float-y transition-transform duration-500 group-hover:scale-110"
-              />
-            </div>
-            <div className="flex flex-col p-6">
-              <h3 className="font-display text-2xl text-white">Play our CTFs</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Latest: {latest.title}, {latest.participants.toLowerCase()} over {latest.duration.toLowerCase()}.
-              </p>
-              <p className="font-display mt-3 text-xl text-lime">{latest.prize}</p>
-              <span className="mt-auto pt-4 text-sm font-semibold text-lime">See all events</span>
-            </div>
+          <Link to="/gallery" className="sticker lift group relative flex flex-col overflow-hidden p-6 sm:p-8">
+            <SiteIcon
+              name="ctf-green"
+              size={150}
+              alt=""
+              className="pointer-events-none absolute -right-5 -top-4 rotate-12 transition-transform duration-500 group-hover:rotate-[4deg] group-hover:scale-105"
+            />
+            <h3 className="font-display max-w-[11ch] text-3xl text-white sm:text-4xl">Play our CTFs</h3>
+            <p className="mt-3 max-w-[24ch] leading-7 text-muted">Open to everyone. Here's what we've run so far.</p>
+
+            <ul className="mt-7 space-y-3">
+              {events.slice(0, 2).map((e) => (
+                <li key={e.id} className="flex items-stretch rounded-xl border-2 border-line bg-ink transition-colors group-hover:border-white/15">
+                  <div className="min-w-0 flex-1 px-4 py-3">
+                    <p className="truncate font-semibold text-white">{e.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted">
+                      {e.date}, {e.duration.toLowerCase()}
+                    </p>
+                  </div>
+                  {/* Ticket perforation */}
+                  <div className="relative w-0 border-l-2 border-dashed border-line" aria-hidden="true">
+                    <span className="absolute -left-[9px] -top-[9px] h-4 w-4 rounded-full border-2 border-line bg-panel [clip-path:inset(50%_0_0_0)]" />
+                    <span className="absolute -bottom-[9px] -left-[9px] h-4 w-4 rounded-full border-2 border-line bg-panel [clip-path:inset(0_0_50%_0)]" />
+                  </div>
+                  <div className="w-24 shrink-0 px-4 py-3 text-right">
+                    <p className="font-display text-lg leading-6 text-lime">{compact(e.participants)}</p>
+                    <p className="text-xs text-muted">players</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <span className="mt-auto inline-flex items-center gap-1.5 pt-6 font-semibold text-white">
+              See all events
+              <ArrowUpRight size={17} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </span>
           </Link>
 
         </div>
