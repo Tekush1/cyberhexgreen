@@ -1,22 +1,11 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Mascot } from '../shared/Mascot';
-import { SiteIcon, type IconName } from '../shared/SiteIcon';
+import { SiteIcon } from '../shared/SiteIcon';
 import { CountUp } from '../shared/CountUp';
 import { builderPricing } from '../../data/hosting';
 import { stats } from '../../data/stats';
 
-const ticker: { icon: IconName; name: string }[] = [
-  { icon: 'code', name: 'Web' },
-  { icon: 'lock-key', name: 'Crypto' },
-  { icon: 'satellite', name: 'OSINT' },
-  { icon: 'bug', name: 'Pwn' },
-  { icon: 'gear', name: 'Reverse' },
-  { icon: 'eyes', name: 'Forensics' },
-  { icon: 'ghost', name: 'Steg' },
-  { icon: 'linux', name: 'Boot2Root' },
-  { icon: 'bell-dot', name: 'Mobile' },
-];
 
 const ease = [0.2, 0.8, 0.2, 1] as const;
 
@@ -86,18 +75,6 @@ export const HeroSection = () => {
         </motion.div>
       </div>
 
-      {/* Challenge ticker */}
-      <div className="relative mt-6 overflow-hidden border-y-2 border-line bg-panel py-3.5" aria-hidden="true">
-        <div className="marquee">
-          {[...ticker, ...ticker, ...ticker, ...ticker].map((t, i) => (
-            <span key={i} className="mx-5 flex items-center gap-3 whitespace-nowrap">
-              <SiteIcon name={t.icon} size={32} alt="" />
-              <span className="font-display text-lg text-white/80">{t.name}</span>
-              <span className="ml-5 h-1.5 w-1.5 rounded-full bg-lime" />
-            </span>
-          ))}
-        </div>
-      </div>
     </section>
   );
 };
