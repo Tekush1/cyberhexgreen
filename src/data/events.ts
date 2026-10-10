@@ -77,7 +77,7 @@ export const events: Event[] = [
     location: 'Online — Globally',
   
     image:
-      'https://i.ibb.co/9kz9C6jC/722217335-18086037686297664-317017320748858629-n.jpg',
+      '/events/null-origin.png',
   
     social: {
       instagram: 'https://instagram.com/nulloriginctf',
