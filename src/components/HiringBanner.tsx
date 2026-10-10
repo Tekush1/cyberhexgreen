@@ -28,9 +28,10 @@ export const HiringBanner: React.FC = () => {
     localStorage.setItem('cyberhx-hiring-banner-dismissed', 'true');
   };
 
-  // Keep the checkout bar on the store page clear.
+  // Keep it off pages where it would cover working UI (store checkout bar, blog editor, admin).
   const { pathname } = useLocation();
-  if (isDismissed || pathname.startsWith('/host-your-ctf')) return null;
+  const hidden = ['/host-your-ctf', '/blog/write', '/blog/edit', '/admin'].some((p) => pathname.startsWith(p));
+  if (isDismissed || hidden) return null;
 
   return (
     <AnimatePresence>

@@ -16,8 +16,9 @@ const ContactPage = lazy(() => import('./pages/ContactPage').then(module => ({ d
 const BecomeMentorPage = lazy(() => import('./pages/BecomeMentorPage').then(module => ({ default: module.BecomeMentorPage })));
 const BookSessionPage = lazy(() => import('./pages/BookSessionPage').then(module => ({ default: module.BookSessionPage })));
 const RegistrationPage = lazy(() => import('./pages/RegistrationPage').then(module => ({ default: module.default })));
-const BlogPage = lazy(() => import('./pages/BlogPage').then(module => ({ default: module.default })));
-const BlogPostPage = lazy(() => import('./pages/BlogPostPage').then(module => ({ default: module.default })));
+const BlogPage = lazy(() => import('./features/blog/BlogListPage'));
+const BlogPostPage = lazy(() => import('./features/blog/BlogPostPage'));
+const BlogEditorPage = lazy(() => import('./features/blog/EditorPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ default: module.default })));
 const EventsPage = lazy(() => import('./pages/EventsPage').then(module => ({ default: module.default })));
 const ResponsibleDisclosurePage = lazy(() => import('./pages/ResponsibleDisclosurePage'));
@@ -53,7 +54,6 @@ function ScrollManager() {
 function App() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
 
-  const openHiringPopup = () => setIsHiringPopupOpen(true);
   const closeHiringPopup = () => setIsHiringPopupOpen(false);
 
   return (
@@ -66,9 +66,10 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/about" element={<AboutPage />} />
-              {/* Blog list page */}
+              {/* Blog */}
               <Route path="/blog" element={<BlogPage />} />
-              {/* Individual blog post — THIS was missing! */}
+              <Route path="/blog/write" element={<BlogEditorPage />} />
+              <Route path="/blog/edit/:id" element={<BlogEditorPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/prizes" element={<PrizesPage />} />
               <Route path="/collaborations" element={<CollaborationsPage />} />

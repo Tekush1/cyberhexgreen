@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { MeetingsPanel, type MeetingKind, type MeetingPrefill } from '../components/admin/MeetingsPanel';
 import { ApplicationsPanel, CtfRequestsPanel } from '../components/admin/RequestsPanels';
 import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
@@ -454,12 +455,19 @@ const AdminPage: React.FC = () => {
               <div className="flex items-center justify-center py-24"><Loader2 size={32} className="text-[#a3e635] animate-spin" /></div>
             ) : (
               <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
+                  <p className="text-sm text-gray-400">Write, edit and publish posts. Images upload as you paste or drop them.</p>
+                  <Link to="/blog/write" className="inline-flex items-center gap-2 rounded-xl bg-[#c6f135] px-4 py-2 text-sm font-semibold text-[#060a16] transition hover:bg-[#d4f75a]">
+                    + New post
+                  </Link>
+                </div>
+                {posts.length === 0 && <p className="py-10 text-center text-sm text-gray-500">No posts yet. Click "New post" to write the first one.</p>}
                 {posts.map(post => (
                   <motion.div key={post.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-4 flex items-center gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">published</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border ${post.status === 'published' ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-white/5 text-gray-400 border-white/10'}`}>{post.status || 'published'}</span>
                         <span className="text-xs text-gray-600">{post.category}</span>
                         {post.featured && <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">⭐ Featured</span>}
                       </div>
@@ -470,6 +478,16 @@ const AdminPage: React.FC = () => {
                       <span className="flex items-center gap-1"><Eye size={12} />{post.views}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      <Link to={`/blog/edit/${post.id}`}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-white/5 text-gray-300 border-white/8 hover:text-white hover:border-white/20">
+                        Edit
+                      </Link>
+                      {post.status === 'published' && (
+                        <Link to={`/blog/${post.slug}`} target="_blank"
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-white/5 text-gray-300 border-white/8 hover:text-white hover:border-white/20">
+                          View
+                        </Link>
+                      )}
                       <button onClick={() => handleToggleFeatured(post)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${post.featured ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/25' : 'bg-white/5 text-gray-400 border-white/8 hover:text-yellow-400'}`}>
                         {post.featured ? 'Unfeature' : '⭐ Feature'}
