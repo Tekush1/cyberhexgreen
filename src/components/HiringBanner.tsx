@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Briefcase, X, Users, ArrowRight, Sparkles } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
+import { Briefcase, Users, Sparkles } from './shared/icons';
 
 export const HiringBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);

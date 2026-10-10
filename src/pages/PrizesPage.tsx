@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Briefcase, Award, Star, Users, Rocket, Shield, Terminal, BookOpen, Zap, GamepadIcon } from 'lucide-react';
+import { Trophy, Briefcase, Award, Star, Users, Rocket, Shield, Terminal, BookOpen, Zap, GamepadIcon } from '../components/shared/icons';
 import { motion } from 'framer-motion';
 import { SiteIcon } from '../components/shared/SiteIcon';
 
@@ -29,7 +29,7 @@ export const PrizesPage = () => {
       title: "Security Specialist",
       amount: "₹5,000",
       description: "For exceptional technical implementation",
-      icon: <SiteIcon name="padlock" size={48} alt="" />,
+      icon: <SiteIcon name="eyes" size={48} alt="" />,
       benefits: [
         "CyberHx Premium access (6 months)",
         "Advanced CTF challenges unlock",

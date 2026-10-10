@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Shield, Mail, Clock, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ExternalLink, FileText, Eye, Lock, Award } from 'lucide-react';
+import { Mail, Clock, CheckCircle, ChevronDown, ChevronUp, ExternalLink, FileText } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Lock, Award } from '../components/shared/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 

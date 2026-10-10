@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Zap, Shield, Trophy, Clock, Users, Target, Terminal,
-  ArrowRight, Calendar, MapPin, Flag, Lock, ChevronRight,
-  Skull, Radio, AlertTriangle
-} from 'lucide-react';
+import { Clock, ArrowRight, Calendar, MapPin, ChevronRight } from 'lucide-react';
+import { Zap, Shield, Trophy, Users, Target, Terminal, Flag, Lock, Skull, Radio, AlertTriangle } from '../components/shared/icons';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 24 },

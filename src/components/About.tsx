@@ -1,85 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Target, Users, Zap, Shield, ChevronDown, ChevronUp, Trophy, Linkedin, Github, Instagram } from 'lucide-react';
+import { ChevronDown, ChevronUp, Linkedin, Github, Instagram } from 'lucide-react';
+import { Target, Users, Zap, Shield, Trophy } from './shared/icons';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, MeshDistortMaterial } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
-import * as THREE from 'three';
-
-const HackingScene = () => {
-  const groupRef = useRef<THREE.Group>(null);
-  const [hovered, setHovered] = useState(true);
-
-  useEffect(() => {
-    if (groupRef.current) {
-      groupRef.current.rotation.x = 0.4;
-    }
-  }, []);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += 0.005;
-      groupRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.1;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      <mesh
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-        scale={hovered ? 1.2 : 1}
-      >
-        <torusKnotGeometry args={[1, 0.3, 100, 16]} />
-        <meshStandardMaterial
-          color="#00ff41"
-          emissive="#00ff41"
-          emissiveIntensity={hovered ? 2 : 0.5}
-          wireframe={true}
-        />
-      </mesh>
-
-      {Array.from({ length: 50 }).map((_, i) => (
-        <mesh
-          key={i}
-          position={[
-            (Math.random() - 0.5) * 5,
-            (Math.random() - 0.5) * 5,
-            (Math.random() - 0.5) * 5
-          ]}
-        >
-          <planeGeometry args={[0.2, 0.2]} />
-          <meshStandardMaterial
-            color="#00ff41"
-            emissive="#00ff41"
-            emissiveIntensity={0.5}
-            transparent
-            opacity={0.7}
-          >
-            <canvasTexture
-              attach="map"
-              image={(() => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 32;
-                canvas.height = 32;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                  ctx.fillStyle = '#00ff41';
-                  ctx.font = '24px monospace';
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'middle';
-                  ctx.fillText(Math.random() > 0.5 ? '1' : '0', 16, 16);
-                }
-                return canvas;
-              })()}
-              needsUpdate={true}
-            />
-          </meshStandardMaterial>
-        </mesh>
-      ))}
-    </group>
-  );
-};
+import { Mascot } from './shared/Mascot';
 
 interface Command {
   command: string;
@@ -88,6 +12,7 @@ interface Command {
   type?: 'success' | 'error' | 'warning' | 'info';
   animate?: boolean;
 }
+
 
 const Terminal = () => {
   const [history, setHistory] = useState<Command[]>([]);
@@ -790,17 +715,7 @@ export const About = () => {
             viewport={{ once: true }}
             className="h-[400px] w-full relative"
           >
-            <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-              <ambientLight intensity={0.5} />
-              <pointLight position={[10, 10, 10]} intensity={1} />
-              <HackingScene />
-              <OrbitControls 
-                enableZoom={false}
-                maxPolarAngle={Math.PI / 2}
-                minPolarAngle={Math.PI / 2}
-              />
-            </Canvas>
-            <div className="absolute inset-0 bg-gradient-radial from-transparent to-dark-200 pointer-events-none" />
+            <Mascot pose="laugh-point" alt="CyberHx mascot" className="absolute inset-x-0 mx-auto bottom-0 h-full w-auto" />
           </motion.div>
 
           <motion.div

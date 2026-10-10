@@ -1,159 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Calendar, Clock, Trophy, Users, ArrowRight, CheckCircle, Radio,
-  ExternalLink, Zap, MapPin, Tag, X, Instagram, Linkedin, Globe, Flag, BarChart3,
-} from 'lucide-react';
+import { Calendar, Clock, ArrowRight, CheckCircle, ExternalLink, MapPin, Tag, X, Instagram, Linkedin, Globe } from 'lucide-react';
+import { Trophy, Users, Radio, Zap, Flag, BarChart3 } from './shared/icons';
 import { Link } from 'react-router-dom';
-
-interface Event {
-  id: number;
-  title: string;
-  subtitle: string;
-  description: string;
-  date: string;
-  duration: string;
-  participants: string;
-  prize: string;
-  tags: string[];
-  status: 'live' | 'completed' | 'upcoming';
-  category: 'Events' | 'Hacking' | 'Learning' | 'Teams';
-  link?: string;
-  highlights?: string[];
-  location: string;
-  image: string;
-  gallery?: string[];
-  social?: {
-    instagram?: string;
-    x?: string;
-    linkedin?: string;
-    website?: string;
-    ctftime?: string;
-    leaderboard?: string;
-      certificates?: string;
-  };
-}
-
-const events: Event[] = [
-  {
-    id: 2,
-  
-    title: 'Null Origin CTF',
-  
-    subtitle: 'International 24-Hour Capture The Flag Challenge',
-  
-    description:
-      'Null Origin CTF 2026 was an international 24-hour Jeopardy-style Capture The Flag competition organized by CyberHX. The event brought together cybersecurity enthusiasts, students, ethical hackers, researchers and CTF teams from around the world. Participants competed across Web Exploitation, Cryptography, Reverse Engineering, Digital Forensics, OSINT and Pwn, with challenges ranging from beginner-friendly to expert-level difficulty.',
-  
-    date: '18–25 September 2026',
-  
-    duration: '24 Hours',
-  
-    participants: '6000+ Hackers',
-  
-    prize: '₹10 Lakh+ Rewards',
-  
-    tags: [
-      'International CTF',
-      'Web Exploitation',
-      'Reverse Engineering',
-      'Cryptography',
-      'OSINT',
-      'Digital Forensics',
-      'Pwn',
-      'Jeopardy CTF',
-    ],
-  
-    status: 'completed',
-  
-    category: 'Hacking',
-  
-    link: 'https://nullorigin.cyberhx.com',
-  
-    highlights: [
-      '6000+ Hackers',
-      '3500+ Teams',
-      '24-Hour CTF',
-      '₹10 Lakh+ Rewards',
-      'International Participation',
-      'chained challneges',
-    ],
-  
-    location: 'Online — Globally',
-  
-    image:
-      'https://i.ibb.co/9kz9C6jC/722217335-18086037686297664-317017320748858629-n.jpg',
-  
-    social: {
-      instagram: 'https://instagram.com/nulloriginctf',
-  
-      website: 'https://nullorigin.cyberhx.com',
-  
-      ctftime: 'https://ctftime.org/event/3346',
-  
-      leaderboard: 'https://ctf.cyberhx.com/leaderboard',
-  
-      certificates: 'https://creds.cyberhx.com',
-    },
-  },
-  {
-    id: 1,
-    title: 'ZeroDay Heist',
-    subtitle: "India's Largest Community-Driven Cybersecurity CTF",
-
-    description:
-      'ZeroDay Heist brought together 1.4K+ cybersecurity enthusiasts from across India for an intense 6-hour Capture The Flag competition. Participants tackled challenges across Web Exploitation, Reverse Engineering, Cryptography, OSINT, Forensics and Pwn while competing for a ₹250K+ prize pool.',
-
-    date: 'June 2026',
-    duration: '6 Hours',
-    participants: '1.4K+',
-    prize: '₹250K+',
-
-    tags: [
-      'CTF',
-      'Web Exploitation',
-      'Reverse Engineering',
-      'Cryptography',
-      'OSINT',
-      'Forensics',
-      'Pwn'
-    ],
-
-    status: 'completed',
-    category: 'Hacking',
-
-    link: 'https://zerodayheist.cyberhx.com',
-
-    highlights: [
-      '1.4K+ Participants',
-      '48 Challenges',
-      '₹250K+ Prize Pool',
-      'Certificates Available',
-      'CTFtime Ranked Event'
-    ],
-
-    location: 'Online',
-
-    image:
-      'https://i.ibb.co/r2N3WnGJ/zerodayheistlogo.jpg',
-
-    gallery: [
-      'https://i.ibb.co/1JvxSgRG/kanak-grand-numbers.png',
-      'https://i.ibb.co/6RjyB4VV/thanking-post-zerodayheist.png',
-      'https://i.ibb.co/r2N3WnGJ/zerodayheistlogo.jpg',
-    ],
-
-    social: {
-      instagram: 'https://instagram.com/zerodayheist',
-      x: 'https://x.com/zerodayheist',
-      linkedin: 'https://www.linkedin.com/company/110549481',
-      website: 'https://zerodayheist.cyberhx.com',
-      ctftime: 'https://ctftime.org/event/3308',
-      leaderboard: 'https://zerodayheist.cyberhx.com/leaderboard',
-      certificates: 'https://creds.cyberhx.com',
-    },
-  },
-];
+import { events, type Event } from '../data/events';
+import { Mascot } from './shared/Mascot';
 
 const statusConfig = {
   live: {
@@ -188,13 +39,6 @@ const statusConfig = {
 const filters = ['All', 'Events', 'Hacking', 'Learning', 'Teams'] as const;
 type Filter = (typeof filters)[number];
 
-const filterIcons: Record<Filter, React.ReactNode> = {
-  All: <Tag size={14} />,
-  Events: <Zap size={14} />,
-  Hacking: <Trophy size={14} />,
-  Learning: <Calendar size={14} />,
-  Teams: <Users size={14} />,
-};
 
 export const Gallery = () => {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
@@ -207,67 +51,50 @@ export const Gallery = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#05080f] pt-24 pb-20">
+    <div className="min-h-screen bg-ink pt-28 pb-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            Events by CyberHx
+        <div className="relative mb-12 grid items-end gap-6 md:grid-cols-[1fr_auto]">
+          <div>
+            <h1 className="font-display text-5xl text-white sm:text-7xl">Events</h1>
+            <p className="mt-4 max-w-xl text-lg leading-8 text-muted">
+              Every CTF CyberHx has run. Tap one for the leaderboard, certificates and photos.
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
-            All <span className="text-primary">Events</span>
-          </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            CTFs, workshops, and competitions — live, upcoming, and past events from CyberHx.
-          </p>
-        </motion.div>
-
-        {/* Search */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <div className="relative max-w-2xl mx-auto">
-            <input
-              type="text"
-              placeholder="Search by title, description, or team..."
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-4 pr-4 py-3 text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:border-primary/40 transition-colors"
-            />
-          </div>
-        </motion.div>
+          <Mascot
+            pose="cheer"
+            alt=""
+            eager
+            className="mascot-pop mx-auto w-44 sm:w-52 md:-mb-6 md:w-60"
+          />
+        </div>
 
         {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex flex-wrap gap-2 justify-center mb-10"
+          className="flex flex-wrap gap-3 mb-12"
         >
           {filters.map((f) => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
+              aria-pressed={activeFilter === f}
+              className={`min-h-[44px] rounded-xl border-2 px-5 text-sm font-semibold transition-colors ${
                 activeFilter === f
-                  ? 'bg-primary text-black border-primary'
-                  : 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+                  ? 'border-ink bg-lime text-ink shadow-[3px_3px_0_0_#02040a]'
+                  : 'border-line text-white/70 hover:border-glow hover:text-white'
               }`}
             >
-              {filterIcons[f]} {f}
+              {f}
             </button>
           ))}
         </motion.div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {filtered.map((event, i) => {
             const s = statusConfig[event.status];
             return (
@@ -277,18 +104,15 @@ export const Gallery = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
                 onClick={() => setSelected(event)}
-                className={`relative rounded-2xl border bg-[#0a0f1a] overflow-hidden text-left group ${s.border} ${
-                  event.status === 'live' ? s.glow : ''
-                } hover:border-primary/40 transition-all duration-200`}
+                className={`sticker ${event.status === 'live' ? 'sticker-lime' : ''} group flex flex-col overflow-hidden text-left`}
               >
-                <div className="relative h-44 overflow-hidden bg-black">
+                <div className="relative h-52 w-full overflow-hidden border-b-2 border-line bg-black">
                   <img
                     src={event.image}
                     alt={event.title}
                     className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className={`absolute inset-0 bg-gradient-to-t ${s.overlayFrom} via-[#0a0f1a]/40 to-transparent`} />
-
+                  
                   <div className="absolute top-3 left-3">
                     <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider border rounded-full px-2.5 py-1 backdrop-blur-sm ${s.badge}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${s.dot} ${event.status === 'live' ? 'animate-pulse' : ''}`} />
@@ -302,9 +126,17 @@ export const Gallery = () => {
                     </span>
                   </div>
 
-                  <div className="absolute bottom-3 left-4 right-4">
-                    <h2 className="text-lg font-bold text-white drop-shadow-lg leading-tight">{event.title}</h2>
-                    <p className={`text-xs font-medium mt-0.5 ${s.color}`}>{event.subtitle}</p>
+                </div>
+                <div className="flex w-full flex-1 flex-col p-6">
+                  <h2 className="font-display text-2xl text-white">{event.title}</h2>
+                  <p className="mt-1.5 text-muted">{event.subtitle}</p>
+                  <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
+                    <span className="flex items-center gap-1.5"><Calendar size={15} className="text-glow" />{event.date}</span>
+                    <span className="flex items-center gap-1.5"><Clock size={15} className="text-glow" />{event.duration}</span>
+                  </div>
+                  <div className="mt-auto flex items-end justify-between gap-3 pt-6">
+                    <span className="font-display text-xl text-sun">{event.prize}</span>
+                    <span className="text-sm font-semibold text-lime group-hover:underline underline-offset-4">Details</span>
                   </div>
                 </div>
               </motion.button>
@@ -312,21 +144,20 @@ export const Gallery = () => {
           })}
         </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mt-16"
-        >
-          <p className="text-gray-500 text-sm mb-4">Want to be notified about upcoming events?</p>
-          <Link
-            to="/contact"
-            className="inline-flex items-center gap-2 border border-gray-700 text-gray-300 font-medium px-6 py-3 rounded-lg hover:border-primary/50 hover:text-white transition-all duration-200 text-sm"
-          >
-            Get Notified <ArrowRight size={15} />
-          </Link>
-        </motion.div>
+        {/* Hosting nudge */}
+        <div className="sticker sticker-glow relative mt-40 grid gap-6 p-7 sm:p-10 md:grid-cols-[1fr_auto] md:items-center">
+          <Mascot pose="point" alt="" className="absolute -top-36 left-4 w-40 sm:-top-40 sm:left-8 sm:w-44" />
+          <div className="pt-16">
+            <h2 className="font-display text-3xl text-white sm:text-4xl">Want one of these for your college?</h2>
+            <p className="mt-3 max-w-xl text-muted">
+              We build the challenges and host the scoreboard. Plans start at $89 for an 8-hour event.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
+            <Link to="/host-your-ctf#plans" className="btn btn-lime">See hosting prices</Link>
+            <Link to="/contact" className="btn btn-ghost">Get event updates</Link>
+          </div>
+        </div>
       </div>
 
       {/* Details Modal */}
@@ -344,7 +175,7 @@ export const Gallery = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               onClick={(e) => e.stopPropagation()}
-              className={`relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border bg-[#0a0f1a] ${statusConfig[selected.status].border} ${
+              className={`relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border bg-panel ${statusConfig[selected.status].border} ${
                 selected.status === 'live' ? statusConfig[selected.status].glow : ''
               }`}
             >

@@ -1,10 +1,7 @@
-
-type IconName =
+export type IconName =
   | 'code'
-  | 'lock-key'
   | 'code-light'
   | 'target'
-  | 'padlock'
   | 'swords'
   | 'user'
   | 'network'
@@ -16,29 +13,26 @@ type IconName =
   | 'eyes'
   | 'ghost'
   | 'podium'
+  | 'podium-flat'
   | 'trophy'
-  | 'hexagon';
-
-const ICON_FILES: Record<IconName, string> = {
-  code: 'icon-01.png',
-  'lock-key': 'icon-02.png',
-  'code-light': 'icon-03.png',
-  target: 'icon-04.png',
-  padlock: 'icon-05.png',
-  swords: 'icon-06.png',
-  user: 'icon-07.png',
-  network: 'icon-08.png',
-  gear: 'icon-09.png',
-  shield: 'icon-10.png',
-  'ctf-orange': 'icon-11.png',
-  'ctf-green': 'icon-12.png',
-  docker: 'icon-14.png',
-  eyes: 'icon-15.png',
-  ghost: 'icon-16.png',
-  podium: 'icon-17.png',
-  trophy: 'icon-18.png',
-  hexagon: 'icon-19.png',
-};
+  | 'hexagon'
+  | 'lock-key'
+  | 'padlock'
+  | 'cloud'
+  | 'bug'
+  | 'windows'
+  | 'linux'
+  | 'exit'
+  | 'bell'
+  | 'bell-dot'
+  | 'toolbox'
+  | 'receipt'
+  | 'gauge'
+  | 'ring'
+  | 'calendar-fire'
+  | 'hacker-team'
+  | 'hacker-climb'
+  | 'satellite';
 
 interface SiteIconProps {
   name: IconName;
@@ -47,15 +41,20 @@ interface SiteIconProps {
   className?: string;
 }
 
-export const SiteIcon = ({ name, size = 40, alt = '', className = '' }: SiteIconProps) => (
+/**
+ * Illustrated PNG/WebP icon from /public/icons/web.
+ * Rendered bare — no box or badge around it — so the artwork carries itself.
+ */
+export const SiteIcon = ({ name, size = 64, alt = '', className = '' }: SiteIconProps) => (
   <img
-    src={`/icons/${ICON_FILES[name]}`}
+    src={`/icons/web/${name}.webp`}
     alt={alt}
     width={size}
     height={size}
     loading="lazy"
     decoding="async"
-    className={`object-contain ${className}`}
+    draggable={false}
+    className={`object-contain select-none shrink-0 ${className}`}
     style={{ width: size, height: size }}
   />
 );

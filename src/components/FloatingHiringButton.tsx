@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Briefcase, Sparkles } from 'lucide-react';
+import { Briefcase, Sparkles } from './shared/icons';
 
 export const FloatingHiringButton: React.FC = () => {
   const handleClick = () => {

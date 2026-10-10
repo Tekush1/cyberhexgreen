@@ -1,7 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Handshake, FileSignature, MapPin, Building2, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
+import { SiteIcon } from '../shared/SiteIcon';
 
 /**
  * Keep this in sync with src/pages/CollaborationsPage.tsx.
@@ -28,112 +27,59 @@ const collaborations: {
   },
 ];
 
-export const CollaborationsSection = () => {
-  return (
-    <div className="bg-dark-300 py-20 border-t border-gray-900">
-      <div className="max-w-6xl mx-auto px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-4 py-1.5 rounded-full mb-5"
-          >
-            <Handshake size={13} />
-            Collaborations
-          </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-3xl md:text-4xl font-bold gradient-text mb-3"
-          >
-            Partners we work with
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-gray-500 text-base max-w-xl mx-auto"
-          >
-            We're building cybersecurity outreach through partnerships with colleges and communities — and this list keeps growing.
-          </motion.p>
+export const CollaborationsSection = () => (
+  <section className="border-t-2 border-line bg-ink py-20 sm:py-24">
+    <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="flex flex-col items-start gap-5 sm:flex-row">
+          <SiteIcon name="hacker-team" size={96} alt="" />
+          <div>
+            <h2 className="font-display text-4xl text-white sm:text-5xl">Who we work with</h2>
+            <p className="mt-4 max-w-md leading-7 text-muted">
+              Colleges and communities that partner with us on outreach and events. Want your campus on this list?
+            </p>
+            <Link to="/collaborations" className="mt-5 inline-block font-semibold text-lime underline underline-offset-4">
+              Partner with CyberHx
+            </Link>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {collaborations.map((c, index) => (
-            <motion.div
-              key={c.org}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08 }}
-              className="bg-dark-100 border border-gray-800 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 flex flex-col"
-            >
-              <div className="flex items-start justify-between gap-3 mb-4">
-                {/* Logo or fallback icon */}
-                <div className="w-11 h-11 bg-dark-200 border border-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {c.logo ? (
-                    <img
-                      src={c.logo}
-                      alt={`${c.org} logo`}
-                      className="w-9 h-9 object-contain"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <Building2 size={20} className="text-primary" />
-                  )}
+        <div className={`grid gap-6 ${collaborations.length > 1 ? "sm:grid-cols-2" : "max-w-xl"}`}>
+          {collaborations.map((c) => (
+            <div key={c.org} className="sticker flex flex-col p-6">
+              <div className="flex items-center gap-4">
+                {c.logo && (
+                  <img
+                    src={c.logo}
+                    alt={`${c.org} logo`}
+                    className="h-14 w-14 rounded-xl bg-white object-contain p-1"
+                    loading="lazy"
+                  />
+                )}
+                <div>
+                  <h3 className="font-display text-xl text-white">{c.org}</h3>
+                  <p className="text-sm font-semibold text-lime">{c.type}, MOU signed</p>
                 </div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-primary/10 text-primary border-primary/20 flex-shrink-0">
-                  <FileSignature size={11} />
-                  MOU Signed
-                </span>
               </div>
-
-              <h3 className="text-lg font-semibold text-white mb-1">{c.org}</h3>
-              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 mb-3">
-                <span className="text-primary font-medium">{c.type}</span>
-                <span className="flex items-center gap-1"><MapPin size={11} /> {c.location}</span>
-              </div>
-
-              <p className="text-gray-500 text-sm leading-relaxed mb-4 flex-grow">{c.description}</p>
-
+              <p className="mt-4 flex-1 leading-7 text-muted">{c.description}</p>
+              <p className="mt-4 flex items-center gap-1.5 text-sm text-white/60">
+                <MapPin size={14} className="text-glow" />
+                {c.location}, {c.date}
+              </p>
               {c.link && (
                 <a
                   href={c.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-1 mt-auto"
+                  className="mt-4 font-semibold text-white underline underline-offset-4 hover:text-lime"
                 >
-                  Visit website <ArrowUpRight size={14} />
+                  Visit {c.org}
                 </a>
               )}
-            </motion.div>
+            </div>
           ))}
-
-          {/* Teaser card inviting more partners — remove once you have 3+ real partners */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: collaborations.length * 0.08 }}
-            className="border border-dashed border-gray-800 rounded-xl p-6 flex flex-col items-center justify-center text-center"
-          >
-            <Handshake size={22} className="text-gray-700 mb-3" />
-            <p className="text-gray-500 text-sm mb-1">More partnerships coming soon</p>
-            <Link
-              to="/collaborations"
-              className="text-primary text-xs font-medium hover:underline inline-flex items-center gap-1 mt-2"
-            >
-              View all collaborations <ArrowUpRight size={12} />
-            </Link>
-          </motion.div>
         </div>
       </div>
     </div>
-  );
-};
+  </section>
+);

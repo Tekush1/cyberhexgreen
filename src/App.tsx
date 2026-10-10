@@ -1,5 +1,5 @@
-import React, { Suspense, lazy, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
 import { LoadingSpinner } from './components/shared/LoadingSpinner';
@@ -29,6 +29,28 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollaborationsPage = lazy(() => import('./pages/CollaborationsPage'));
 const BookInterviewPage = lazy(() => import('./pages/BookInterviewPage'));
 
+// Scroll to top on page change, or to #section when the link carries a hash.
+function ScrollManager() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (!hash) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    let tries = 0;
+    const id = hash.slice(1);
+    const timer = window.setInterval(() => {
+      const el = document.getElementById(id);
+      if (el || ++tries > 30) {
+        window.clearInterval(timer);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [pathname, hash]);
+  return null;
+}
+
 function App() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
 
@@ -37,6 +59,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollManager />
       <div className="min-h-screen bg-dark-300 flex flex-col">
         <Navigation />
         <main className="flex-grow">
@@ -66,8 +89,8 @@ function App() {
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsOfServicePage />} />
               {/* 404 */}
-              <Route path="*" element={<NotFoundPage />} />
               <Route path="/host-your-ctf" element={<HostYourCTF />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </main>

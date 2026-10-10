@@ -1,133 +1,99 @@
-import React from 'react';
-import { ArrowRight, Terminal, Cpu, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { Calendar, Users } from 'lucide-react';
+import { Mascot } from '../shared/Mascot';
+import { events } from '../../data/events';
+import { plans } from '../../data/hosting';
+
+const startingPrice = Math.min(...plans.map((p) => p.usd));
 
 export const HeroSection = () => {
+  // Latest event leads: live/upcoming first, otherwise the most recent one.
+  const featured = events.find((e) => e.status !== 'completed') ?? events[0];
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#05080f]">
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 z-0">
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              'linear-gradient(#4ade80 1px, transparent 1px), linear-gradient(90deg, #4ade80 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-dark-300 via-dark-300/90 to-dark-300" />
-      </div>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-8 py-32 text-center">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-sm font-medium px-4 py-1.5 rounded-full mb-8"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          India's Cybersecurity Community
-        </motion.div>
-
-        {/* Main heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.7 }}
-          className="text-5xl md:text-7xl font-bold text-white leading-tight mb-6 tracking-tight"
-        >
-          Cyber<span className="text-primary">Hx</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.7 }}
-          className="text-xl md:text-2xl text-gray-400 mb-4 max-w-2xl mx-auto font-normal"
-        >
-          Learn. Practice. Protect.
-        </motion.p>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.7 }}
-          className="text-base text-gray-500 mb-12 max-w-xl mx-auto leading-relaxed"
-        >
-          Hands-on cybersecurity training through real labs, CTF challenges, and a growing community of security professionals.
-        </motion.p>
-
-        {/* CTA Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45, duration: 0.7 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-6"
-        >
-          {/* ZeroDay Heist — Red event button (primary) */}
-          <a
-            href="https://www.cyberhx.com/gallery"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-semibold px-8 py-3.5 rounded-lg transition-all duration-200 text-sm overflow-hidden group"
-          >
-            {/* Pulse ring */}
-            <span className="absolute inset-0 rounded-lg ring-2 ring-red-500/40 animate-pulse" />
-            <Zap size={18} className="relative z-10" />
-            <span className="relative z-10">Browse Events</span>
-            <span className="relative z-10 text-xs bg-white/20 px-1.5 py-0.5 rounded-full font-normal">Live</span>
-            <ArrowRight size={16} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
-          </a>
-
-          {/* CTF Platform — secondary */}
-          <a
-            href="https://cyberhx.com/host-your-ctf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 border border-gray-700 text-gray-300 font-medium px-8 py-3.5 rounded-lg hover:border-primary/50 hover:text-white transition-all duration-200 text-sm"
-          >
-            <Cpu size={18} />
-            Host on Cyberhx
-          </a>
-        </motion.div>
-
-        {/* ZeroDay subtext */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55, duration: 0.6 }}
-          className="text-xs text-gray-600 mb-10"
-        >
-          🔴 Registration for CTFs —{' '}
-          <a href="https://ctf.cyberhx.com" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 underline underline-offset-2">
-            secure your spot
-          </a>
-        </motion.p>
-
-        {/* Feature chips */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.65, duration: 0.8 }}
-          className="flex flex-wrap justify-center gap-3"
-        >
-          {[
-            'Pentest Lab',
-            'CTF Challenges',
-            'MITRE ATT&CK',
-            'Scam Reporter',
-            'Blog & Resources',
-            'Community',
-          ].map((chip) => (
-            <span
-              key={chip}
-              className="text-xs text-gray-500 border border-gray-800 px-3 py-1.5 rounded-full bg-dark-100/50"
+    <section className="relative overflow-hidden bg-ink pt-24 sm:pt-28">
+      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:px-8 lg:pb-24">
+        {/* Copy */}
+        <div className="relative z-10">
+          {featured && (
+            <Link
+              to="/gallery"
+              className="inline-flex max-w-full items-center gap-2.5 rounded-full border-2 border-line bg-panel py-1.5 pl-1.5 pr-4 text-sm text-white/80 transition-colors hover:border-glow"
             >
-              {chip}
-            </span>
-          ))}
-        </motion.div>
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                  featured.status === 'live'
+                    ? 'bg-red-500 text-white'
+                    : featured.status === 'upcoming'
+                    ? 'bg-lime text-ink'
+                    : 'bg-glow text-ink'
+                }`}
+              >
+                {featured.status === 'live' ? 'Live now' : featured.status === 'upcoming' ? 'Coming up' : 'Just wrapped'}
+              </span>
+              <span className="truncate">
+                {featured.title}, {featured.participants.replace(' Hackers', '')} hackers
+              </span>
+            </Link>
+          )}
+
+          <h1 className="font-display mt-7 text-[2.9rem] text-white sm:text-7xl lg:text-[5.4rem]">
+            Play our CTFs.
+            <span className="mt-1 block text-glow">Or let us host yours.</span>
+          </h1>
+
+          <p className="mt-7 max-w-xl text-lg leading-8 text-muted">
+            CyberHx runs capture-the-flag events for India's security crowd. We also build the challenges and host
+            the whole CTF for colleges, clubs and companies, starting at ${startingPrice}.
+          </p>
+
+          <div className="mt-9 flex flex-col gap-4 sm:flex-row">
+            <Link to="/gallery" className="btn btn-lime">
+              Browse events
+            </Link>
+            <Link to="/host-your-ctf#plans" className="btn btn-ghost">
+              See hosting prices
+            </Link>
+          </div>
+        </div>
+
+        {/* Event ticket with the flag-bearer standing on it */}
+        {featured && (
+          <div className="relative mx-auto w-full max-w-md pt-56 sm:pt-64 lg:max-w-none lg:pl-10 lg:pt-52">
+            <Mascot
+              pose="flag"
+              alt="CyberHx mascot holding a CTF flag"
+              eager
+              className="mascot-pop absolute -top-2 right-0 z-10 w-[17rem] sm:w-[20rem] lg:-top-6 lg:right-2 lg:w-[23rem]"
+            />
+
+            <Link to="/gallery" className="sticker sticker-glow group relative z-20 block overflow-hidden">
+              <div className="relative aspect-[16/8] overflow-hidden border-b-2 border-line">
+                <img
+                  src={featured.image}
+                  alt={featured.title}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  loading="eager"
+                />
+              </div>
+              <div className="p-5 sm:p-6">
+                <h2 className="font-display text-2xl text-white sm:text-3xl">{featured.title}</h2>
+                <p className="mt-1.5 text-muted">{featured.subtitle}</p>
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar size={15} className="text-glow" />
+                    {featured.date}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Users size={15} className="text-glow" />
+                    {featured.participants}
+                  </span>
+                  <span className="font-bold text-sun">{featured.prize}</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Briefcase, Users, Clock, MapPin, Star, ArrowRight, Shield, Code, Brain, Target, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Clock, MapPin, ArrowRight, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Briefcase, Users, Star, Shield, Code, Brain, Target } from './shared/icons';
 
 interface HiringPopupProps {
   isOpen: boolean;

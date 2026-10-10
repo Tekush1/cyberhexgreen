@@ -1,9 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import {
-  Handshake, FileSignature, MapPin, Mail, Building2, ArrowUpRight,
-  Shield, Server, BookOpen, Megaphone, Trophy, Users, Cpu, Globe,
-} from 'lucide-react';
+import { FileSignature, MapPin, Mail, ArrowUpRight, Globe } from 'lucide-react';
+import { Handshake, Building2, Shield, Server, BookOpen, Megaphone, Trophy, Users, Cpu } from '../components/shared/icons';
 
 /**
  * Add a new entry here every time a partnership / MOU is signed.

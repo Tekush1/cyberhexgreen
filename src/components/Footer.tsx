@@ -1,265 +1,120 @@
-import React from 'react';
-import {
-  Github,
-  Linkedin,
-  Twitter,
-  Mail,
-  MapPin,
-} from 'lucide-react';
+import { Github, Linkedin, Twitter, Instagram, Mail, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Mascot } from './shared/Mascot';
+
+const columns = [
+  {
+    title: 'Events',
+    links: [
+      { label: 'Browse events', to: '/gallery' },
+      { label: 'Host a CTF', to: '/host-your-ctf' },
+      { label: 'Hosting prices', to: '/host-your-ctf#plans' },
+      { label: 'Hall of fame', to: '/hall-of-fame' },
+    ],
+  },
+  {
+    title: 'CyberHx',
+    links: [
+      { label: 'About', to: '/about' },
+      { label: 'Blog', to: '/blog' },
+      { label: 'Collaborations', to: '/collaborations' },
+      { label: 'Contact', to: '/contact' },
+    ],
+  },
+];
+
+const emails = ['contact@cyberhx.com', 'support@cyberhx.com', 'hr@cyberhx.com', 'ceo@cyberhx.com'];
+
+const socials = [
+  { label: 'Instagram', href: 'https://instagram.com/zerodayheist', Icon: Instagram },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/company/cyberhx', Icon: Linkedin },
+  { label: 'Twitter', href: 'https://twitter.com/cyberhx', Icon: Twitter },
+  { label: 'GitHub', href: 'https://github.com/Tekush1', Icon: Github },
+];
 
 export const Footer = () => {
-  const currentYear = new Date().getFullYear();
+  const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-dark-200 border-t border-gray-900 mt-auto">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+    <footer className="relative mt-auto border-t-2 border-line bg-dark-200 pt-14 sm:pt-16">
+      <Mascot
+        pose="jump"
+        alt=""
+        className="absolute -top-12 right-4 w-32 sm:right-10 sm:w-36 lg:right-[8%] lg:-top-14 lg:w-40"
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
-
-          {/* Brand */}
-          <div className="space-y-4">
-
-            <Link
-              to="/"
-              className="flex items-center group"
-              aria-label="CyberHx Home"
-            >
-              <img
-                src="/cyberhx-logo.png"
-                alt="CyberHx"
-                className="h-12 w-auto object-contain"
-              />
+      <div className="mx-auto max-w-7xl px-5 pb-10 sm:px-6 lg:px-8">
+        <p className="font-display max-w-xl pr-32 text-3xl text-white sm:pr-0 sm:text-5xl">See you on the scoreboard.</p>
+        <div className="mt-14 grid grid-cols-2 gap-x-6 gap-y-12 sm:mt-20 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
+          <div className="col-span-2 lg:col-span-1">
+            <Link to="/" aria-label="CyberHx home" className="inline-block">
+              <img src="/cyberhx-logo.png" alt="CyberHx" className="h-12 w-auto object-contain" />
             </Link>
-
-            <p className="text-gray-500 text-sm leading-relaxed">
-              Empowering India's next generation of cybersecurity
-              professionals through hands-on labs and community.
+            <p className="mt-5 max-w-xs leading-7 text-muted">
+              CTFs for India's security crowd, and hosted CTFs for colleges, clubs and companies.
             </p>
-
-            <div className="flex space-x-4 pt-1">
-
-              <a
-                href="https://github.com/Tekush1"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-600 hover:text-primary transition-colors"
-                aria-label="GitHub"
-              >
-                <Github className="w-4 h-4" />
-              </a>
-
-              <a
-                href="https://www.linkedin.com/company/cyberhx"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-600 hover:text-primary transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="w-4 h-4" />
-              </a>
-
-              <a
-                href="https://twitter.com/cyberhx"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-600 hover:text-primary transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="w-4 h-4" />
-              </a>
-
+            <div className="mt-6 flex gap-2">
+              {socials.map(({ label, href, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-line text-white/70 transition-colors hover:border-glow hover:text-white"
+                >
+                  <Icon size={18} />
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Platforms */}
-          <div>
-            <h4 className="text-white text-sm font-semibold mb-4">
-              Platforms
-            </h4>
+          {columns.map((col) => (
+            <div key={col.title}>
+              <h4 className="font-display text-lg text-white">{col.title}</h4>
+              <ul className="mt-4 space-y-3">
+                {col.links.map((l) => (
+                  <li key={l.label}>
+                    <Link to={l.to} className="text-muted transition-colors hover:text-lime">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
-            <ul className="space-y-2.5 text-sm">
-
-              <li>
-                <a
-                  href="https://pentestlab.cyberhx.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full" />
-                  Pentest Lab
-                </a>
+          <div className="col-span-2 lg:col-span-1">
+            <h4 className="font-display text-lg text-white">Write to us</h4>
+            <ul className="mt-4 space-y-3">
+              {emails.map((e) => (
+                <li key={e}>
+                  <a href={`mailto:${e}`} className="flex items-center gap-2 text-muted transition-colors hover:text-lime">
+                    <Mail size={15} className="shrink-0 text-glow" />
+                    {e}
+                  </a>
+                </li>
+              ))}
+              <li className="flex items-center gap-2 text-muted">
+                <MapPin size={15} className="shrink-0 text-glow" />
+                Bhopal, India
               </li>
-
-              <li>
-                <a
-                  href="https://ctf.cyberhx.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full" />
-                  CTF Platform
-                </a>
-              </li>
-
-              <li>
-                <Link
-                  to="/blog"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full" />
-                  Blog & News
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/about"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full" />
-                  About Us
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/contact"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full" />
-                  Contact
-                </Link>
-              </li>
-
             </ul>
           </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="text-white text-sm font-semibold mb-4">
-              Contact
-            </h4>
-
-            <ul className="space-y-3 text-sm">
-
-              <li>
-                <a
-                  href="mailto:contact@cyberhx.com"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-2"
-                >
-                  <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                  contact@cyberhx.com
-                </a>
-              </li>
-
-              <li>
-                <a
-                  href="mailto:support@cyberhx.com"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-2"
-                >
-                  <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                  support@cyberhx.com
-                </a>
-              </li>
-
-              <li>
-                <a
-                  href="mailto:hr@cyberhx.com"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-2"
-                >
-                  <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                  hr@cyberhx.com
-                </a>
-              </li>
-
-              <li className="flex items-center gap-2 text-gray-500">
-                <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                CyberHx, Bhopal, India
-              </li>
-
-            </ul>
-          </div>
-
-          {/* Leadership */}
-          <div>
-            <h4 className="text-white text-sm font-semibold mb-4">
-              Leadership
-            </h4>
-
-            <ul className="space-y-3 text-sm">
-
-              <li>
-                <a
-                  href="mailto:ceo@cyberhx.com"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-2"
-                >
-                  <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                  ceo@cyberhx.com
-                </a>
-              </li>
-
-              <li>
-                <a
-                  href="mailto:admin@cyberhx.com"
-                  className="text-gray-500 hover:text-primary transition-colors flex items-center gap-2"
-                >
-                  <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                  admin@cyberhx.com
-                </a>
-              </li>
-
-            </ul>
-          </div>
-
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-gray-900 flex flex-col sm:flex-row justify-between items-center text-xs text-gray-600 gap-3">
-
-          <p>
-            &copy; {currentYear} CyberHx. All rights reserved.
-          </p>
-
-          <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center sm:justify-end">
-
-            <Link
-              to="/privacy"
-              className="hover:text-primary transition-colors"
-            >
-              Privacy Policy
-            </Link>
-
-            <Link
-              to="/terms"
-              className="hover:text-primary transition-colors"
-            >
-              Terms of Service
-            </Link>
-
-            <Link
-              to="/hall-of-fame"
-              className="hover:text-primary transition-colors"
-            >
-              Hall of Fame
-            </Link>
-
-            <a
-              href="/.well-known/security.txt"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
-            >
-              security.txt
-            </a>
-
+        <div className="mt-14 flex flex-col gap-4 border-t-2 border-line pt-6 text-sm text-white/40 sm:flex-row sm:items-center sm:justify-between">
+          <p>&copy; {year} CyberHx</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Link to="/privacy" className="hover:text-white">Privacy</Link>
+            <Link to="/terms" className="hover:text-white">Terms</Link>
+            <Link to="/responsible-disclosure" className="hover:text-white">Report a bug</Link>
+            <a href="/.well-known/security.txt" className="hover:text-white">security.txt</a>
           </div>
-
         </div>
-
       </div>
     </footer>
   );
 };
+
+export default Footer;

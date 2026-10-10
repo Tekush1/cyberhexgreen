@@ -1,77 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import {
-  Menu,
-  X,
-  Home,
-  Terminal,
-  Code,
-  Users,
-  BookOpen,
-  Mail,
-  ChevronDown,
-  Layers,
-  Calendar,
-  ExternalLink
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Menu, X, ChevronDown, ExternalLink } from 'lucide-react';
+import { SiteIcon, type IconName } from './shared/SiteIcon';
+import { Mascot } from './shared/Mascot';
+
+const links = [
+  { name: 'Events', to: '/gallery' },
+  { name: 'Host a CTF', to: '/host-your-ctf' },
+  { name: 'Blog', to: '/blog' },
+  { name: 'About', to: '/about' },
+  { name: 'Contact', to: '/contact' },
+];
+
+const platforms: { name: string; href: string; icon: IconName; desc: string }[] = [
+  { name: 'Pentest Lab', href: 'https://pentestlab.cyberhx.com', icon: 'toolbox', desc: 'Hands-on hacking labs' },
+  { name: 'CTF Platform', href: 'https://ctf.cyberhx.com', icon: 'ctf-green', desc: 'Play live challenges' },
+];
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [platformsOpen, setPlatformsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-
   const location = useLocation();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const platforms = [
-    {
-      name: 'Pentest Lab',
-      href: 'https://pentestlab.cyberhx.com',
-      icon: <Terminal size={16} />,
-      desc: 'Hands-on penetration testing labs'
-    },
-    {
-      name: 'CTF Platform',
-      href: 'https://ctf.cyberhx.com',
-      icon: <Code size={16} />,
-      desc: 'Capture The Flag challenges'
-    }
-  ];
-
-  const staticNavItems = [
-    {
-      name: 'Home',
-      href: '/',
-      icon: <Home size={18} />
-    },
-    {
-      name: 'Blog & News',
-      href: '/blog',
-      icon: <BookOpen size={18} />
-    },
-    {
-      name: 'About Us',
-      href: '/about',
-      icon: <Users size={18} />
-    },
-    {
-      name: 'Contact',
-      href: '/contact',
-      icon: <Mail size={18} />
-    }
-  ];
+  const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    const onScroll = () => setIsScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
@@ -80,448 +37,161 @@ export const Navigation = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : 'unset';
-
+    document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
   }, [isOpen]);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
+    const onDown = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setPlatformsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         setPlatformsOpen(false);
+        setIsOpen(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
     };
   }, []);
 
-  const isActive = (href: string) => {
-    return location.pathname === href;
-  };
+  const linkCls = ({ isActive }: { isActive: boolean }) =>
+    `rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold transition-colors ${
+      isActive ? 'text-lime' : 'text-white/75 hover:text-white'
+    }`;
 
   return (
     <nav
-      ref={menuRef}
-      className={`fixed w-full z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-[#05080f]/95 backdrop-blur-md border-b border-white/5 shadow-lg shadow-black/20'
-          : 'bg-transparent'
+      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-200 ${
+        isScrolled || isOpen ? 'border-b-2 border-line bg-ink/95 backdrop-blur-md' : 'border-b-2 border-transparent'
       }`}
-      role="navigation"
       aria-label="Main navigation"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 sm:h-16">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:h-[72px] sm:px-6 lg:px-8">
+        <Link to="/" className="flex shrink-0 items-center" aria-label="CyberHx home">
+          <img
+            src="https://i.ibb.co/pBpxn1Sj/Cyberhx-Neon-Swoosh-Logo.png"
+            alt="CyberHx"
+            className="h-10 w-auto object-contain sm:h-11"
+          />
+        </Link>
 
-          {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center group flex-shrink-0"
-            aria-label="CyberHx Home"
-          >
-            <motion.img
-              src="https://i.ibb.co/pBpxn1Sj/Cyberhx-Neon-Swoosh-Logo.png"
-              alt="CyberHx"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="h-10 sm:h-11 w-auto object-contain"
-            />
-          </Link>
+        {/* Desktop */}
+        <div className="hidden items-center gap-1 lg:flex">
+          {links.map((l) => (
+            <NavLink key={l.to} to={l.to} className={linkCls}>
+              {l.name}
+            </NavLink>
+          ))}
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-1">
-
-            {/* Home */}
-            <Link
-              to="/"
-              className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${
-                isActive('/')
-                  ? 'text-[#05080f] bg-[#a3e635]'
-                  : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-              }`}
+          <div className="relative" ref={dropRef}>
+            <button
+              type="button"
+              onClick={() => setPlatformsOpen((v) => !v)}
+              aria-expanded={platformsOpen}
+              className="flex items-center gap-1 rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold text-white/75 transition-colors hover:text-white"
             >
-              <Home size={18} />
-              <span>Home</span>
-            </Link>
-
-            {/* Platforms Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setPlatformsOpen(!platformsOpen)}
-                className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${
-                  platformsOpen
-                    ? 'text-[#a3e635] bg-[#a3e635]/10'
-                    : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-                }`}
-              >
-                <Layers size={18} />
-                <span>Platforms</span>
-
-                <motion.div
-                  animate={{
-                    rotate: platformsOpen ? 180 : 0
-                  }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown size={14} />
-                </motion.div>
-              </button>
-
-              <AnimatePresence>
-                {platformsOpen && (
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: 8,
-                      scale: 0.97
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                      scale: 1
-                    }}
-                    exit={{
-                      opacity: 0,
-                      y: 8,
-                      scale: 0.97
-                    }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 mt-2 w-64 bg-[#0a0e1a] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden"
-                  >
-                    <div className="p-1.5">
-
-                      {platforms.map((p) => (
-                        <a
-                          key={p.name}
-                          href={p.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setPlatformsOpen(false)}
-                          className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[#a3e635]/8 group transition-all duration-150"
-                        >
-                          <span className="text-[#a3e635] mt-0.5 flex-shrink-0">
-                            {p.icon}
-                          </span>
-
-                          <div>
-                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-200 group-hover:text-[#a3e635] transition-colors">
-                              {p.name}
-
-                              <ExternalLink
-                                size={11}
-                                className="text-gray-600 group-hover:text-[#a3e635]/60"
-                              />
-                            </div>
-
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {p.desc}
-                            </div>
-                          </div>
-                        </a>
-                      ))}
-
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Events */}
-            <Link
-              to="/gallery"
-              className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${
-                isActive('/gallery')
-                  ? 'text-[#05080f] bg-[#a3e635]'
-                  : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-              }`}
-            >
-              <Calendar size={18} />
-              <span>Events</span>
-            </Link>
-
-            {/* Blog */}
-            <Link
-              to="/blog"
-              className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${
-                isActive('/blog')
-                  ? 'text-[#05080f] bg-[#a3e635]'
-                  : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-              }`}
-            >
-              <BookOpen size={18} />
-              <span>Blog</span>
-            </Link>
-
-            {/* About */}
-            <Link
-              to="/about"
-              className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${
-                isActive('/about')
-                  ? 'text-[#05080f] bg-[#a3e635]'
-                  : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-              }`}
-            >
-              <Users size={18} />
-              <span>About</span>
-            </Link>
-
-            {/* Contact */}
-            <Link
-              to="/contact"
-              className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all duration-200 ${
-                isActive('/contact')
-                  ? 'text-[#05080f] bg-[#a3e635]'
-                  : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-              }`}
-            >
-              <Mail size={18} />
-              <span>Contact</span>
-            </Link>
-
-          </div>
-
-          {/* Mobile toggle */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2.5 rounded-xl text-[#a3e635] hover:bg-[#a3e635]/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#a3e635]/30 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label={isOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={isOpen}
-          >
-            <AnimatePresence
-              mode="wait"
-              initial={false}
-            >
-              <motion.div
-                key={isOpen ? 'close' : 'open'}
-                initial={{
-                  rotate: -90,
-                  opacity: 0
-                }}
-                animate={{
-                  rotate: 0,
-                  opacity: 1
-                }}
-                exit={{
-                  rotate: 90,
-                  opacity: 0
-                }}
-                transition={{ duration: 0.15 }}
-              >
-                {isOpen ? (
-                  <X size={22} />
-                ) : (
-                  <Menu size={22} />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </button>
-
-        </div>
-      </div>
-
-      {/* Mobile Menu Drawer */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              height: 0
-            }}
-            animate={{
-              opacity: 1,
-              height: 'auto'
-            }}
-            exit={{
-              opacity: 0,
-              height: 0
-            }}
-            transition={{
-              duration: 0.25,
-              ease: 'easeInOut'
-            }}
-            className="md:hidden overflow-hidden border-t border-white/5 bg-[#05080f]/98 backdrop-blur-md"
-          >
-            <div className="px-4 py-3 space-y-1 pb-6">
-
-              {/* Home */}
-              <motion.div
-                initial={{
-                  x: -20,
-                  opacity: 0
-                }}
-                animate={{
-                  x: 0,
-                  opacity: 1
-                }}
-                transition={{ delay: 0.04 }}
-              >
-                <Link
-                  to="/"
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-all min-h-[52px] ${
-                    isActive('/')
-                      ? 'bg-[#a3e635] text-[#05080f]'
-                      : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-                  }`}
-                >
-                  <span
-                    className={`flex-shrink-0 ${
-                      isActive('/')
-                        ? 'text-[#05080f]'
-                        : 'text-[#a3e635]'
-                    }`}
-                  >
-                    <Home size={18} />
-                  </span>
-
-                  <span>Home</span>
-                </Link>
-              </motion.div>
-
-              {/* Platforms */}
-              <motion.div
-                initial={{
-                  x: -20,
-                  opacity: 0
-                }}
-                animate={{
-                  x: 0,
-                  opacity: 1
-                }}
-                transition={{ delay: 0.08 }}
-              >
-                <div className="px-4 pt-3 pb-1.5">
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <Layers size={11} />
-                    Platforms
-                  </span>
-                </div>
-
+              Platforms
+              <ChevronDown size={16} className={`transition-transform ${platformsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {platformsOpen && (
+              <div className="sticker absolute right-0 top-full mt-3 w-72 p-2">
                 {platforms.map((p) => (
                   <a
                     key={p.name}
                     href={p.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5 transition-all min-h-[52px]"
+                    className="flex items-center gap-3 rounded-2xl p-2.5 transition-colors hover:bg-white/[0.05]"
                   >
-                    <span className="text-[#a3e635] flex-shrink-0">
-                      {p.icon}
-                    </span>
-
-                    <span>{p.name}</span>
-
-                    <span className="ml-auto text-xs text-gray-600">
-                      ↗
+                    <SiteIcon name={p.icon} size={52} alt="" />
+                    <span className="flex-1">
+                      <span className="flex items-center gap-1.5 font-semibold text-white">
+                        {p.name} <ExternalLink size={13} className="text-white/40" />
+                      </span>
+                      <span className="text-sm text-muted">{p.desc}</span>
                     </span>
                   </a>
                 ))}
-              </motion.div>
-
-              {/* Events */}
-              <motion.div
-                initial={{
-                  x: -20,
-                  opacity: 0
-                }}
-                animate={{
-                  x: 0,
-                  opacity: 1
-                }}
-                transition={{ delay: 0.12 }}
-              >
-                <Link
-                  to="/gallery"
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-all min-h-[52px] ${
-                    isActive('/gallery')
-                      ? 'bg-[#a3e635] text-[#05080f]'
-                      : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-                  }`}
-                >
-                  <span
-                    className={`flex-shrink-0 ${
-                      isActive('/gallery')
-                        ? 'text-[#05080f]'
-                        : 'text-[#a3e635]'
-                    }`}
-                  >
-                    <Calendar size={18} />
-                  </span>
-
-                  <span>Events</span>
-                </Link>
-              </motion.div>
-
-              {/* Static Navigation Items */}
-              {staticNavItems
-                .filter((i) => i.href !== '/')
-                .map((item, index) => (
-                  <motion.div
-                    key={item.name}
-                    initial={{
-                      x: -20,
-                      opacity: 0
-                    }}
-                    animate={{
-                      x: 0,
-                      opacity: 1
-                    }}
-                    transition={{
-                      delay: 0.16 + index * 0.04
-                    }}
-                  >
-                    <Link
-                      to={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-all min-h-[52px] ${
-                        isActive(item.href)
-                          ? 'bg-[#a3e635] text-[#05080f]'
-                          : 'text-gray-300 hover:text-[#a3e635] hover:bg-[#a3e635]/5'
-                      }`}
-                    >
-                      <span
-                        className={`flex-shrink-0 ${
-                          isActive(item.href)
-                            ? 'text-[#05080f]'
-                            : 'text-[#a3e635]'
-                        }`}
-                      >
-                        {item.icon}
-                      </span>
-
-                      <span>{item.name}</span>
-                    </Link>
-                  </motion.div>
-                ))}
-
-              {/* Register Now */}
-              <div className="pt-3 border-t border-white/5 mt-1">
-                <Link
-                  to="/gallery"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center w-full py-3.5 px-6 bg-[#a3e635] text-[#05080f] rounded-xl font-bold text-base transition-transform active:scale-[0.98]"
-                >
-                  Register Now
-                </Link>
               </div>
+            )}
+          </div>
 
+          <Link to="/host-your-ctf#plans" className="btn btn-lime ml-3 !min-h-[44px] !px-5 !text-sm">
+            See pricing
+          </Link>
+        </div>
+
+        {/* Mobile toggle */}
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-line text-white lg:hidden"
+          aria-label={isOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isOpen}
+        >
+          {isOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </div>
+
+      {/* Mobile sheet */}
+      {isOpen && (
+        <div className="fixed inset-x-0 bottom-0 top-16 overflow-y-auto bg-ink lg:hidden">
+          <div className="flex min-h-full flex-col px-5 pb-10 pt-4">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `font-display border-b-2 border-line py-4 text-3xl ${isActive ? 'text-lime' : 'text-white'}`
+              }
+            >
+              Home
+            </NavLink>
+            {links.map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                className={({ isActive }) =>
+                  `font-display border-b-2 border-line py-4 text-3xl ${isActive ? 'text-lime' : 'text-white'}`
+                }
+              >
+                {l.name}
+              </NavLink>
+            ))}
+
+            <p className="mt-8 text-sm font-semibold text-muted">Our platforms</p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {platforms.map((p) => (
+                <a
+                  key={p.name}
+                  href={p.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="sticker flex flex-col items-start gap-2 p-4"
+                >
+                  <SiteIcon name={p.icon} size={56} alt="" />
+                  <span className="font-semibold text-white">{p.name}</span>
+                </a>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            <div className="relative mt-auto pt-24">
+              <Mascot pose="jump" alt="" className="absolute -top-2 right-2 w-32" />
+              <Link to="/host-your-ctf#plans" className="btn btn-lime w-full">
+                See hosting pricing
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
+
+export default Navigation;

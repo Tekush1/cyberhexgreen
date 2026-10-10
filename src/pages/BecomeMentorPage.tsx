@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Users, Star, BookOpen, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
+import { Users, Star, BookOpen } from '../components/shared/icons';
 import { BecomeMentorForm } from '../components/forms/BecomeMentorForm';
 
 export const BecomeMentorPage = () => {

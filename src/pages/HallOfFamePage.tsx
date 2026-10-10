@@ -1,6 +1,7 @@
 import React from 'react';
 import { SiteIcon } from '../components/shared/SiteIcon';
-import { Shield, Award, Star, ExternalLink, Mail } from 'lucide-react';
+import { ExternalLink, Mail } from 'lucide-react';
+import { Shield, Award, Star } from '../components/shared/icons';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { HallOfFame } from '../components/HallOfFame';

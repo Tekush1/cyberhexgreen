@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Book, Code, Brain, Loader, Check, ArrowRight } from 'lucide-react';
+import { Shield } from '../components/shared/icons';
 
 export const RegistrationPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);

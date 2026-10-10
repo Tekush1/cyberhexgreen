@@ -2,174 +2,74 @@ import React from "react";
 
 import {
   ArrowRight,
-  Award,
-  BarChart3,
-  Bug,
   Check,
-  Clock,
-  Cloud,
-  Code2,
-  FileSearch,
-  Flag,
-  Globe2,
-  ImageIcon,
-  KeyRound,
-  Layers,
-  LayoutDashboard,
-  Link2,
-  Megaphone,
-  MessageSquare,
-  Monitor,
-  Palette,
   Plus,
-  Radar,
-  Target,
-  Terminal,
-  Trophy,
-  Users,
+  Layers,
   Building2,
   CalendarDays,
   Wallet,
-  Zap,
+  Monitor,
+  MessageSquare,
+  Palette,
 } from "lucide-react";
+import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
+import { Mascot } from "../components/shared/Mascot";
+import { plans, pickAndChoose } from "../data/hosting";
 
 /* =============================================================
    STORE DATA — edit prices / copy here, the page updates itself.
    Prices are in USD with an approximate INR value.
 ============================================================= */
 
-type Plan = {
-  id: string;
-  name: string;
-  icon: React.ElementType;
-  usd: number;
-  inr: string;
-  blurb: string;
-  features: string[];
-  featured?: boolean;
-  accent: "white" | "lime" | "cyan";
-};
-
-const plans: Plan[] = [
-  {
-    id: "beginner",
-    name: "Beginner",
-    icon: Flag,
-    usd: 89,
-    inr: "₹8,850",
-    blurb: "Hosting plus the 25-challenge starter pack. A good first event for a college club or a class.",
-    features: ["Hosting for 8 hours", "25 challenges, easy to medium", "Web, Steg, Forensics, OSINT and Crypto"],
-    accent: "white",
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    icon: Trophy,
-    usd: 148,
-    inr: "₹14,800",
-    blurb: "Hosting plus the 40-challenge advanced pack, including our chained challenge experience.",
-    features: [
-      "Hosting for 8 hours",
-      "40 challenges, medium to hard",
-      "Pwn, Web and Boot2Root",
-      "CyberHX chained challenge: OSINT, Forensics and Crypto in one run",
-    ],
-    featured: true,
-    accent: "lime",
-  },
-  {
-    id: "max",
-    name: "Max",
-    icon: Award,
-    usd: 199,
-    inr: "₹19,900",
-    blurb: "Everything in Pro, with an event website designed in 3D to match your theme.",
-    features: [
-      "Hosting for 8 hours",
-      "40 challenges, medium to hard, with the chained challenge",
-      "A 3D event website made for your choice of look",
-      "Custom challenges built around what you ask for",
-    ],
-    accent: "cyan",
-  },
-];
-
-const pickAndChoose = [
-  {
-    id: "hosting-only",
-    icon: Cloud,
-    title: "Hosting only",
-    description: "You bring the challenges. We host the platform and scoreboard for an 8-hour event.",
-    usd: "$49",
-    inr: "₹4,900",
-  },
-  {
-    id: "starter-pack",
-    icon: Code2,
-    title: "Starter pack: 25 challenges",
-    description: "Easy to medium. Web, Steg, Forensics, OSINT and Crypto, custom built for your event.",
-    usd: "$40",
-    inr: "₹3,950, charges included",
-  },
-  {
-    id: "advanced-pack",
-    icon: Target,
-    title: "Advanced pack: 40 challenges",
-    description: "Medium to hard. Pwn, Web and Boot2Root, plus the CyberHX chained challenge that links OSINT, Forensics and Crypto.",
-    usd: "$99",
-    inr: "about ₹9,900",
-  },
-];
-
 // NOTE: add-on prices were not in the reference screenshots.
 // Fill `price` in when you decide them; until then the card shows "Quoted per event".
-const addOns = [
+const addOns: { id: string; icon: IconName; title: string; description: string; price: string }[] = [
   {
     id: "longer-events",
-    icon: Clock,
+    icon: 'gauge',
     title: "Longer events",
     description: "Stretch hosting past the standard 8 hours, up to 24 hours, for weekend-style or multi-round CTFs.",
     price: "",
   },
   {
     id: "extra-challenges",
-    icon: Plus,
+    icon: 'toolbox',
     title: "Extra challenges",
     description: "Need more depth? Add more custom-built challenges on top of any plan or pack.",
     price: "",
   },
   {
     id: "custom-website",
-    icon: Palette,
+    icon: 'code-light',
     title: "3D event website",
     description: "A themed 3D landing site for your event, included in Max and available as an add-on.",
     price: "",
   },
   {
     id: "promotion",
-    icon: Megaphone,
+    icon: 'satellite',
     title: "Promotion",
     description: "Put your event in front of the CyberHX community across our channels.",
     price: "",
   },
 ];
 
-const challengeCategories = [
-  { icon: Globe2, name: "Web" },
-  { icon: KeyRound, name: "Crypto" },
-  { icon: Radar, name: "OSINT" },
-  { icon: Bug, name: "Pwn" },
-  { icon: FileSearch, name: "Forensics" },
-  { icon: ImageIcon, name: "Steg" },
-  { icon: Terminal, name: "Boot2Root" },
-  { icon: Link2, name: "Chained" },
+const challengeCategories: { icon: IconName; name: string }[] = [
+  { icon: "code", name: "Web" },
+  { icon: "shield", name: "Crypto" },
+  { icon: "satellite", name: "OSINT" },
+  { icon: "bug", name: "Pwn" },
+  { icon: "eyes", name: "Forensics" },
+  { icon: "ghost", name: "Steg" },
+  { icon: "linux", name: "Boot2Root" },
+  { icon: "network", name: "Chained" },
 ];
 
-const dashboardFeatures = [
-  { icon: BarChart3, title: "Live scoreboard", description: "Rankings update in real time as teams solve." },
-  { icon: Users, title: "Teams & participants", description: "See registrations, teams and activity in one place." },
-  { icon: Layers, title: "Challenge control", description: "Release, hide or review challenges while the event runs." },
-  { icon: Award, title: "Certificates", description: "Issue participation and winner certificates after the event." },
+const dashboardFeatures: { icon: IconName; title: string; description: string }[] = [
+  { icon: "gauge", title: "Live scoreboard", description: "Rankings update in real time as teams solve." },
+  { icon: "hacker-team", title: "Teams & participants", description: "See registrations, teams and activity in one place." },
+  { icon: "toolbox", title: "Challenge control", description: "Release, hide or review challenges while the event runs." },
+  { icon: "podium", title: "Certificates", description: "Issue participation and winner certificates after the event." },
 ];
 
 const process = [
@@ -219,9 +119,9 @@ const emptyForm = {
 const inputCls =
   "w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40";
 const selectCls =
-  "w-full appearance-none rounded-xl border border-white/[0.09] bg-[#0b0b0b] px-4 py-3.5 text-sm text-white outline-none transition focus:border-lime-400/40";
+  "w-full appearance-none rounded-xl border border-white/[0.09] bg-ink px-4 py-3.5 text-sm text-white outline-none transition focus:border-lime-400/40";
 const labelCls =
-  "mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45";
+  "mb-2 flex items-center gap-2 text-sm font-semibold text-white/60";
 
 const subNav = [
   { href: "#plans", label: "Plans" },
@@ -287,11 +187,10 @@ export default function HostYourCTF() {
     }
   };
 
-  const eyebrow = "text-[11px] font-medium tracking-[0.2em] text-lime-400";
-  const h2 = "mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-5xl";
+    const h2 = "font-display mt-4 text-[2.1rem] sm:text-5xl";
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#050505] pt-14 text-white sm:pt-16">
+    <div className="min-h-screen overflow-x-clip bg-ink pt-16 text-white sm:pt-[72px]">
       {/* Background */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute left-1/2 top-[-300px] h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-lime-400/[0.055] blur-[150px]" />
@@ -306,7 +205,7 @@ export default function HostYourCTF() {
       </div>
 
       {/* Sticky store sub-nav */}
-      <div className="sticky top-14 z-40 border-b border-white/[0.07] bg-[#050505]/85 backdrop-blur sm:top-16">
+      <div className="sticky top-16 z-40 border-b border-white/[0.07] bg-ink/85 backdrop-blur sm:top-[72px]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3 lg:px-8">
           <span className="hidden text-sm font-semibold sm:block">CyberHX Store</span>
           <nav className="hide-scrollbar flex flex-1 items-center gap-1 overflow-x-auto sm:justify-center">
@@ -334,12 +233,12 @@ export default function HostYourCTF() {
         <div className="mx-auto max-w-7xl px-6 pb-20 pt-20 lg:px-8 lg:pb-28 lg:pt-28">
           <div className="grid items-center gap-16 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.025] px-4 py-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
-                <span className="text-[11px] font-medium tracking-[0.2em] text-white/55">HOST YOUR CTF</span>
+              <div className="mb-7 flex items-center gap-3">
+                <img src="/mascots/store.webp" alt="" className="h-14 w-auto" />
+                <span className="text-sm font-semibold text-white/70">The CyberHX store for CTF organizers</span>
               </div>
 
-              <h1 className="max-w-3xl text-5xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-6xl lg:text-[76px]">
+              <h1 className="font-display max-w-3xl text-[2.7rem] sm:text-6xl lg:text-[74px]">
                 Host your CTF.
                 <br />
                 <span className="text-white/35">Let players climb the board.</span>
@@ -373,8 +272,8 @@ export default function HostYourCTF() {
                   ["Live", "Scoreboard"],
                 ].map(([v, l]) => (
                   <div key={l}>
-                    <div className="text-2xl font-semibold tracking-tight">{v}</div>
-                    <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/30">{l}</div>
+                    <div className="font-display text-2xl">{v}</div>
+                    <div className="mt-1 text-xs text-white/40">{l}</div>
                   </div>
                 ))}
               </div>
@@ -382,8 +281,13 @@ export default function HostYourCTF() {
 
             {/* Scoreboard visual */}
             <div className="relative">
-              <div className="absolute -inset-10 rounded-full bg-lime-400/[0.04] blur-3xl" />
-              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#080808] shadow-2xl">
+              <Mascot
+                pose="point"
+                alt="CyberHx mascot pointing at you"
+                eager
+                className="mascot-pop relative z-10 -mb-14 ml-2 w-56 sm:w-64 lg:w-72"
+              />
+              <div className="sticker relative overflow-hidden">
                 <div className="flex items-center gap-2 border-b border-white/[0.08] px-5 py-4">
                   <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
                   <span className="h-2.5 w-2.5 rounded-full bg-white/10" />
@@ -399,7 +303,7 @@ export default function HostYourCTF() {
                         LIVE · 05:42:10 left
                       </div>
                     </div>
-                    <Zap size={18} className="text-lime-400" />
+                    <SiteIcon name="gauge" size={56} alt="" />
                   </div>
 
                   <div className="mt-4 space-y-2">
@@ -436,17 +340,15 @@ export default function HostYourCTF() {
       {/* CHALLENGES WE BUILD */}
       <section className="border-y border-white/[0.07]">
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">Challenges we build for your event</h2>
+          <h2 className="font-display text-2xl sm:text-3xl">Challenges we build for your event</h2>
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-            {challengeCategories.map(({ icon: Icon, name }) => (
+            {challengeCategories.map(({ icon, name }) => (
               <div
                 key={name}
-                className="group flex flex-col items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.015] px-3 py-6 transition hover:border-lime-400/30 hover:bg-lime-400/[0.03]"
+                className="flex flex-col items-center gap-3 px-2 py-4"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.04] text-white/50 transition group-hover:text-lime-400">
-                  <Icon size={20} strokeWidth={1.6} />
-                </div>
-                <span className="text-xs text-white/60">{name}</span>
+                <SiteIcon name={icon} size={84} alt="" />
+                <span className="text-sm font-semibold text-white/80">{name}</span>
               </div>
             ))}
           </div>
@@ -456,7 +358,6 @@ export default function HostYourCTF() {
       {/* PLANS */}
       <section id="plans" className="mx-auto max-w-7xl scroll-mt-32 px-6 py-24 lg:px-8">
         <div className="max-w-2xl">
-          <p className={eyebrow}>PLANS</p>
           <h2 className={h2}>
             Pick a plan.
             <br />
@@ -464,24 +365,28 @@ export default function HostYourCTF() {
           </h2>
         </div>
 
-        <div className="mt-14 grid gap-5 lg:grid-cols-2">
+        <div className="mt-14 grid gap-8 lg:mt-28 lg:grid-cols-2">
           {plans.map((plan, i) => {
             const s = accentStyles[plan.accent];
-            const Icon = plan.icon;
             const wide = i === 2; // Max spans the full row
             return (
               <div
                 key={plan.id}
-                className={`flex flex-col rounded-3xl border bg-[#0a0d14] p-8 ${s.ring} ${
+                className={`sticker relative flex flex-col p-8 ${plan.featured ? "sticker-lime mt-20 lg:mt-0" : plan.accent === "cyan" ? "sticker-glow" : ""} ${
                   wide ? "lg:col-span-2" : ""
                 }`}
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
-                  <Icon size={24} strokeWidth={1.5} className={s.price} />
-                </div>
-                <h3 className="mt-6 text-xl font-semibold">{plan.name}</h3>
+                {plan.featured && (
+                  <Mascot
+                    pose="thumbs"
+                    alt=""
+                    className="absolute -top-36 right-6 w-32 sm:-top-44 sm:w-40"
+                  />
+                )}
+                <SiteIcon name={plan.icon} size={88} alt="" className="-ml-1" />
+                <h3 className="font-display mt-5 text-2xl">{plan.name}</h3>
                 <div className="mt-3 flex items-baseline gap-3">
-                  <span className={`text-5xl font-semibold tracking-tight ${s.price}`}>${plan.usd}</span>
+                  <span className={`font-display text-6xl ${s.price}`}>${plan.usd}</span>
                   <span className="text-sm text-white/40">about {plan.inr}</span>
                 </div>
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-white/45">{plan.blurb}</p>
@@ -498,7 +403,7 @@ export default function HostYourCTF() {
                 <button
                   type="button"
                   onClick={() => choose(`${plan.name} plan ($${plan.usd})`)}
-                  className={`mt-8 w-full rounded-lg px-5 py-3.5 text-sm font-semibold transition ${s.btn}`}
+                  className={`btn mt-8 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}
                 >
                   Start with {plan.name}
                 </button>
@@ -512,7 +417,6 @@ export default function HostYourCTF() {
       <section id="pick-and-choose" className="scroll-mt-32 border-y border-white/[0.07] bg-white/[0.012]">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <div className="max-w-2xl">
-            <p className={eyebrow}>PICK AND CHOOSE</p>
             <h2 className={h2}>Or buy only the part you need</h2>
             <p className="mt-4 text-sm leading-6 text-white/40 sm:text-base">
               Already have challenges? Buy hosting alone. Want challenges but run your own platform? Buy a pack.
@@ -520,7 +424,7 @@ export default function HostYourCTF() {
           </div>
 
           <div className="mt-12 border-t border-white/[0.08]">
-            {pickAndChoose.map(({ id, icon: Icon, title, description, usd, inr }) => (
+            {pickAndChoose.map(({ id, icon, title, description, usd, inr }) => (
               <button
                 key={id}
                 type="button"
@@ -528,16 +432,14 @@ export default function HostYourCTF() {
                 className="group flex w-full flex-col gap-5 border-b border-white/[0.08] py-7 text-left transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between sm:px-2"
               >
                 <div className="flex items-start gap-5">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/[0.06]">
-                    <Icon size={22} strokeWidth={1.5} className="text-lime-400" />
-                  </div>
+                  <SiteIcon name={icon} size={72} alt="" />
                   <div>
                     <h3 className="text-lg font-semibold">{title}</h3>
                     <p className="mt-1 max-w-xl text-sm leading-6 text-white/45">{description}</p>
                   </div>
                 </div>
-                <div className="pl-[76px] sm:pl-0 sm:text-right">
-                  <div className="text-3xl font-semibold tracking-tight">{usd}</div>
+                <div className="pl-[92px] sm:pl-0 sm:text-right">
+                  <div className="font-display text-4xl text-sun">{usd}</div>
                   <div className="text-xs text-white/40">{inr}</div>
                 </div>
               </button>
@@ -549,12 +451,11 @@ export default function HostYourCTF() {
       {/* ADD-ONS */}
       <section id="add-ons" className="mx-auto max-w-7xl scroll-mt-32 px-6 py-24 lg:px-8">
         <div className="max-w-2xl">
-          <p className={eyebrow}>ADD-ONS</p>
           <h2 className={h2}>Need more time or more challenges?</h2>
         </div>
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2">
-          {addOns.map(({ id, icon: Icon, title, description, price }) => {
+          {addOns.map(({ id, icon, title, description, price }) => {
             const on = selectedAddOns.includes(title);
             return (
               <button
@@ -568,9 +469,7 @@ export default function HostYourCTF() {
                     : "border-white/[0.08] bg-white/[0.015] hover:border-white/20"
                 }`}
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">
-                  <Icon size={20} strokeWidth={1.5} className="text-lime-400" />
-                </div>
+                <SiteIcon name={icon} size={64} alt="" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-base font-semibold">{title}</h3>
@@ -597,10 +496,7 @@ export default function HostYourCTF() {
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <div className="grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.025]">
-                <LayoutDashboard size={21} strokeWidth={1.5} className="text-lime-400" />
-              </div>
-              <p className={eyebrow}>HOST DASHBOARD</p>
+              <SiteIcon name="windows" size={96} alt="" className="mb-4" />
               <h2 className={h2}>
                 Run the event
                 <br />
@@ -612,10 +508,10 @@ export default function HostYourCTF() {
             </div>
 
             <div className="grid gap-px overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.08] sm:grid-cols-2">
-              {dashboardFeatures.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="bg-[#060606] p-7 transition hover:bg-[#0a0a0a]">
-                  <Icon size={20} strokeWidth={1.5} className="text-lime-400" />
-                  <h3 className="mt-8 text-base font-medium">{title}</h3>
+              {dashboardFeatures.map(({ icon, title, description }) => (
+                <div key={title} className="bg-ink p-7 transition hover:bg-panel">
+                  <SiteIcon name={icon} size={72} alt="" />
+                  <h3 className="mt-5 text-base font-semibold">{title}</h3>
                   <p className="mt-2 text-sm leading-6 text-white/40">{description}</p>
                 </div>
               ))}
@@ -628,7 +524,6 @@ export default function HostYourCTF() {
       <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
         <div className="grid items-center gap-14 lg:grid-cols-2">
           <div>
-            <p className={eyebrow}>GLOBAL REACH</p>
             <h2 className={h2}>Your event deserves an audience.</h2>
           </div>
           <div>
@@ -637,8 +532,8 @@ export default function HostYourCTF() {
               your campus or community.
             </p>
             <div className="mt-8 border-l border-lime-400/30 pl-6">
-              <div className="text-5xl font-semibold tracking-[-0.05em] sm:text-6xl">1M+</div>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/30">
+              <div className="font-display text-6xl text-sun sm:text-7xl">1M+</div>
+              <p className="mt-2 text-sm text-white/45">
                 Unique visitors across CyberHX events
               </p>
             </div>
@@ -649,7 +544,6 @@ export default function HostYourCTF() {
       {/* PROCESS */}
       <section id="how-it-works" className="border-y border-white/[0.07]">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
-          <p className={eyebrow}>HOW IT WORKS</p>
           <h2 className={h2}>From idea to live event.</h2>
 
           <div className="mt-14 grid border-y border-white/[0.08] lg:grid-cols-4">
@@ -660,8 +554,8 @@ export default function HostYourCTF() {
                   index !== process.length - 1 ? "border-b border-white/[0.08] lg:border-b-0 lg:border-r" : ""
                 }`}
               >
-                <span className="font-mono text-xs text-lime-400">{step.number}</span>
-                <h3 className="mt-12 text-base font-medium">{step.title}</h3>
+                <span className="font-display text-3xl text-lime-400">{step.number}</span>
+                <h3 className="mt-6 text-lg font-semibold">{step.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-white/35">{step.description}</p>
               </div>
             ))}
@@ -671,16 +565,16 @@ export default function HostYourCTF() {
 
       {/* REQUEST FORM */}
       <section id="get-started" className="scroll-mt-28 px-6 py-24 lg:px-8">
-        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#090909]">
-          <div className="pointer-events-none absolute left-1/2 top-[-180px] h-[420px] w-[700px] -translate-x-1/2 rounded-full bg-lime-400/[0.055] blur-[130px]" />
+        <div className="sticker relative mx-auto mt-24 max-w-5xl">
+          <Mascot
+            pose="cheer"
+            alt=""
+            className="absolute -top-40 right-4 w-36 sm:-top-48 sm:right-10 sm:w-48"
+          />
 
           <div className="relative px-6 py-14 sm:px-10 lg:px-14 lg:py-20">
             <div className="max-w-2xl">
-              <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-lime-400/15 bg-lime-400/[0.04] px-4 py-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
-                <span className="text-[10px] font-medium tracking-[0.2em] text-lime-400">HOST WITH CYBERHX</span>
-              </div>
-              <h2 className="text-4xl font-semibold leading-[1.02] tracking-[-0.05em] sm:text-6xl">
+              <h2 className="font-display text-4xl sm:text-6xl">
                 Tell us about
                 <br />
                 <span className="text-white/30">your event.</span>

@@ -1,81 +1,29 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Terminal, Cpu, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Mascot } from '../shared/Mascot';
 
-export const CallToActionSection = () => {
-  return (
-    <div className="py-24 bg-dark-300 border-t border-gray-900">
-      <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-3xl md:text-4xl font-bold text-white mb-4"
-        >
-          Ready to start hacking?
-        </motion.h2>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
-          className="text-gray-500 text-base mb-10 max-w-lg mx-auto"
-        >
-          Join CyberHx — practice in our pentest labs, compete in CTFs, and level up with a community that takes security seriously.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center"
-        >
-          <a
-            href="https://pentestlab.cyberhx.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-primary text-black font-semibold px-8 py-3.5 rounded-lg hover:bg-primary/90 transition-all duration-200 text-sm"
-          >
-            <Terminal size={18} />
-            Open Pentest Lab
-            <ArrowRight size={16} />
-          </a>
-
-          <Link
-            to="/gallery"
-            className="inline-flex items-center justify-center gap-2 border border-gray-700 text-gray-300 font-medium px-8 py-3.5 rounded-lg hover:border-primary/50 hover:text-white transition-all duration-200 text-sm"
-          >
-            <Calendar size={18} />
-            Browse Events
+export const CallToActionSection = () => (
+  <section className="bg-dark-200 px-5 pb-24 pt-36 sm:px-6 sm:pt-44 lg:px-8">
+    <div className="sticker sticker-lime relative mx-auto max-w-6xl overflow-visible px-6 py-12 sm:px-12 sm:py-16">
+      <Mascot
+        pose="trophy"
+        alt="CyberHx mascot lifting a trophy"
+        className="absolute -top-36 right-2 w-44 sm:-top-44 sm:right-8 sm:w-60 lg:-top-40 lg:right-12 lg:w-72"
+      />
+      <div className="max-w-2xl">
+        <h2 className="font-display text-4xl text-white sm:text-6xl">Your fest needs a CTF.</h2>
+        <p className="mt-5 text-lg leading-8 text-muted">
+          The team behind Null Origin and ZeroDay Heist will build the challenges, host the board and hand you the
+          winners list. Tell us your date and we'll take it from there.
+        </p>
+        <div className="mt-9 flex flex-col gap-4 sm:flex-row">
+          <Link to="/host-your-ctf#get-started" className="btn btn-lime">
+            Plan my CTF
           </Link>
-
-          <a
-            href="https://ctf.cyberhx.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 border border-gray-700 text-gray-300 font-medium px-8 py-3.5 rounded-lg hover:border-primary/50 hover:text-white transition-all duration-200 text-sm"
-          >
-            <Cpu size={18} />
-            CTF Platform
-          </a>
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
-          className="mt-8 text-gray-600 text-xs"
-        >
-          Questions? Reach us at{' '}
-          <a href="mailto:support@cyberhx.com" className="text-primary hover:underline">
-            support@cyberhx.com
-          </a>
-        </motion.p>
+          <Link to="/contact" className="btn btn-ghost">
+            Talk to us first
+          </Link>
+        </div>
       </div>
     </div>
-  );
-};
+  </section>
+);
