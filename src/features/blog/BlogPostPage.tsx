@@ -232,7 +232,7 @@ export default function BlogPostPage() {
         {post.cover_image && (
           <div className="mx-auto mt-10 max-w-5xl px-5 sm:px-6">
             <div className="aspect-[2/1] overflow-hidden rounded-3xl border-2 border-line">
-              <Cover src={post.cover_image} alt="" />
+              <Cover src={post.cover_image} alt="" seed={post.slug} label={post.category} />
             </div>
           </div>
         )}

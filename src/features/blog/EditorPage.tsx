@@ -7,6 +7,7 @@ import {
   Eye,
   Heading2,
   Heading3,
+  Columns2,
   ImagePlus,
   Italic,
   Link2,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Mascot } from '../../components/shared/Mascot';
 import { Markdown } from './Markdown';
+import { TEMPLATES, type Template } from './templates';
 import {
   checkAdmin,
   deletePost,
@@ -100,7 +102,8 @@ export default function EditorPage() {
   const [loadingPost, setLoadingPost] = useState(!!id);
   const [postStatus, setPostStatus] = useState<PostStatus>('draft');
   const [categories, setCategories] = useState<string[]>(FALLBACK_CATEGORIES);
-  const [view, setView] = useState<'write' | 'preview'>('write');
+  const [view, setView] = useState<'write' | 'preview' | 'split'>('write');
+  const [chooseTemplate, setChooseTemplate] = useState(() => !id && !readLocal(key));
   const [uploads, setUploads] = useState(0);
   const [busy, setBusy] = useState<'' | 'publish' | 'draft' | 'submit' | 'delete'>('');
   const [errors, setErrors] = useState<string[]>([]);
@@ -429,6 +432,13 @@ export default function EditorPage() {
     setEmail('');
     setRestored(false);
     setSlugTouched(false);
+    setChooseTemplate(!id);
+  };
+
+  const applyTemplate = (t: Template) => {
+    setDraft((d) => ({ ...d, title: d.title || t.title, content: t.body, category: t.category, tags: t.tags.length ? t.tags : d.tags }));
+    setChooseTemplate(false);
+    requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Title"]')?.focus());
   };
 
   useEffect(() => {
@@ -489,17 +499,18 @@ export default function EditorPage() {
           <div className="flex rounded-lg border-2 border-line p-0.5" role="tablist" aria-label="Editor view">
             {(
               [
-                ['write', PenLine, 'Write'],
-                ['preview', Eye, 'Preview'],
+                ['write', PenLine, 'Write', false],
+                ['split', Columns2, 'Split', true],
+                ['preview', Eye, 'Preview', false],
               ] as const
-            ).map(([v, Icon, label]) => (
+            ).map(([v, Icon, label, desktopOnly]) => (
               <button
                 key={v}
                 type="button"
                 role="tab"
                 aria-selected={view === v}
                 onClick={() => setView(v)}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${view === v ? 'bg-white text-ink' : 'text-muted hover:text-white'}`}
+                className={`${desktopOnly ? 'hidden lg:flex' : 'flex'} items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${view === v ? 'bg-white text-ink' : 'text-muted hover:text-white'}`}
               >
                 <Icon size={14} /> <span className="hidden sm:inline">{label}</span>
               </button>
@@ -554,6 +565,29 @@ export default function EditorPage() {
 
       {loadingPost ? (
         <p className="mt-24 text-center text-muted">Loading the post…</p>
+      ) : chooseTemplate ? (
+        <div className="mx-auto max-w-5xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="font-display text-4xl sm:text-5xl">What are you writing?</h1>
+            <p className="mt-3 text-muted">Pick a starting point. You can change anything after.</p>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className="group flex items-start gap-4 rounded-2xl border-2 border-line bg-panel p-5 text-left transition hover:-translate-y-0.5 hover:border-glow"
+              >
+                <span className="text-3xl" aria-hidden="true">{t.emoji}</span>
+                <span className="flex-1">
+                  <span className="block font-display text-xl text-white group-hover:text-glow">{t.name}</span>
+                  <span className="mt-1 block text-sm leading-6 text-muted">{t.blurb}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       ) : (
         <div className="mx-auto grid max-w-7xl gap-10 px-4 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
           {/* ───────── Main column ───────── */}
@@ -622,21 +656,30 @@ export default function EditorPage() {
                   <input ref={bodyInput} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => { insertFiles(filesFrom(e.target.files)); e.target.value = ''; }} />
                 </div>
 
-                {/* Body */}
-                <textarea
-                  ref={bodyRef}
-                  value={draft.content}
-                  onChange={(e) => set('content', e.target.value)}
-                  onKeyDown={onBodyKey}
-                  onPaste={onBodyPaste}
-                  onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setBodyDrag(true); } }}
-                  onDragLeave={() => setBodyDrag(false)}
-                  onDrop={onBodyDrop}
-                  placeholder={'Start writing…\n\nUse the toolbar or markdown (## for a heading, **bold**, - for a list).\nPaste or drop images anywhere and they upload on their own.'}
-                  aria-label="Post body"
-                  className={`mt-4 w-full resize-none rounded-xl border-2 bg-transparent p-4 font-mono text-[15px] leading-7 text-white/90 outline-none transition placeholder:text-white/25 ${bodyDrag ? 'border-glow bg-glow/[0.04]' : 'border-transparent focus:border-line'}`}
-                />
-                <p className="mt-2 text-xs text-muted">{words} words · {minutes} min read</p>
+                {/* Body (with live preview beside it in split view) */}
+                <div className={`mt-4 ${view === 'split' ? 'grid gap-4 lg:grid-cols-2' : ''}`}>
+                  <textarea
+                    ref={bodyRef}
+                    value={draft.content}
+                    onChange={(e) => set('content', e.target.value)}
+                    onKeyDown={onBodyKey}
+                    onPaste={onBodyPaste}
+                    onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setBodyDrag(true); } }}
+                    onDragLeave={() => setBodyDrag(false)}
+                    onDrop={onBodyDrop}
+                    placeholder={'Start writing…\n\nUse the toolbar or markdown (## for a heading, **bold**, - for a list).\nPaste or drop images anywhere and they upload on their own.'}
+                    aria-label="Post body"
+                    className={`w-full resize-none rounded-xl border-2 bg-transparent p-4 font-mono text-[15px] leading-7 text-white/90 outline-none transition placeholder:text-white/25 ${bodyDrag ? 'border-glow bg-glow/[0.04]' : 'border-line focus:border-glow'}`}
+                  />
+                  {view === 'split' && (
+                    <div className="hidden rounded-xl border-2 border-line bg-panel/30 p-4 lg:block" aria-hidden="true">
+                      {draft.content.trim() ? <Markdown>{draft.content}</Markdown> : <p className="text-sm text-muted">Your post will appear here as you type.</p>}
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  {words} words · {minutes} min read{words >= 300 ? ' · nice, this is a solid read 🔥' : words >= 80 ? ' · good start, keep going' : ''}
+                </p>
               </>
             )}
           </div>

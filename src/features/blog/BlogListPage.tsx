@@ -189,7 +189,7 @@ export default function BlogListPage() {
               className="group mb-10 grid overflow-hidden rounded-3xl border-2 border-line bg-panel transition hover:border-white/20 lg:grid-cols-[1.2fr_1fr]"
             >
               <div className="aspect-[16/9] overflow-hidden border-b-2 border-line lg:aspect-[16/11] lg:border-b-0 lg:border-r-2">
-                <Cover src={featured.cover_image} alt="" className="transition-transform duration-700 group-hover:scale-105" />
+                <Cover src={featured.cover_image} alt="" seed={featured.slug} label={featured.category} className="transition-transform duration-700 group-hover:scale-105" />
               </div>
               <div className="flex flex-col justify-center p-7 sm:p-10">
                 <p className="text-sm font-semibold text-glow">
