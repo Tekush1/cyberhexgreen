@@ -5,7 +5,6 @@ import { Footer } from './components/Footer';
 import { LoadingSpinner } from './components/shared/LoadingSpinner';
 import { HiringPopup } from './components/HiringPopup';
 import { HiringBanner } from './components/HiringBanner';
-import { FloatingHiringButton } from './components/FloatingHiringButton';
 import HostYourCTF from "./pages/HostYourCTF";
 
 // Lazy load pages
@@ -97,8 +96,7 @@ function App() {
         <Footer />
         
         {/* Hiring Components */}
-        <HiringBanner onOpenPopup={openHiringPopup} />
-        <FloatingHiringButton onClick={openHiringPopup} />
+        <HiringBanner />
         <HiringPopup isOpen={isHiringPopupOpen} onClose={closeHiringPopup} />
       </div>
     </Router>

@@ -101,6 +101,10 @@ button, a, [role="button"] { touch-action: manipulation; }
 /* Prevent horizontal overflow on mobile */
 html, body { max-width: 100vw; overflow-x: hidden; }
 
+/* Site-wide scale: every rem-based size (type and spacing) shrinks together. */
+html { font-size: 87.5%; }
+@media (max-width: 640px) { html { font-size: 93.75%; } }
+
 /* Smooth momentum scrolling on iOS */
 .overflow-y-auto { -webkit-overflow-scrolling: touch; }
 

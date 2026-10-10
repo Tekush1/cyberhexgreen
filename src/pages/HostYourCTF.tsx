@@ -1,58 +1,42 @@
 import React from "react";
-
-import {
-  ArrowRight,
-  Check,
-  Plus,
-  Layers,
-  Building2,
-  CalendarDays,
-  Wallet,
-  Monitor,
-  MessageSquare,
-  Palette,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Plus, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
 import { Mascot } from "../components/shared/Mascot";
 import { plans, pickAndChoose } from "../data/hosting";
 
 /* =============================================================
-   STORE DATA — edit prices / copy here, the page updates itself.
-   Prices are in USD with an approximate INR value.
+   CTF HOSTING STORE — add to cart, then check out.
+   Prices live in src/data/hosting.ts. Add-on prices are quoted
+   per event until you set a number in `addOns` below.
+   Checkout places the order via Web3Forms; payment is collected
+   afterwards with a link sent to the buyer.
 ============================================================= */
 
-// NOTE: add-on prices were not in the reference screenshots.
-// Fill `price` in when you decide them; until then the card shows "Quoted per event".
-const addOns: { id: string; icon: IconName; title: string; description: string; price: string }[] = [
-  {
-    id: "longer-events",
-    icon: 'gauge',
-    title: "Longer events",
-    description: "Stretch hosting past the standard 8 hours, up to 24 hours, for weekend-style or multi-round CTFs.",
-    price: "",
-  },
-  {
-    id: "extra-challenges",
-    icon: 'toolbox',
-    title: "Extra challenges",
-    description: "Need more depth? Add more custom-built challenges on top of any plan or pack.",
-    price: "",
-  },
-  {
-    id: "custom-website",
-    icon: 'code-light',
-    title: "3D event website",
-    description: "A themed 3D landing site for your event, included in Max and available as an add-on.",
-    price: "",
-  },
-  {
-    id: "promotion",
-    icon: 'satellite',
-    title: "Promotion",
-    description: "Put your event in front of the CyberHX community across our channels.",
-    price: "",
-  },
+type Kind = "plan" | "pack" | "addon";
+type Product = {
+  id: string;
+  kind: Kind;
+  title: string;
+  icon: IconName;
+  usd: number | null; // null = quoted per event
+  note?: string;
+};
+
+const addOns: { id: string; icon: IconName; title: string; description: string; usd: number | null }[] = [
+  { id: "longer-events", icon: "gauge", title: "Longer event", description: "Stretch hosting past 8 hours, up to 24 hours, for multi-round CTFs.", usd: null },
+  { id: "extra-challenges", icon: "toolbox", title: "Extra challenges", description: "More custom-built challenges on top of any plan or pack.", usd: null },
+  { id: "custom-website", icon: "code-light", title: "3D event website", description: "A themed 3D landing site for your event. Already included in Max.", usd: null },
+  { id: "promotion", icon: "satellite", title: "Promotion", description: "Put your event in front of the CyberHx community.", usd: null },
 ];
+
+const parseUsd = (s: string) => Number(s.replace(/[^0-9.]/g, "")) || 0;
+
+const catalog: Product[] = [
+  ...plans.map((p) => ({ id: p.id, kind: "plan" as const, title: `${p.name} plan`, icon: p.icon, usd: p.usd, note: `about ${p.inr}` })),
+  ...pickAndChoose.map((p) => ({ id: p.id, kind: "pack" as const, title: p.title, icon: p.icon, usd: parseUsd(p.usd), note: p.inr })),
+  ...addOns.map((a) => ({ id: a.id, kind: "addon" as const, title: a.title, icon: a.icon, usd: a.usd })),
+];
+const byId = (id: string) => catalog.find((p) => p.id === id);
 
 const challengeCategories: { icon: IconName; name: string }[] = [
   { icon: "code", name: "Web" },
@@ -67,717 +51,567 @@ const challengeCategories: { icon: IconName; name: string }[] = [
 
 const dashboardFeatures: { icon: IconName; title: string; description: string }[] = [
   { icon: "gauge", title: "Live scoreboard", description: "Rankings update in real time as teams solve." },
-  { icon: "hacker-team", title: "Teams & participants", description: "See registrations, teams and activity in one place." },
-  { icon: "toolbox", title: "Challenge control", description: "Release, hide or review challenges while the event runs." },
-  { icon: "podium", title: "Certificates", description: "Issue participation and winner certificates after the event." },
+  { icon: "hacker-team", title: "Teams and players", description: "Registrations, teams and activity in one place." },
+  { icon: "toolbox", title: "Challenge control", description: "Release, hide or review challenges during the event." },
+  { icon: "podium", title: "Certificates", description: "Issue participation and winner certificates afterwards." },
 ];
 
-const process = [
-  { number: "01", title: "Pick a plan", description: "Choose a plan, or buy only hosting or a challenge pack." },
-  { number: "02", title: "Tell us your theme", description: "Share your event name, dates and the look you want." },
-  { number: "03", title: "We build it", description: "We prepare the challenges, platform and scoreboard for your event." },
-  { number: "04", title: "Run your CTF", description: "Go live, watch the board in the host dashboard, and hand out certificates." },
+const steps = [
+  { n: "01", title: "Add to cart", text: "A plan, a pack, or both, plus any add-ons." },
+  { n: "02", title: "Check out", text: "Tell us about your event and place the order." },
+  { n: "03", title: "Pay and confirm", text: "We email a payment link and lock your date." },
+  { n: "04", title: "Go live", text: "We build it, you run it from the host dashboard." },
 ];
-
-const accentStyles = {
-  white: {
-    ring: "border-white/10",
-    price: "text-white",
-    btn: "border border-white/15 text-white hover:bg-white/[0.06]",
-    check: "text-lime-400",
-  },
-  lime: {
-    ring: "border-lime-400/60 shadow-[0_0_60px_-20px_rgba(163,230,53,0.35)]",
-    price: "text-lime-400",
-    btn: "bg-lime-400 text-black hover:bg-lime-300",
-    check: "text-lime-400",
-  },
-  cyan: {
-    ring: "border-cyan-400/50",
-    price: "text-cyan-400",
-    btn: "bg-cyan-400 text-black hover:bg-cyan-300",
-    check: "text-cyan-400",
-  },
-} as const;
 
 const emptyForm = {
   name: "",
   email: "",
   phone: "",
   organization: "",
-  organizationUrl: "",
   eventName: "",
-  eventTheme: "",
-  eventFormat: "",
   eventDate: "",
+  eventFormat: "",
   participants: "",
-  budget: "",
-  requirements: "",
+  eventTheme: "",
   message: "",
 };
 
-const inputCls =
-  "w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40";
-const selectCls =
-  "w-full appearance-none rounded-xl border border-white/[0.09] bg-ink px-4 py-3.5 text-sm text-white outline-none transition focus:border-lime-400/40";
-const labelCls =
-  "mb-2 flex items-center gap-2 text-sm font-semibold text-white/60";
+const CART_KEY = "cyberhx-ctf-cart";
+const loadCart = (): string[] => {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    const ids = raw ? (JSON.parse(raw) as string[]) : [];
+    return ids.filter((id) => byId(id));
+  } catch {
+    return [];
+  }
+};
 
-const subNav = [
-  { href: "#plans", label: "Plans" },
-  { href: "#pick-and-choose", label: "Pick and choose" },
-  { href: "#add-ons", label: "Add-ons" },
-  { href: "#host-dashboard", label: "Host dashboard" },
-];
+const money = (n: number) => `$${n.toLocaleString("en-US")}`;
+
+const inputCls =
+  "w-full rounded-lg border border-line bg-ink px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-lime";
+const labelCls = "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted";
 
 export default function HostYourCTF() {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [submitStatus, setSubmitStatus] = React.useState<"idle" | "success" | "error">("idle");
-  const [hostForm, setHostForm] = React.useState(emptyForm);
-  const [selection, setSelection] = React.useState("");
-  const [selectedAddOns, setSelectedAddOns] = React.useState<string[]>([]);
+  const [cart, setCart] = React.useState<string[]>(loadCart);
+  const [drawer, setDrawer] = React.useState<"closed" | "cart" | "checkout" | "done">("closed");
+  const [form, setForm] = React.useState(emptyForm);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  const [orderId, setOrderId] = React.useState("");
 
-  const handleHostChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setHostForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const choose = (label: string) => {
-    setSelection(label);
-    document.getElementById("get-started")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const toggleAddOn = (title: string) =>
-    setSelectedAddOns((prev) => (prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]));
-
-  const handleHostSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus("idle");
-
+  React.useEffect(() => {
     try {
-      const response = await fetch("https://api.web3forms.com/submit", {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch {
+      /* storage unavailable; cart still works for this visit */
+    }
+  }, [cart]);
+
+  React.useEffect(() => {
+    document.body.style.overflow = drawer === "closed" ? "" : "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [drawer]);
+
+  const items = cart.map(byId).filter(Boolean) as Product[];
+  const total = items.reduce((s, p) => s + (p.usd ?? 0), 0);
+  const hasQuoted = items.some((p) => p.usd === null);
+  const inCart = (id: string) => cart.includes(id);
+
+  // Only one plan at a time: adding a plan swaps out any other plan.
+  const add = (id: string, open = true) => {
+    const p = byId(id);
+    if (!p) return;
+    setCart((prev) => {
+      const base = p.kind === "plan" ? prev.filter((x) => byId(x)?.kind !== "plan") : prev;
+      return base.includes(id) ? base : [...base, id];
+    });
+    if (open) setDrawer("cart");
+  };
+  const remove = (id: string) => setCart((prev) => prev.filter((x) => x !== id));
+  const toggle = (id: string) => (inCart(id) ? remove(id) : add(id, false));
+
+  const onField = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  const placeOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(false);
+    const id = `CHX-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    const lines = items.map((p) => `${p.title}: ${p.usd === null ? "quote" : money(p.usd)}`).join("\n");
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           access_key: "ae826816-f65e-4d6f-8491-3362df582e13",
-          subject: `CTF Hosting Request — ${hostForm.eventName} (${selection || "no plan selected"})`,
-          selected_plan: selection || "Not selected",
-          add_ons: selectedAddOns.join(", ") || "None",
-          ...hostForm,
+          subject: `New CTF order ${id}: ${form.eventName} (${money(total)}${hasQuoted ? " + quote" : ""})`,
+          order_id: id,
+          order_items: lines,
+          order_total_usd: money(total) + (hasQuoted ? " plus quoted add-ons" : ""),
+          ...form,
         }),
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSubmitStatus("success");
-        setHostForm(emptyForm);
-        setSelection("");
-        setSelectedAddOns([]);
-      } else {
-        setSubmitStatus("error");
-      }
+      const data = await res.json();
+      if (!data.success) throw new Error("failed");
+      setOrderId(id);
+      setCart([]);
+      setForm(emptyForm);
+      setDrawer("done");
     } catch {
-      setSubmitStatus("error");
+      setError(true);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-    const h2 = "font-display mt-4 text-[2.1rem] sm:text-5xl";
+  const h2 = "font-display text-3xl sm:text-4xl";
 
   return (
     <div className="min-h-screen overflow-x-clip bg-ink pt-16 text-white sm:pt-[72px]">
-      {/* Background */}
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-300px] h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-lime-400/[0.055] blur-[150px]" />
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "72px 72px",
-          }}
-        />
-      </div>
-
-      {/* Sticky store sub-nav */}
-      <div className="sticky top-16 z-40 border-b border-white/[0.07] bg-ink/85 backdrop-blur sm:top-[72px]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3 lg:px-8">
-          <span className="hidden text-sm font-semibold sm:block">CyberHX Store</span>
-          <nav className="hide-scrollbar flex flex-1 items-center gap-1 overflow-x-auto sm:justify-center">
-            {subNav.map((l) => (
+      {/* Store bar */}
+      <div className="sticky top-16 z-40 border-b border-line bg-ink/90 backdrop-blur sm:top-[72px]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5 sm:px-6 lg:px-8">
+          <nav className="hide-scrollbar flex items-center gap-1 overflow-x-auto">
+            {[
+              ["#plans", "Plans"],
+              ["#packs", "Packs"],
+              ["#add-ons", "Add-ons"],
+              ["#how-it-works", "How it works"],
+            ].map(([href, label]) => (
               <a
-                key={l.href}
-                href={l.href}
-                className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs text-white/50 transition hover:bg-white/[0.05] hover:text-white sm:text-sm"
+                key={href}
+                href={href}
+                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition hover:bg-white/[0.05] hover:text-white"
               >
-                {l.label}
+                {label}
               </a>
             ))}
           </nav>
-          <a
-            href="#get-started"
-            className="shrink-0 rounded-full bg-lime-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-lime-300 sm:text-sm"
+          <button
+            type="button"
+            onClick={() => setDrawer("cart")}
+            className="flex shrink-0 items-center gap-2.5 rounded-lg border-2 border-lime px-3.5 py-1.5 text-sm font-semibold text-lime transition hover:bg-lime hover:text-ink"
           >
-            Host an event
-          </a>
+            Cart
+            <span className="rounded bg-lime px-1.5 py-0.5 font-mono text-xs leading-none text-ink">{cart.length}</span>
+            {total > 0 && <span className="hidden font-mono sm:inline">{money(total)}</span>}
+          </button>
         </div>
       </div>
 
-      {/* HERO */}
-      <section className="relative">
-        <div className="mx-auto max-w-7xl px-6 pb-20 pt-20 lg:px-8 lg:pb-28 lg:pt-28">
-          <div className="grid items-center gap-16 lg:grid-cols-[1.1fr_0.9fr]">
-            <div>
-              <div className="mb-7 flex items-center gap-3">
-                <img src="/mascots/store.webp" alt="" className="h-14 w-auto" />
-                <span className="text-sm font-semibold text-white/70">The CyberHX store for CTF organizers</span>
-              </div>
-
-              <h1 className="font-display max-w-3xl text-[2.7rem] sm:text-6xl lg:text-[74px]">
-                Host your CTF.
-                <br />
-                <span className="text-white/35">Let players climb the board.</span>
-              </h1>
-
-              <p className="mt-8 max-w-xl text-base leading-7 text-white/50 sm:text-lg">
-                Pick a plan and tell us your theme. We build the challenges and host the event, with a live
-                scoreboard for 8 hours, or up to 24.
-              </p>
-
-              <div className="mt-10 flex flex-wrap gap-4">
-                <a
-                  href="#plans"
-                  className="group inline-flex items-center gap-3 rounded-full bg-lime-400 px-7 py-4 text-sm font-semibold text-black transition hover:bg-lime-300"
-                >
-                  See plans
-                  <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
-                </a>
-                <a
-                  href="#add-ons"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 px-7 py-4 text-sm font-medium text-white/65 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
-                >
-                  Extra hours and challenges
-                </a>
-              </div>
-
-              <div className="mt-14 flex flex-wrap gap-x-10 gap-y-6 border-t border-white/[0.08] pt-7">
-                {[
-                  ["1M+", "Unique visitors"],
-                  ["8–24h", "Hosted event"],
-                  ["Live", "Scoreboard"],
-                ].map(([v, l]) => (
-                  <div key={l}>
-                    <div className="font-display text-2xl">{v}</div>
-                    <div className="mt-1 text-xs text-white/40">{l}</div>
-                  </div>
-                ))}
-              </div>
+      {/* Hero */}
+      <section className="mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-6 lg:px-8 lg:pb-20 lg:pt-20">
+        <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr]">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-lime">CyberHx CTF store</p>
+            <h1 className="font-display mt-4 text-[2.4rem] leading-[1.02] sm:text-5xl lg:text-6xl">
+              Host your CTF.
+              <span className="block text-white/35">Check out in minutes.</span>
+            </h1>
+            <p className="mt-6 max-w-lg leading-7 text-muted">
+              Add a plan to your cart, tell us about your event, and place the order. We build the challenges, host
+              the platform and run a live scoreboard for 8 hours, or up to 24.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="#plans" className="btn btn-lime">
+                Shop plans
+              </a>
+              <a href="#packs" className="btn btn-ghost">
+                Just hosting or challenges
+              </a>
             </div>
-
-            {/* Scoreboard visual */}
-            <div className="relative">
-              <Mascot
-                pose="point"
-                alt="CyberHx mascot pointing at you"
-                eager
-                className="mascot-pop relative z-10 -mb-14 ml-2 w-56 sm:w-64 lg:w-72"
-              />
-              <div className="sticker relative overflow-hidden">
-                <div className="flex items-center gap-2 border-b border-white/[0.08] px-5 py-4">
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/10" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/10" />
-                  <span className="ml-auto font-mono text-[10px] text-white/25">cyberhx / scoreboard</span>
+            <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t border-line pt-6">
+              {[
+                ["1M+", "Unique visitors"],
+                ["8 to 24h", "Hosted event"],
+                ["From $" + Math.min(...plans.map((p) => p.usd)), "Full plans"],
+              ].map(([v, l]) => (
+                <div key={l}>
+                  <dt className="font-display text-xl">{v}</dt>
+                  <dd className="mt-0.5 text-xs text-muted">{l}</dd>
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between rounded-xl border border-lime-400/10 bg-lime-400/[0.04] p-4">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.15em] text-white/30">Event status</div>
-                      <div className="mt-1 flex items-center gap-2 text-sm font-medium">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-400" />
-                        LIVE · 05:42:10 left
-                      </div>
-                    </div>
-                    <SiteIcon name="gauge" size={56} alt="" />
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    {[
-                      ["1", "root_or_nothing", "4,820"],
-                      ["2", "nullbyte", "4,310"],
-                      ["3", "xor_squad", "3,975"],
-                      ["4", "stack_smashers", "3,120"],
-                      ["5", "0xdeadc0de", "2,860"],
-                    ].map(([rank, team, pts], i) => (
-                      <div
-                        key={team}
-                        className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
-                          i === 0 ? "border-lime-400/20 bg-lime-400/[0.04]" : "border-white/[0.05] bg-white/[0.015]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`font-mono text-xs ${i === 0 ? "text-lime-400" : "text-white/30"}`}>
-                            #{rank}
-                          </span>
-                          <span className="text-xs text-white/70">{team}</span>
-                        </div>
-                        <span className="font-mono text-xs text-white/50">{pts}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+              ))}
+            </dl>
+          </div>
+          <div className="relative mx-auto w-full max-w-sm">
+            <div className="absolute inset-x-6 bottom-0 top-16 rounded-3xl border-2 border-line bg-panel" />
+            <Mascot pose="point" alt="CyberHx mascot pointing at the plans" eager className="mascot-pop relative mx-auto w-64 lg:w-72" />
           </div>
         </div>
       </section>
 
-      {/* CHALLENGES WE BUILD */}
-      <section className="border-y border-white/[0.07]">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-          <h2 className="font-display text-2xl sm:text-3xl">Challenges we build for your event</h2>
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-            {challengeCategories.map(({ icon, name }) => (
-              <div
-                key={name}
-                className="flex flex-col items-center gap-3 px-2 py-4"
-              >
-                <SiteIcon name={icon} size={84} alt="" />
-                <span className="text-sm font-semibold text-white/80">{name}</span>
-              </div>
-            ))}
-          </div>
+      {/* Categories */}
+      <section className="border-y border-line bg-panel/40">
+        <div className="mx-auto grid max-w-7xl grid-cols-4 gap-y-6 px-5 py-8 sm:px-6 lg:grid-cols-8 lg:px-8">
+          {challengeCategories.map(({ icon, name }) => (
+            <div key={name} className="flex flex-col items-center gap-2">
+              <SiteIcon name={icon} size={56} alt="" />
+              <span className="text-xs font-semibold text-white/75">{name}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* PLANS */}
-      <section id="plans" className="mx-auto max-w-7xl scroll-mt-32 px-6 py-24 lg:px-8">
-        <div className="max-w-2xl">
-          <h2 className={h2}>
-            Pick a plan.
-            <br />
-            <span className="text-white/30">We handle the rest.</span>
-          </h2>
+      {/* Plans */}
+      <section id="plans" className="mx-auto max-w-7xl scroll-mt-32 px-5 py-20 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className={h2}>Full plans</h2>
+            <p className="mt-2 text-sm text-muted">Hosting and challenges together. Pick one plan per event.</p>
+          </div>
         </div>
 
-        <div className="mt-14 grid gap-8 lg:mt-28 lg:grid-cols-2">
-          {plans.map((plan, i) => {
-            const s = accentStyles[plan.accent];
-            const wide = i === 2; // Max spans the full row
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          {plans.map((plan) => {
+            const on = inCart(plan.id);
             return (
-              <div
+              <article
                 key={plan.id}
-                className={`sticker relative flex flex-col p-8 ${plan.featured ? "sticker-lime mt-20 lg:mt-0" : plan.accent === "cyan" ? "sticker-glow" : ""} ${
-                  wide ? "lg:col-span-2" : ""
-                }`}
+                className={`sticker relative flex flex-col p-6 ${plan.featured ? "sticker-lime" : ""}`}
               >
                 {plan.featured && (
-                  <Mascot
-                    pose="thumbs"
-                    alt=""
-                    className="absolute -top-36 right-6 w-32 sm:-top-44 sm:w-40"
-                  />
+                  <span className="absolute -top-3 left-6 rounded-md bg-lime px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-ink">
+                    Most picked
+                  </span>
                 )}
-                <SiteIcon name={plan.icon} size={88} alt="" className="-ml-1" />
-                <h3 className="font-display mt-5 text-2xl">{plan.name}</h3>
-                <div className="mt-3 flex items-baseline gap-3">
-                  <span className={`font-display text-6xl ${s.price}`}>${plan.usd}</span>
-                  <span className="text-sm text-white/40">about {plan.inr}</span>
+                <div className="flex items-start justify-between">
+                  <SiteIcon name={plan.icon} size={64} alt="" />
+                  <div className="text-right">
+                    <div className={`font-display text-4xl ${plan.featured ? "text-lime" : "text-white"}`}>${plan.usd}</div>
+                    <div className="text-xs text-muted">about {plan.inr}</div>
+                  </div>
                 </div>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-white/45">{plan.blurb}</p>
-
-                <ul className="mt-6 space-y-3">
+                <h3 className="font-display mt-4 text-xl">{plan.name}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">{plan.blurb}</p>
+                <ul className="mt-5 flex-1 space-y-2.5 border-t border-line pt-5">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-white/80">
-                      <Check size={16} className={`mt-0.5 shrink-0 ${s.check}`} />
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-white/85">
+                      <Check size={15} className="mt-0.5 shrink-0 text-lime" />
                       {f}
                     </li>
                   ))}
                 </ul>
-
                 <button
                   type="button"
-                  onClick={() => choose(`${plan.name} plan ($${plan.usd})`)}
-                  className={`btn mt-8 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}
+                  onClick={() => (on ? setDrawer("cart") : add(plan.id))}
+                  className={`btn mt-6 w-full ${on ? "btn-ghost" : plan.featured ? "btn-lime" : "btn-ghost"}`}
                 >
-                  Start with {plan.name}
+                  {on ? (
+                    <>
+                      <Check size={16} /> In cart
+                    </>
+                  ) : (
+                    "Add to cart"
+                  )}
                 </button>
-              </div>
+              </article>
             );
           })}
         </div>
       </section>
 
-      {/* PICK AND CHOOSE */}
-      <section id="pick-and-choose" className="scroll-mt-32 border-y border-white/[0.07] bg-white/[0.012]">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
-          <div className="max-w-2xl">
-            <h2 className={h2}>Or buy only the part you need</h2>
-            <p className="mt-4 text-sm leading-6 text-white/40 sm:text-base">
-              Already have challenges? Buy hosting alone. Want challenges but run your own platform? Buy a pack.
-            </p>
-          </div>
-
-          <div className="mt-12 border-t border-white/[0.08]">
-            {pickAndChoose.map(({ id, icon, title, description, usd, inr }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => choose(`${title} (${usd})`)}
-                className="group flex w-full flex-col gap-5 border-b border-white/[0.08] py-7 text-left transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between sm:px-2"
-              >
-                <div className="flex items-start gap-5">
-                  <SiteIcon name={icon} size={72} alt="" />
-                  <div>
-                    <h3 className="text-lg font-semibold">{title}</h3>
-                    <p className="mt-1 max-w-xl text-sm leading-6 text-white/45">{description}</p>
-                  </div>
-                </div>
-                <div className="pl-[92px] sm:pl-0 sm:text-right">
-                  <div className="font-display text-4xl text-sun">{usd}</div>
-                  <div className="text-xs text-white/40">{inr}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ADD-ONS */}
-      <section id="add-ons" className="mx-auto max-w-7xl scroll-mt-32 px-6 py-24 lg:px-8">
-        <div className="max-w-2xl">
-          <h2 className={h2}>Need more time or more challenges?</h2>
-        </div>
-
-        <div className="mt-12 grid gap-5 sm:grid-cols-2">
-          {addOns.map(({ id, icon, title, description, price }) => {
-            const on = selectedAddOns.includes(title);
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => toggleAddOn(title)}
-                aria-pressed={on}
-                className={`flex items-start gap-5 rounded-2xl border p-6 text-left transition ${
-                  on
-                    ? "border-lime-400/50 bg-lime-400/[0.05]"
-                    : "border-white/[0.08] bg-white/[0.015] hover:border-white/20"
-                }`}
-              >
-                <SiteIcon name={icon} size={64} alt="" />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-base font-semibold">{title}</h3>
-                    <span
-                      className={`flex h-6 w-6 items-center justify-center rounded-full border ${
-                        on ? "border-lime-400 bg-lime-400 text-black" : "border-white/20 text-transparent"
+      {/* Packs */}
+      <section id="packs" className="scroll-mt-32 border-y border-line bg-panel/40">
+        <div className="mx-auto max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
+          <h2 className={h2}>Buy only the part you need</h2>
+          <p className="mt-2 text-sm text-muted">Have your own challenges? Buy hosting. Have a platform? Buy a pack.</p>
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {pickAndChoose.map((p) => {
+              const on = inCart(p.id);
+              return (
+                <article key={p.id} className="sticker flex flex-col p-6">
+                  <SiteIcon name={p.icon} size={56} alt="" />
+                  <h3 className="mt-4 font-semibold">{p.title}</h3>
+                  <p className="mt-1.5 flex-1 text-sm leading-6 text-muted">{p.description}</p>
+                  <div className="mt-5 flex items-end justify-between gap-3 border-t border-line pt-4">
+                    <div>
+                      <div className="font-display text-3xl text-sun">{p.usd}</div>
+                      <div className="text-xs text-muted">{p.inr}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggle(p.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-sm font-semibold transition ${
+                        on ? "border-lime bg-lime text-ink" : "border-line text-white hover:border-lime"
                       }`}
                     >
-                      <Check size={13} />
-                    </span>
+                      {on ? <Check size={15} /> : <Plus size={15} />}
+                      {on ? "Added" : "Add"}
+                    </button>
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-white/45">{description}</p>
-                  <p className="mt-3 text-xs text-white/35">{price || "Quoted per event"}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Add-ons */}
+      <section id="add-ons" className="mx-auto max-w-7xl scroll-mt-32 px-5 py-20 sm:px-6 lg:px-8">
+        <h2 className={h2}>Add-ons</h2>
+        <p className="mt-2 text-sm text-muted">Quoted per event. Add them and we'll price them with your order.</p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          {addOns.map((a) => {
+            const on = inCart(a.id);
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => toggle(a.id)}
+                aria-pressed={on}
+                className={`flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition ${
+                  on ? "border-lime bg-lime/[0.06]" : "border-line hover:border-white/30"
+                }`}
+              >
+                <SiteIcon name={a.icon} size={52} alt="" />
+                <div className="flex-1">
+                  <h3 className="font-semibold">{a.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted">{a.description}</p>
                 </div>
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 ${
+                    on ? "border-lime bg-lime text-ink" : "border-line text-white/50"
+                  }`}
+                >
+                  {on ? <Check size={14} /> : <Plus size={14} />}
+                </span>
               </button>
             );
           })}
         </div>
-        <p className="mt-5 text-xs text-white/30">Tap an add-on to include it in your request below.</p>
       </section>
 
-      {/* HOST DASHBOARD */}
-      <section id="host-dashboard" className="scroll-mt-32 border-y border-white/[0.07]">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
-          <div className="grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
-            <div>
-              <SiteIcon name="windows" size={96} alt="" className="mb-4" />
-              <h2 className={h2}>
-                Run the event
-                <br />
-                <span className="text-white/30">from one screen.</span>
-              </h2>
-              <p className="mt-5 max-w-md text-sm leading-7 text-white/45 sm:text-base">
-                Every host gets a dashboard to watch the board, manage teams and wrap up with certificates.
-              </p>
-            </div>
-
-            <div className="grid gap-px overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.08] sm:grid-cols-2">
-              {dashboardFeatures.map(({ icon, title, description }) => (
-                <div key={title} className="bg-ink p-7 transition hover:bg-panel">
-                  <SiteIcon name={icon} size={72} alt="" />
-                  <h3 className="mt-5 text-base font-semibold">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/40">{description}</p>
+      {/* Dashboard */}
+      <section className="border-y border-line bg-panel/40">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:px-8">
+          <div>
+            <SiteIcon name="windows" size={72} alt="" />
+            <h2 className={`${h2} mt-4`}>Every order comes with a host dashboard.</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">Watch the board, manage teams and send certificates from one screen.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {dashboardFeatures.map((f) => (
+              <div key={f.title} className="flex gap-4 rounded-2xl border-2 border-line bg-ink p-5">
+                <SiteIcon name={f.icon} size={44} alt="" />
+                <div>
+                  <h3 className="font-semibold">{f.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted">{f.description}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* REACH */}
-      <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
-        <div className="grid items-center gap-14 lg:grid-cols-2">
-          <div>
-            <h2 className={h2}>Your event deserves an audience.</h2>
-          </div>
-          <div>
-            <p className="text-base leading-8 text-white/45">
-              CyberHX events attract a global cybersecurity audience, so your competition can reach well beyond
-              your campus or community.
-            </p>
-            <div className="mt-8 border-l border-lime-400/30 pl-6">
-              <div className="font-display text-6xl text-sun sm:text-7xl">1M+</div>
-              <p className="mt-2 text-sm text-white/45">
-                Unique visitors across CyberHX events
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* PROCESS */}
-      <section id="how-it-works" className="border-y border-white/[0.07]">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
-          <h2 className={h2}>From idea to live event.</h2>
-
-          <div className="mt-14 grid border-y border-white/[0.08] lg:grid-cols-4">
-            {process.map((step, index) => (
-              <div
-                key={step.number}
-                className={`p-7 lg:p-8 ${
-                  index !== process.length - 1 ? "border-b border-white/[0.08] lg:border-b-0 lg:border-r" : ""
-                }`}
-              >
-                <span className="font-display text-3xl text-lime-400">{step.number}</span>
-                <h3 className="mt-6 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-white/35">{step.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* REQUEST FORM */}
-      <section id="get-started" className="scroll-mt-28 px-6 py-24 lg:px-8">
-        <div className="sticker relative mx-auto mt-24 max-w-5xl">
-          <Mascot
-            pose="cheer"
-            alt=""
-            className="absolute -top-40 right-4 w-36 sm:-top-48 sm:right-10 sm:w-48"
-          />
+      {/* How it works */}
+      <section id="how-it-works" className="mx-auto max-w-7xl scroll-mt-32 px-5 py-20 sm:px-6 lg:px-8">
+        <h2 className={h2}>How buying works</h2>
+        <ol className="mt-10 grid gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((s) => (
+            <li key={s.n} className="bg-ink p-6">
+              <span className="font-mono text-sm text-lime">{s.n}</span>
+              <h3 className="mt-3 font-semibold">{s.title}</h3>
+              <p className="mt-1.5 text-sm leading-6 text-muted">{s.text}</p>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-6 text-sm text-muted">
+          Need something custom?{" "}
+          <a href="/contact" className="font-semibold text-lime underline-offset-4 hover:underline">
+            Talk to us first
+          </a>
+          .
+        </p>
+      </section>
 
-          <div className="relative px-6 py-14 sm:px-10 lg:px-14 lg:py-20">
-            <div className="max-w-2xl">
-              <h2 className="font-display text-4xl sm:text-6xl">
-                Tell us about
-                <br />
-                <span className="text-white/30">your event.</span>
-              </h2>
-              <p className="mt-6 max-w-xl text-sm leading-7 text-white/40 sm:text-base">
-                Share a few details about your organization and competition. Our team will review the requirements
-                and get back to you.
-              </p>
-            </div>
+      {/* Mobile cart bar */}
+      {cart.length > 0 && drawer === "closed" && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-ink/95 p-3 backdrop-blur sm:hidden">
+          <button type="button" onClick={() => setDrawer("cart")} className="btn btn-lime w-full justify-between">
+            <span>
+              View cart ({cart.length})
+            </span>
+            <span className="font-mono">{money(total)}{hasQuoted ? " +" : ""}</span>
+          </button>
+        </div>
+      )}
 
-            <form onSubmit={handleHostSubmit} className="mt-12">
-              {/* Selection summary */}
-              <div className="mb-8 rounded-2xl border border-white/[0.09] bg-white/[0.02] p-5">
-                <label className={labelCls}>
-                  <Layers size={13} />
-                  Your selection
-                </label>
-                <select
-                  value={selection}
-                  onChange={(e) => setSelection(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">Not sure yet, help me choose</option>
-                  <optgroup label="Plans">
-                    {plans.map((p) => (
-                      <option key={p.id} value={`${p.name} plan ($${p.usd})`}>
-                        {p.name} plan, ${p.usd}
-                      </option>
+      {/* Drawer */}
+      {drawer !== "closed" && (
+        <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="Your cart">
+          <div className="absolute inset-0 bg-black/70" onClick={() => !submitting && setDrawer("closed")} />
+          <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l-2 border-line bg-ink">
+            <header className="flex items-center justify-between border-b border-line px-5 py-4">
+              <div className="flex items-center gap-2">
+                {drawer === "checkout" && (
+                  <button type="button" onClick={() => setDrawer("cart")} className="rounded p-1 text-muted hover:text-white" aria-label="Back to cart">
+                    <ArrowLeft size={18} />
+                  </button>
+                )}
+                <h2 className="font-display text-lg">
+                  {drawer === "cart" ? "Your cart" : drawer === "checkout" ? "Checkout" : "Order placed"}
+                </h2>
+              </div>
+              <button type="button" onClick={() => setDrawer("closed")} className="rounded p-1 text-muted hover:text-white" aria-label="Close">
+                <X size={20} />
+              </button>
+            </header>
+
+            {drawer === "cart" && (
+              <>
+                <div className="flex-1 overflow-y-auto px-5 py-4">
+                  {items.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center text-center">
+                      <Mascot pose="confused" alt="" className="w-36" />
+                      <p className="mt-4 font-semibold">Your cart is empty</p>
+                      <p className="mt-1 text-sm text-muted">Start with a plan. Most colleges pick Pro.</p>
+                      <a href="#plans" onClick={() => setDrawer("closed")} className="btn btn-lime mt-5">
+                        Shop plans
+                      </a>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-line">
+                      {items.map((p) => (
+                        <li key={p.id} className="flex items-center gap-3 py-4">
+                          <SiteIcon name={p.icon} size={44} alt="" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">{p.title}</p>
+                            <p className="text-xs text-muted">
+                              {p.kind === "plan" ? "Plan" : p.kind === "pack" ? "Pack" : "Add-on"}
+                            </p>
+                          </div>
+                          <span className="font-mono text-sm">{p.usd === null ? "Quote" : money(p.usd)}</span>
+                          <button type="button" onClick={() => remove(p.id)} className="rounded p-1 text-muted hover:text-white" aria-label={`Remove ${p.title}`}>
+                            <X size={16} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {items.length > 0 && !items.some((p) => p.kind === "addon") && (
+                    <a href="#add-ons" onClick={() => setDrawer("closed")} className="mt-2 block rounded-lg border-2 border-dashed border-line p-3 text-center text-sm text-muted hover:border-lime hover:text-white">
+                      Need more hours or challenges? Browse add-ons
+                    </a>
+                  )}
+                </div>
+                {items.length > 0 && (
+                  <footer className="border-t border-line px-5 py-5">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-muted">Subtotal</span>
+                      <span className="font-display text-2xl">{money(total)}</span>
+                    </div>
+                    {hasQuoted && <p className="mt-1 text-xs text-muted">Add-ons are quoted and added to your invoice.</p>}
+                    <button type="button" onClick={() => setDrawer("checkout")} className="btn btn-lime mt-4 w-full">
+                      Checkout <ArrowRight size={16} />
+                    </button>
+                  </footer>
+                )}
+              </>
+            )}
+
+            {drawer === "checkout" && (
+              <form onSubmit={placeOrder} className="flex flex-1 flex-col overflow-hidden">
+                <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+                  <div className="rounded-xl border-2 border-line p-4">
+                    {items.map((p) => (
+                      <div key={p.id} className="flex justify-between py-1 text-sm">
+                        <span className="text-white/85">{p.title}</span>
+                        <span className="font-mono text-muted">{p.usd === null ? "Quote" : money(p.usd)}</span>
+                      </div>
                     ))}
-                  </optgroup>
-                  <optgroup label="Pick and choose">
-                    {pickAndChoose.map((p) => (
-                      <option key={p.id} value={`${p.title} (${p.usd})`}>
-                        {p.title}, {p.usd}
-                      </option>
-                    ))}
-                  </optgroup>
-                  {selection &&
-                    ![...plans.map((p) => `${p.name} plan ($${p.usd})`), ...pickAndChoose.map((p) => `${p.title} (${p.usd})`)].includes(
-                      selection
-                    ) && <option value={selection}>{selection}</option>}
-                </select>
+                    <div className="mt-2 flex justify-between border-t border-line pt-2 font-semibold">
+                      <span>Total</span>
+                      <span className="font-mono text-lime">{money(total)}{hasQuoted ? " +" : ""}</span>
+                    </div>
+                  </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {addOns.map((a) => {
-                    const on = selectedAddOns.includes(a.title);
-                    return (
-                      <button
-                        key={a.id}
-                        type="button"
-                        onClick={() => toggleAddOn(a.title)}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
-                          on
-                            ? "border-lime-400/50 bg-lime-400/10 text-lime-300"
-                            : "border-white/10 text-white/45 hover:border-white/25"
-                        }`}
-                      >
-                        {on ? <Check size={12} /> : <Plus size={12} />}
-                        {a.title}
-                      </button>
-                    );
-                  })}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className={labelCls}>Your name *</label>
+                      <input name="name" required value={form.name} onChange={onField} className={inputCls} />
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelCls}>Email *</label>
+                      <input type="email" name="email" required value={form.email} onChange={onField} placeholder="you@college.edu" className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Phone *</label>
+                      <input type="tel" name="phone" required value={form.phone} onChange={onField} placeholder="+91" className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Organization *</label>
+                      <input name="organization" required value={form.organization} onChange={onField} className={inputCls} />
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelCls}>Event name *</label>
+                      <input name="eventName" required value={form.eventName} onChange={onField} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Event date</label>
+                      <input type="date" name="eventDate" value={form.eventDate} onChange={onField} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Format *</label>
+                      <select name="eventFormat" required value={form.eventFormat} onChange={onField} className={inputCls}>
+                        <option value="">Select</option>
+                        <option>Online</option>
+                        <option>Offline</option>
+                        <option>Hybrid</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelCls}>Expected players</label>
+                      <select name="participants" value={form.participants} onChange={onField} className={inputCls}>
+                        <option value="">Select</option>
+                        <option>Under 100</option>
+                        <option>100 to 500</option>
+                        <option>500 to 1,000</option>
+                        <option>1,000+</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelCls}>Theme or look</label>
+                      <input name="eventTheme" value={form.eventTheme} onChange={onField} placeholder="Space heist, cyberpunk, retro terminal" className={inputCls} />
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelCls}>Notes</label>
+                      <textarea name="message" rows={3} value={form.message} onChange={onField} className={`${inputCls} resize-none`} />
+                    </div>
+                  </div>
                 </div>
-              </div>
+                <footer className="border-t border-line px-5 py-5">
+                  {error && <p className="mb-3 text-sm text-red-300">Could not place the order. Try again or email us.</p>}
+                  <button type="submit" disabled={submitting} className="btn btn-lime w-full disabled:opacity-60">
+                    {submitting ? "Placing order..." : `Place order · ${money(total)}${hasQuoted ? " +" : ""}`}
+                  </button>
+                  <p className="mt-2.5 text-center text-xs text-muted">
+                    You won't be charged now. We confirm your date and email a secure payment link.
+                  </p>
+                </footer>
+              </form>
+            )}
 
-              <div className="grid gap-x-5 gap-y-6 md:grid-cols-2">
-                <div>
-                  <label className={labelCls}>Your name *</label>
-                  <input name="name" value={hostForm.name} onChange={handleHostChange} required placeholder="Full name" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Work email *</label>
-                  <input type="email" name="email" value={hostForm.email} onChange={handleHostChange} required placeholder="you@organization.com" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Phone number</label>
-                  <input type="tel" name="phone" value={hostForm.phone} onChange={handleHostChange} placeholder="+91 98765 43210" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Organization *</label>
-                  <input name="organization" value={hostForm.organization} onChange={handleHostChange} required placeholder="College, company or community" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    <Building2 size={13} />
-                    Organization website *
-                  </label>
-                  <input type="url" name="organizationUrl" value={hostForm.organizationUrl} onChange={handleHostChange} required placeholder="https://example.com" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Event name *</label>
-                  <input name="eventName" value={hostForm.eventName} onChange={handleHostChange} required placeholder="e.g. Cyber Security CTF 2027" className={inputCls} />
-                </div>
-                <div className="md:col-span-2">
-                  <label className={labelCls}>
-                    <Palette size={13} />
-                    Event theme / look you want
-                  </label>
-                  <input name="eventTheme" value={hostForm.eventTheme} onChange={handleHostChange} placeholder="e.g. space heist, cyberpunk city, retro hacker terminal" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    <Monitor size={13} />
-                    Event format *
-                  </label>
-                  <select name="eventFormat" value={hostForm.eventFormat} onChange={handleHostChange} required className={selectCls}>
-                    <option value="">Select format</option>
-                    <option value="online">Online</option>
-                    <option value="offline">Offline</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    <CalendarDays size={13} />
-                    Tentative event date
-                  </label>
-                  <input type="date" name="eventDate" value={hostForm.eventDate} onChange={handleHostChange} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Expected participants</label>
-                  <select name="participants" value={hostForm.participants} onChange={handleHostChange} className={selectCls}>
-                    <option value="">Select expected scale</option>
-                    <option value="under-100">Under 100</option>
-                    <option value="100-500">100 – 500</option>
-                    <option value="500-1000">500 – 1,000</option>
-                    <option value="1000-5000">1,000 – 5,000</option>
-                    <option value="5000-plus">5,000+</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    <Wallet size={13} />
-                    Organization budget
-                  </label>
-                  <select name="budget" value={hostForm.budget} onChange={handleHostChange} className={selectCls}>
-                    <option value="">Select budget range</option>
-                    <option value="under-25k">Under ₹25,000</option>
-                    <option value="25k-50k">₹25,000 – ₹50,000</option>
-                    <option value="50k-1l">₹50,000 – ₹1,00,000</option>
-                    <option value="1l-2.5l">₹1,00,000 – ₹2,50,000</option>
-                    <option value="2.5l-plus">₹2,50,000+</option>
-                    <option value="not-decided">Not decided yet</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <label className={labelCls}>
-                  <MessageSquare size={13} />
-                  What do you need from CyberHX? *
-                </label>
-                <textarea
-                  name="requirements"
-                  value={hostForm.requirements}
-                  onChange={handleHostChange}
-                  required
-                  rows={5}
-                  placeholder="Challenge categories, event length, custom challenges, website look, certificates, promotion, technical support, etc."
-                  className={`${inputCls} resize-none leading-6`}
-                />
-              </div>
-
-              <div className="mt-6">
-                <label className={labelCls}>Anything else we should know?</label>
-                <textarea
-                  name="message"
-                  value={hostForm.message}
-                  onChange={handleHostChange}
-                  rows={4}
-                  placeholder="Timeline, special requirements, sponsorship details, or any other context."
-                  className={`${inputCls} resize-none leading-6`}
-                />
-              </div>
-
-              {submitStatus === "success" && (
-                <div className="mt-6 rounded-xl border border-lime-400/20 bg-lime-400/[0.05] px-4 py-3 text-sm text-lime-300">
-                  Request submitted successfully. Our team will get back to you soon.
-                </div>
-              )}
-              {submitStatus === "error" && (
-                <div className="mt-6 rounded-xl border border-red-400/20 bg-red-400/[0.05] px-4 py-3 text-sm text-red-300">
-                  Something went wrong. Please try again or contact us directly.
-                </div>
-              )}
-
-              <div className="mt-8 flex flex-col items-start justify-between gap-5 border-t border-white/[0.08] pt-7 sm:flex-row sm:items-center">
-                <p className="max-w-md text-xs leading-5 text-white/25">
-                  No payment is taken here. We review your request, confirm the details and share the next steps.
+            {drawer === "done" && (
+              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                <Mascot pose="trophy" alt="" className="w-40" />
+                <h3 className="font-display mt-5 text-2xl">You're on the board.</h3>
+                <p className="mt-2 text-sm text-muted">
+                  Order <span className="font-mono text-lime">{orderId}</span> is in. Check your email: we'll send the
+                  payment link and confirm your event date within a day.
                 </p>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="group inline-flex w-full items-center justify-center gap-3 rounded-full bg-lime-400 px-7 py-4 text-sm font-semibold text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                >
-                  {isSubmitting ? "Submitting..." : "Send Event Request"}
-                  {!isSubmitting && <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />}
+                <button type="button" onClick={() => setDrawer("closed")} className="btn btn-ghost mt-6">
+                  Back to the store
                 </button>
               </div>
-            </form>
-          </div>
+            )}
+          </aside>
         </div>
-      </section>
+      )}
     </div>
   );
 }

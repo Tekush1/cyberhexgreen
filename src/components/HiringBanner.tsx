@@ -66,12 +66,12 @@ export const HiringBanner: React.FC = () => {
                   </motion.div>
                 </div>
                 <p className="text-gray-400 text-sm mb-3">
-                  Join CyberHx as an intern and work on cutting-edge cybersecurity projects
+                  Join CyberHx in sales and relationship roles. Help colleges and companies host their CTFs.
                 </p>
 
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="w-4 h-4 text-primary" />
-                  <span className="text-xs text-gray-300">4 positions available</span>
+                  <span className="text-xs text-gray-300">Sales and relationship</span>
                 </div>
 
                 <motion.button

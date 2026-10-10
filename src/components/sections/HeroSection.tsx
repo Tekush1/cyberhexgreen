@@ -18,7 +18,7 @@ export const HeroSection = () => (
     <div className="mx-auto grid max-w-7xl items-center gap-4 px-5 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-0 lg:px-8">
       {/* Copy */}
       <div className="relative z-10 order-2 lg:order-1">
-        <h1 className="font-display text-[3rem] text-white sm:text-7xl lg:text-[5.6rem]">
+        <h1 className="font-display text-[2.6rem] text-white sm:text-6xl lg:text-[4.4rem]">
           Hack our CTFs.
           <span className="mt-1 block text-glow">Host your own.</span>
         </h1>
@@ -29,12 +29,11 @@ export const HeroSection = () => (
         </p>
 
         <div className="mt-10 flex flex-col gap-5 sm:flex-row">
-          <Link to="/gallery" className="btn btn-red">
-            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" aria-hidden="true" />
-            Browse events
-          </Link>
-          <Link to="/host-your-ctf#plans" className="btn btn-ghost">
+          <Link to="/host-your-ctf#plans" className="btn btn-red">
             See hosting prices
+          </Link>
+          <Link to="/gallery" className="btn btn-ghost">
+            Play our CTFs
           </Link>
         </div>
       </div>
