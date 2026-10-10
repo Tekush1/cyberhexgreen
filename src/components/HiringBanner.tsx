@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { X, ArrowRight } from 'lucide-react';
 import { Briefcase, Users, Sparkles } from './shared/icons';
 
@@ -27,7 +28,9 @@ export const HiringBanner: React.FC = () => {
     localStorage.setItem('cyberhx-hiring-banner-dismissed', 'true');
   };
 
-  if (isDismissed) return null;
+  // Keep the checkout bar on the store page clear.
+  const { pathname } = useLocation();
+  if (isDismissed || pathname.startsWith('/host-your-ctf')) return null;
 
   return (
     <AnimatePresence>

@@ -96,3 +96,36 @@ export const pickAndChoose: {
     inr: 'about ₹9,900',
   },
 ];
+
+/* =============================================================
+   CTF BUILDER — "build your CTF like a PC".
+   Price per challenge in USD. Hosting is always included.
+============================================================= */
+
+export type Tier = 'easy' | 'medium' | 'hard' | 'insane';
+
+export type BuilderCategory = {
+  id: string;
+  name: string;
+  icon: IconName;
+  blurb: string;
+  tiers: { tier: Tier; usd: number }[];
+  min?: number; // minimum quantity once you add this category
+};
+
+export const builderCategories: BuilderCategory[] = [
+  { id: 'web', name: 'Web', icon: 'code', blurb: 'SQLi, XSS, SSRF, auth bypass and logic bugs.', tiers: [{ tier: 'medium', usd: 4 }], min: 5 },
+  { id: 'osint', name: 'OSINT', icon: 'satellite', blurb: 'Track people, places and leaks from open sources.', tiers: [{ tier: 'medium', usd: 2 }] },
+  { id: 'crypto', name: 'Crypto', icon: 'lock-key', blurb: 'Classic ciphers up to broken RSA and custom schemes.', tiers: [{ tier: 'medium', usd: 2 }, { tier: 'hard', usd: 4 }] },
+  { id: 'reverse', name: 'Reverse', icon: 'gear', blurb: 'Crack binaries, unpack and patch your way to the flag.', tiers: [{ tier: 'hard', usd: 3 }, { tier: 'insane', usd: 4 }] },
+  { id: 'boot2root', name: 'Boot2Root', icon: 'linux', blurb: 'A full machine: foothold, then escalate to root.', tiers: [{ tier: 'hard', usd: 6 }] },
+  { id: 'mobile', name: 'Mobile', icon: 'bell-dot', blurb: 'Android apps with hidden secrets and weak storage.', tiers: [{ tier: 'easy', usd: 2 }, { tier: 'medium', usd: 3 }, { tier: 'hard', usd: 4 }] },
+  { id: 'steg', name: 'Steg', icon: 'ghost', blurb: 'Flags hidden in images, audio and files.', tiers: [{ tier: 'easy', usd: 2 }, { tier: 'hard', usd: 3 }] },
+];
+
+export const builderPricing = {
+  hosting: { usd: 49, hours: 8 }, // always in every build
+  extraHourUsd: 13,
+  maxHours: 24,
+  website3dUsd: 40,
+};
