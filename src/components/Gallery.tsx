@@ -88,7 +88,7 @@ export const Gallery = () => {
             >
               Leaderboards, certificates and photos from each event. Tap any one to open it.
             </motion.p>
-            <dl className="mt-9 grid max-w-2xl grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+            <dl className="mt-9 grid max-w-xl grid-cols-3 gap-x-6 gap-y-5">
               {stats.map((st) => (
                 <div key={st.label} className="border-l-[3px] border-lime pl-3">
                   <dt className="font-display text-2xl text-white">

@@ -48,7 +48,7 @@ export const HeroSection = () => {
             </Link>
           </motion.div>
 
-          <motion.dl {...up(0.5)} className="mt-10 grid max-w-lg grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+          <motion.dl {...up(0.5)} className="mt-10 grid max-w-lg grid-cols-3 gap-x-6 gap-y-4">
             {stats.map((s) => (
               <div key={s.label}>
                 <dt className="font-display text-2xl text-white">
