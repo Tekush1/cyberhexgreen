@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { SiteIcon } from '../shared/SiteIcon';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Local } from '../shared/Local';
 import { plans, builderCategories, builderPricing as P } from '../../data/hosting';
@@ -89,12 +90,12 @@ export const WhatWeDoSection = () => {
 
           {/* Play our CTFs */}
           <Link to="/gallery" className="sticker lift group relative grid overflow-hidden sm:grid-cols-[11rem_1fr]">
-            <div className="relative h-40 overflow-hidden border-b-2 border-line bg-black sm:h-full sm:border-b-0 sm:border-r-2">
-              <img
-                src={latest.image}
-                alt={latest.title}
-                loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            <div className="relative flex items-center justify-center overflow-hidden border-b-2 border-line bg-panel py-10 sm:border-b-0 sm:border-r-2 sm:py-0">
+              <SiteIcon
+                name="ctf-green"
+                size={128}
+                alt=""
+                className="float-y transition-transform duration-500 group-hover:scale-110"
               />
             </div>
             <div className="flex flex-col p-6">
@@ -102,7 +103,7 @@ export const WhatWeDoSection = () => {
               <p className="mt-2 text-sm leading-6 text-muted">
                 Latest: {latest.title}, {latest.participants.toLowerCase()} over {latest.duration.toLowerCase()}.
               </p>
-              <p className="font-display mt-3 text-xl text-sun">{latest.prize}</p>
+              <p className="font-display mt-3 text-xl text-lime">{latest.prize}</p>
               <span className="mt-auto pt-4 text-sm font-semibold text-lime">See all events</span>
             </div>
           </Link>
