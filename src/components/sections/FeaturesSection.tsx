@@ -1,32 +1,32 @@
 import React from 'react';
-import { Terminal, Flag, BookOpen, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { SiteIcon } from '../shared/SiteIcon';
 
 export const FeaturesSection = () => {
   const features = [
     {
-      icon: <Terminal size={22} />,
+      icon: <SiteIcon name="lock-key" size={44} alt="Pentest Lab" />,
       title: 'Pentest Lab',
       description: 'Real-world hacking labs with tools like Nmap, Gobuster, Metasploit and full MITRE ATT&CK coverage.',
       link: 'https://pentestlab.cyberhx.com',
       label: 'Open Lab →',
     },
     {
-      icon: <Flag size={22} />,
+      icon: <SiteIcon name="ctf-orange" size={44} alt="CTF Platform" />,
       title: 'CTF Platform',
       description: 'Live Capture The Flag competitions with scoreboards, hints, and challenges from beginner to advanced.',
       link: 'https://ctf.cyberhx.com',
       label: 'Play CTF →',
     },
     {
-      icon: <BookOpen size={22} />,
+      icon: <SiteIcon name="code" size={44} alt="Blog and Resources" />,
       title: 'Blog & Resources',
       description: 'In-depth write-ups, tutorials, and cybersecurity news written by the CyberHx community.',
       link: '/blog',
       label: 'Read Blog →',
     },
     {
-icon: <Shield size={22} />,
+icon: <SiteIcon name="shield" size={44} alt="Host a CTF Event" />,
 title: 'Host a CTF Event',
 description: 'Planning a Capture The Flag competition? We design, manage, and host end-to-end CTF events for universities, communities, and organizations.',
 link: '/contact',
@@ -67,7 +67,7 @@ label: 'Organize Your CTF →',
               transition={{ delay: index * 0.08 }}
               className="bg-dark-100 border border-gray-800 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 group"
             >
-              <div className="text-primary mb-4 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <div className="mb-4 w-14 h-14 rounded-lg flex items-center justify-center bg-black/60 border border-primary/20">
                 {feature.icon}
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
