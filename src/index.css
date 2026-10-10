@@ -190,3 +190,52 @@ img[loading="lazy"] { transition: filter 0.3s; }
 @media (prefers-reduced-motion: reduce) {
   .btn-red::after, .float-y { animation: none; }
 }
+
+/* ---------- Motion: home + events ---------- */
+
+/* Slow drifting grid behind hero areas */
+.grid-drift {
+  background-image:
+    linear-gradient(rgba(59, 211, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 211, 255, 0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 40%, transparent 100%);
+  animation: grid-drift 18s linear infinite;
+}
+@keyframes grid-drift { to { background-position: 56px 56px, 56px 56px; } }
+
+/* Soft glowing orbs */
+.orb { position: absolute; border-radius: 9999px; filter: blur(90px); pointer-events: none; animation: orb 14s ease-in-out infinite; }
+@keyframes orb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.1); }
+  66% { transform: translate(-30px, 20px) scale(0.95); }
+}
+
+/* Infinite marquee */
+.marquee { display: flex; width: max-content; animation: marquee 32s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+/* Cards that lift on hover */
+.lift { transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s, border-color 0.25s; }
+.lift:hover { transform: translate(-3px, -5px); box-shadow: 10px 12px 0 0 #02040a; }
+
+/* Light sweep across a card on hover */
+.shine { position: relative; overflow: hidden; }
+.shine::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.09) 50%, transparent 65%);
+  transform: translateX(-120%); transition: transform 0.8s ease;
+}
+.shine:hover::before { transform: translateX(120%); }
+
+/* Blinking terminal caret */
+.caret::after { content: '_'; margin-left: 2px; color: #c6f135; animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-drift, .orb, .marquee, .caret::after { animation: none !important; }
+  .lift:hover { transform: none; }
+  .shine::before { display: none; }
+}

@@ -8,7 +8,7 @@ const columns = [
     links: [
       { label: 'Browse events', to: '/gallery' },
       { label: 'Host a CTF', to: '/host-your-ctf' },
-      { label: 'Hosting prices', to: '/host-your-ctf#plans' },
+      { label: 'Hosting prices', to: '/host-your-ctf#build' },
       { label: 'Hall of fame', to: '/hall-of-fame' },
     ],
   },

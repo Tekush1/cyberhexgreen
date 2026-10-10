@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { SiteIcon, type IconName } from '../shared/SiteIcon';
+import { Reveal } from '../shared/Reveal';
 
 const items: { icon: IconName; title: string; text: string; href: string; cta: string; external?: boolean }[] = [
   {
@@ -36,12 +37,14 @@ const items: { icon: IconName; title: string; text: string; href: string; cta: s
 export const PlatformsSection = () => (
   <section className="border-t-2 border-line bg-ink py-20 sm:py-28">
     <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
-      <h2 className="font-display max-w-2xl text-4xl text-white sm:text-5xl">Practice between events</h2>
+      <Reveal>
+        <h2 className="font-display max-w-2xl text-4xl text-white sm:text-5xl">Practice between events</h2>
+      </Reveal>
       <div className="mt-12 grid gap-x-14 sm:grid-cols-2">
-        {items.map((it) => {
+        {items.map((it, i) => {
           const inner = (
             <>
-              <SiteIcon name={it.icon} size={96} alt="" />
+              <SiteIcon name={it.icon} size={84} alt="" className="transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110" />
               <div>
                 <h3 className="font-display text-2xl text-white">{it.title}</h3>
                 <p className="mt-2 leading-7 text-muted">{it.text}</p>
@@ -52,14 +55,18 @@ export const PlatformsSection = () => (
             </>
           );
           const cls = 'group flex flex-col items-start gap-4 border-b-2 border-line py-8 sm:flex-row sm:gap-6';
-          return it.external ? (
-            <a key={it.title} href={it.href} target="_blank" rel="noopener noreferrer" className={cls}>
-              {inner}
-            </a>
-          ) : (
-            <Link key={it.title} to={it.href} className={cls}>
-              {inner}
-            </Link>
+          return (
+            <Reveal key={it.title} delay={(i % 2) * 0.1}>
+              {it.external ? (
+                <a href={it.href} target="_blank" rel="noopener noreferrer" className={cls}>
+                  {inner}
+                </a>
+              ) : (
+                <Link to={it.href} className={cls}>
+                  {inner}
+                </Link>
+              )}
+            </Reveal>
           );
         })}
       </div>
