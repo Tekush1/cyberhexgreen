@@ -1,18 +1,23 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Check, Minus, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
 import { Mascot } from "../components/shared/Mascot";
+import { Local } from "../components/shared/Local";
+import { currencyChoices, useLocalCurrency } from "../lib/currency";
 import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
 
 /* =============================================================
    HOST YOUR CTF — build your CTF like a PC.
    Prices live in src/data/hosting.ts (builderCategories, builderPricing).
+   A build is one round, or a qualifier plus a grand finale; each round
+   has its own hosting, hours, player count and challenges.
    Checkout places the order via Web3Forms; payment is collected
    afterwards with a link sent to the buyer.
 ============================================================= */
 
 const P = builderPricing;
 const key = (cat: string, tier: Tier) => `${cat}:${tier}`;
+const minFor = (catId: string) => builderCategories.find((c) => c.id === catId)?.min ?? 1;
 
 const tierStyle: Record<Tier, string> = {
   easy: "text-lime border-lime/40 bg-lime/10",
@@ -20,60 +25,88 @@ const tierStyle: Record<Tier, string> = {
   hard: "text-sun border-sun/40 bg-sun/10",
   insane: "text-red-400 border-red-400/40 bg-red-400/10",
 };
-const tierBar: Record<Tier, string> = {
-  easy: "bg-lime",
-  medium: "bg-glow",
-  hard: "bg-sun",
-  insane: "bg-red-400",
+const tierBar: Record<Tier, string> = { easy: "bg-lime", medium: "bg-glow", hard: "bg-sun", insane: "bg-red-400" };
+const TIERS: Tier[] = ["easy", "medium", "hard", "insane"];
+
+type RoundId = "main" | "qualifier" | "finale";
+type Round = { hours: number; players: number; qty: Record<string, number> };
+type Build = {
+  v: 2;
+  format: "single" | "split";
+  rounds: Record<RoundId, Round>;
+  website3d: boolean;
+  custom: boolean;
 };
 
-type Build = { qty: Record<string, number>; hours: number; website3d: boolean; custom: boolean };
-const emptyBuild: Build = { qty: {}, hours: P.hosting.hours, website3d: false, custom: false };
+const roundName: Record<RoundId, string> = { main: "Your CTF", qualifier: "Qualifier", finale: "Grand finale" };
+const freshRound = (): Round => ({ hours: P.hosting.hours, players: P.hosting.players, qty: {} });
+const emptyBuild = (): Build => ({
+  v: 2,
+  format: "single",
+  rounds: { main: freshRound(), qualifier: freshRound(), finale: freshRound() },
+  website3d: false,
+  custom: false,
+});
 
-const presets: { id: string; name: string; who: string; build: Build }[] = [
+/* ---------- pricing ---------- */
+const extraHoursOf = (r: Round) => Math.max(0, r.hours - P.hosting.hours);
+const extraBlocksOf = (r: Round) => Math.max(0, Math.ceil(r.players / P.playerBlock) - 1);
+const challengeLinesOf = (r: Round) =>
+  builderCategories.flatMap((c) =>
+    c.tiers.map((t) => ({ cat: c, ...t, n: r.qty[key(c.id, t.tier)] ?? 0 })).filter((l) => l.n > 0)
+  );
+const roundTotal = (r: Round) =>
+  P.hosting.usd +
+  extraHoursOf(r) * P.extraHourUsd +
+  extraBlocksOf(r) * P.extraPlayersUsd +
+  challengeLinesOf(r).reduce((s, l) => s + l.n * l.usd, 0);
+const roundCount = (r: Round) => challengeLinesOf(r).reduce((s, l) => s + l.n, 0);
+
+/* ---------- presets (single round) ---------- */
+const preset = (qty: Record<string, number>, hours = P.hosting.hours, players = P.hosting.players): Build => {
+  const b = emptyBuild();
+  b.rounds.main = { hours, players, qty };
+  return b;
+};
+const presets: { id: string; name: string; who: string; build: () => Build }[] = [
   {
     id: "campus",
     name: "Campus starter",
     who: "First CTF for a college club",
-    build: {
-      ...emptyBuild,
-      qty: { "web:medium": 5, "osint:medium": 3, "crypto:medium": 3, "steg:easy": 3, "mobile:easy": 2 },
-    },
+    build: () => preset({ "web:medium": 5, "osint:medium": 3, "crypto:medium": 3, "steg:easy": 3, "mobile:easy": 2 }),
   },
   {
     id: "competitive",
     name: "Competitive",
     who: "Fest CTF with a real leaderboard fight",
-    build: {
-      ...emptyBuild,
-      qty: {
-        "web:medium": 8,
-        "osint:medium": 4,
-        "crypto:medium": 3,
-        "crypto:hard": 2,
-        "reverse:hard": 3,
-        "steg:hard": 2,
-        "mobile:medium": 2,
-        "boot2root:hard": 1,
-      },
-    },
+    build: () =>
+      preset(
+        {
+          "web:medium": 8, "osint:medium": 4, "crypto:medium": 3, "crypto:hard": 2,
+          "reverse:hard": 3, "steg:hard": 2, "mobile:medium": 2, "boot2root:hard": 1,
+        },
+        12,
+        2000
+      ),
   },
   {
-    id: "hardcore",
-    name: "Hardcore",
-    who: "Experienced teams, 12-hour grind",
-    build: {
-      ...emptyBuild,
-      hours: 12,
-      qty: {
-        "web:medium": 10,
-        "crypto:hard": 4,
-        "reverse:hard": 3,
-        "reverse:insane": 3,
-        "boot2root:hard": 3,
-        "mobile:hard": 3,
-        "osint:medium": 2,
-      },
+    id: "national",
+    name: "Qualifier + finale",
+    who: "Open qualifier, top teams in the final",
+    build: () => {
+      const b = emptyBuild();
+      b.format = "split";
+      b.rounds.qualifier = {
+        hours: 24,
+        players: 5000,
+        qty: { "web:medium": 6, "osint:medium": 4, "crypto:medium": 4, "steg:easy": 3, "mobile:easy": 3, "reverse:hard": 2 },
+      };
+      b.rounds.finale = {
+        hours: 8,
+        players: 1000,
+        qty: { "web:medium": 5, "crypto:hard": 3, "reverse:insane": 2, "boot2root:hard": 2, "mobile:hard": 2 },
+      };
+      return b;
     },
   },
 ];
@@ -81,17 +114,51 @@ const presets: { id: string; name: string; who: string; build: Build }[] = [
 type Line = { label: string; usd: number | null; icon?: IconName };
 type Order = { title: string; lines: Line[]; total: number; quoted: boolean };
 
-const BUILD_KEY = "cyberhx-ctf-build";
+const BUILD_KEY = "cyberhx-ctf-build-v2";
+const clampRound = (r: Partial<Round> | undefined): Round => {
+  const base = freshRound();
+  if (!r) return base;
+  const hours = Number(r.hours);
+  const players = Number(r.players);
+  const qty: Record<string, number> = {};
+  for (const [k, v] of Object.entries(r.qty ?? {})) {
+    const n = Math.floor(Number(v));
+    const [cat] = k.split(":");
+    if (!Number.isFinite(n) || n <= 0 || !builderCategories.some((c) => c.id === cat)) continue;
+    qty[k] = Math.min(P.maxPerTier, Math.max(minFor(cat), n));
+  }
+  return {
+    hours: Number.isFinite(hours) ? Math.min(P.maxHours, Math.max(P.hosting.hours, hours)) : base.hours,
+    players: Number.isFinite(players)
+      ? Math.min(P.maxPlayers, Math.max(P.playerBlock, Math.ceil(players / P.playerBlock) * P.playerBlock))
+      : base.players,
+    qty,
+  };
+};
 const loadBuild = (): Build => {
   try {
     const raw = localStorage.getItem(BUILD_KEY);
-    return raw ? { ...emptyBuild, ...(JSON.parse(raw) as Build) } : emptyBuild;
+    if (!raw) return emptyBuild();
+    const b = JSON.parse(raw) as Partial<Build>;
+    if (b.v !== 2) return emptyBuild();
+    return {
+      v: 2,
+      format: b.format === "split" ? "split" : "single",
+      rounds: {
+        main: clampRound(b.rounds?.main),
+        qualifier: clampRound(b.rounds?.qualifier),
+        finale: clampRound(b.rounds?.finale),
+      },
+      website3d: !!b.website3d,
+      custom: !!b.custom,
+    };
   } catch {
-    return emptyBuild;
+    return emptyBuild();
   }
 };
 
 const money = (n: number) => `$${n.toLocaleString("en-US")}`;
+const players = (n: number) => n.toLocaleString("en-US");
 
 const emptyForm = {
   name: "",
@@ -114,7 +181,7 @@ const dashboardFeatures: { icon: IconName; title: string; description: string }[
 ];
 
 const steps = [
-  { n: "01", title: "Build it", text: "Pick challenge types, difficulty and event length." },
+  { n: "01", title: "Build it", text: "Pick rounds, challenge types, difficulty, hours and players." },
   { n: "02", title: "Check out", text: "Tell us your event name, date and theme." },
   { n: "03", title: "Pay and confirm", text: "We email a payment link and lock your date." },
   { n: "04", title: "Go live", text: "We build every challenge, you run it from the dashboard." },
@@ -131,6 +198,7 @@ function Stepper({
   label,
   decDisabled,
   incDisabled,
+  wide,
 }: {
   value: number | string;
   onDec: () => void;
@@ -138,6 +206,7 @@ function Stepper({
   label: string;
   decDisabled?: boolean;
   incDisabled?: boolean;
+  wide?: boolean;
 }) {
   return (
     <div className="flex items-center overflow-hidden rounded-lg border-2 border-line">
@@ -150,7 +219,7 @@ function Stepper({
       >
         <Minus size={15} />
       </button>
-      <span className="w-10 text-center font-mono text-sm tabular-nums">{value}</span>
+      <span className={`${wide ? "w-16" : "w-10"} text-center font-mono text-sm tabular-nums`}>{value}</span>
       <button
         type="button"
         onClick={onInc}
@@ -166,12 +235,14 @@ function Stepper({
 
 export default function HostYourCTF() {
   const [build, setBuild] = React.useState<Build>(loadBuild);
+  const [active, setActive] = React.useState<RoundId>(() => (loadBuild().format === "split" ? "qualifier" : "main"));
   const [order, setOrder] = React.useState<Order | null>(null);
   const [drawer, setDrawer] = React.useState<"closed" | "checkout" | "done">("closed");
   const [form, setForm] = React.useState(emptyForm);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState(false);
   const [orderId, setOrderId] = React.useState("");
+  const currency = useLocalCurrency();
 
   React.useEffect(() => {
     try {
@@ -188,55 +259,100 @@ export default function HostYourCTF() {
     };
   }, [drawer]);
 
-  /* ---------- build maths ---------- */
-  const challengeLines = builderCategories.flatMap((c) =>
-    c.tiers
-      .map((t) => ({ cat: c, ...t, n: build.qty[key(c.id, t.tier)] ?? 0 }))
-      .filter((l) => l.n > 0)
-  );
-  const challengeCount = challengeLines.reduce((s, l) => s + l.n, 0);
-  const challengeUsd = challengeLines.reduce((s, l) => s + l.n * l.usd, 0);
-  const extraHours = build.hours - P.hosting.hours;
-  const hoursUsd = extraHours * P.extraHourUsd;
-  const total = P.hosting.usd + hoursUsd + challengeUsd + (build.website3d ? P.website3dUsd : 0);
-  const categoriesUsed = new Set(challengeLines.map((l) => l.cat.id)).size;
+  /* ---------- derived ---------- */
+  const roundIds: RoundId[] = build.format === "split" ? ["qualifier", "finale"] : ["main"];
+  const editing: RoundId = build.format === "split" ? (active === "main" ? "qualifier" : active) : "main";
+  const round = build.rounds[editing];
 
-  const tierCounts = (["easy", "medium", "hard", "insane"] as Tier[]).map((t) => ({
+  const total =
+    roundIds.reduce((s, id) => s + roundTotal(build.rounds[id]), 0) + (build.website3d ? P.website3dUsd : 0);
+  const allLines = roundIds.flatMap((id) => challengeLinesOf(build.rounds[id]));
+  const challengeCount = allLines.reduce((s, l) => s + l.n, 0);
+  const categoriesUsed = new Set(allLines.map((l) => l.cat.id)).size;
+  const totalHours = roundIds.reduce((s, id) => s + build.rounds[id].hours, 0);
+  const tierCounts = TIERS.map((t) => ({
     tier: t,
-    n: challengeLines.filter((l) => l.tier === t).reduce((s, l) => s + l.n, 0),
+    n: allLines.filter((l) => l.tier === t).reduce((s, l) => s + l.n, 0),
   }));
 
-  const setQty = (id: string, tier: Tier, next: number) =>
-    setBuild((b) => ({ ...b, qty: { ...b.qty, [key(id, tier)]: Math.max(0, Math.min(50, next)) } }));
+  /* ---------- edits (always on the round being edited) ---------- */
+  const patchRound = (fn: (r: Round) => Round) =>
+    setBuild((b) => ({ ...b, rounds: { ...b.rounds, [editing]: fn(b.rounds[editing]) } }));
 
-  const inc = (id: string, tier: Tier, min = 1) => {
-    const cur = build.qty[key(id, tier)] ?? 0;
-    setQty(id, tier, cur === 0 ? min : cur + 1);
+  const setQty = (catId: string, tier: Tier, next: number) =>
+    patchRound((r) => {
+      const qty = { ...r.qty };
+      const n = Math.max(0, Math.min(P.maxPerTier, next));
+      if (n === 0) delete qty[key(catId, tier)];
+      else qty[key(catId, tier)] = n;
+      return { ...r, qty };
+    });
+  const inc = (catId: string, tier: Tier) => {
+    const cur = round.qty[key(catId, tier)] ?? 0;
+    setQty(catId, tier, cur === 0 ? minFor(catId) : cur + 1);
   };
-  const dec = (id: string, tier: Tier, min = 1) => {
-    const cur = build.qty[key(id, tier)] ?? 0;
-    setQty(id, tier, cur <= min ? 0 : cur - 1);
+  const dec = (catId: string, tier: Tier) => {
+    const cur = round.qty[key(catId, tier)] ?? 0;
+    setQty(catId, tier, cur <= minFor(catId) ? 0 : cur - 1);
   };
 
-  const buildOrder = (): Order => ({
-    title: "Custom CTF build",
-    lines: [
-      { label: `Hosting + scoreboard (${P.hosting.hours}h)`, usd: P.hosting.usd, icon: "cloud" },
-      ...(extraHours > 0 ? [{ label: `Extra hours × ${extraHours}`, usd: hoursUsd, icon: "gauge" as IconName }] : []),
-      ...challengeLines.map((l) => ({
-        label: `${l.cat.name} · ${l.tier} × ${l.n}`,
-        usd: l.n * l.usd,
-        icon: l.cat.icon,
-      })),
-      ...(build.website3d ? [{ label: "3D event website", usd: P.website3dUsd, icon: "code-light" as IconName }] : []),
-      ...(build.custom ? [{ label: "Custom challenges", usd: null, icon: "swords" as IconName }] : []),
-    ],
-    total,
-    quoted: build.custom,
-  });
+  const setFormat = (format: Build["format"]) => {
+    setBuild((b) => {
+      if (b.format === format) return b;
+      const rounds = { ...b.rounds };
+      // Carry the current build across so nothing is lost when switching.
+      if (format === "split" && roundCount(rounds.qualifier) === 0 && roundCount(rounds.finale) === 0) {
+        rounds.qualifier = { ...rounds.main, qty: { ...rounds.main.qty } };
+      }
+      if (format === "single" && roundCount(rounds.main) === 0) {
+        rounds.main = { ...rounds.qualifier, qty: { ...rounds.qualifier.qty } };
+      }
+      return { ...b, format, rounds };
+    });
+    setActive(format === "split" ? "qualifier" : "main");
+  };
+
+  const copyQualifierToFinale = () =>
+    setBuild((b) => ({ ...b, rounds: { ...b.rounds, finale: { ...b.rounds.finale, qty: { ...b.rounds.qualifier.qty } } } }));
+
+  const loadPreset = (fn: () => Build) => {
+    const b = fn();
+    setBuild(b);
+    setActive(b.format === "split" ? "qualifier" : "main");
+  };
+
+  const reset = () => {
+    setBuild(emptyBuild());
+    setActive("main");
+  };
+
+  /* ---------- orders ---------- */
+  const roundLines = (id: RoundId): Line[] => {
+    const r = build.rounds[id];
+    const pre = build.format === "split" ? `${roundName[id]}: ` : "";
+    const xh = extraHoursOf(r);
+    const xb = extraBlocksOf(r);
+    return [
+      { label: `${pre}Hosting + scoreboard (${P.hosting.hours}h, up to ${players(P.hosting.players)} players)`, usd: P.hosting.usd, icon: "cloud" },
+      ...(xh > 0 ? [{ label: `${pre}Extra hours × ${xh} (${r.hours}h total)`, usd: xh * P.extraHourUsd, icon: "gauge" as IconName }] : []),
+      ...(xb > 0
+        ? [{ label: `${pre}Extra players: ${players(xb * P.playerBlock)} (${players(r.players)} total)`, usd: xb * P.extraPlayersUsd, icon: "hacker-team" as IconName }]
+        : []),
+      ...challengeLinesOf(r).map((l) => ({ label: `${pre}${l.cat.name} · ${l.tier} × ${l.n}`, usd: l.n * l.usd, icon: l.cat.icon })),
+    ];
+  };
 
   const checkoutBuild = () => {
-    setOrder(buildOrder());
+    setOrder({
+      title: build.format === "split" ? "Custom CTF build: qualifier + grand finale" : "Custom CTF build",
+      lines: [
+        ...roundIds.flatMap(roundLines),
+        ...(build.website3d ? [{ label: "3D event website", usd: P.website3dUsd, icon: "code-light" as IconName }] : []),
+        ...(build.custom ? [{ label: "Custom challenges", usd: null, icon: "swords" as IconName }] : []),
+      ],
+      total,
+      quoted: build.custom,
+    });
     setError(false);
     setDrawer("checkout");
   };
@@ -263,7 +379,9 @@ export default function HostYourCTF() {
     setError(false);
     const id = `CHX-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     const lines = order.lines.map((l) => `${l.label}: ${l.usd === null ? "quote" : money(l.usd)}`).join("\n");
-    const totalText = money(order.total) + (order.quoted ? " plus quoted custom challenges" : "");
+    const local = currency.fmt(order.total);
+    const totalText =
+      money(order.total) + (order.quoted ? " plus quoted custom challenges" : "") + (local ? ` (≈ ${local})` : "");
     try {
       const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
@@ -275,6 +393,7 @@ export default function HostYourCTF() {
           order_type: order.title,
           order_items: lines,
           order_total_usd: totalText,
+          visitor_currency: currency.code,
           ...form,
         }),
       });
@@ -282,7 +401,7 @@ export default function HostYourCTF() {
       if (!data.success) throw new Error("failed");
       setOrderId(id);
       setForm(emptyForm);
-      if (order.title === "Custom CTF build") setBuild(emptyBuild);
+      if (order.title.startsWith("Custom CTF build")) reset();
       setDrawer("done");
     } catch {
       setError(true);
@@ -293,16 +412,12 @@ export default function HostYourCTF() {
 
   const h2 = "font-display text-3xl sm:text-4xl";
 
-  /* ---------- summary (desktop sidebar) ---------- */
+  /* ---------- summary ---------- */
   const summary = (
     <div className="sticker overflow-hidden">
       <div className="flex items-center justify-between border-b-2 border-line px-5 py-4">
         <h3 className="font-display text-lg">Your build</h3>
-        <button
-          type="button"
-          onClick={() => setBuild(emptyBuild)}
-          className="flex items-center gap-1.5 text-xs text-muted transition hover:text-white"
-        >
+        <button type="button" onClick={reset} className="flex items-center gap-1.5 text-xs text-muted transition hover:text-white">
           <RotateCcw size={13} /> Reset
         </button>
       </div>
@@ -311,7 +426,7 @@ export default function HostYourCTF() {
         {[
           [challengeCount, "challenges"],
           [categoriesUsed, "categories"],
-          [`${build.hours}h`, "event"],
+          [`${totalHours}h`, build.format === "split" ? "2 rounds" : "event"],
         ].map(([v, l]) => (
           <div key={String(l)} className="px-2 py-3">
             <div className="font-display text-xl">{v}</div>
@@ -320,18 +435,14 @@ export default function HostYourCTF() {
         ))}
       </div>
 
-      {/* Difficulty mix */}
       <div className="border-b-2 border-line px-5 py-4">
-        <div className="mb-2 flex justify-between text-[11px] uppercase tracking-wider text-muted">
-          <span>Difficulty mix</span>
-          {challengeCount > 0 && <span className="normal-case tracking-normal">{challengeCount} total</span>}
-        </div>
+        <div className="mb-2 text-[11px] uppercase tracking-wider text-muted">Difficulty mix</div>
         <div className="flex h-2.5 overflow-hidden rounded-full bg-line">
           {challengeCount > 0 &&
             tierCounts
               .filter((t) => t.n > 0)
               .map((t) => (
-                <div key={t.tier} className={tierBar[t.tier]} style={{ width: `${(t.n / challengeCount) * 100}%` }} />
+                <div key={t.tier} className={`${tierBar[t.tier]} transition-all duration-500`} style={{ width: `${(t.n / challengeCount) * 100}%` }} />
               ))}
         </div>
         <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
@@ -344,43 +455,51 @@ export default function HostYourCTF() {
         </div>
       </div>
 
-      <ul className="max-h-[38vh] space-y-2 overflow-y-auto px-5 py-4 text-sm">
-        <li className="flex justify-between gap-3">
-          <span className="text-white/85">Hosting + scoreboard ({P.hosting.hours}h)</span>
-          <span className="font-mono text-muted">{money(P.hosting.usd)}</span>
-        </li>
-        {extraHours > 0 && (
-          <li className="flex justify-between gap-3">
-            <span className="text-white/85">Extra hours × {extraHours}</span>
-            <span className="font-mono text-muted">{money(hoursUsd)}</span>
-          </li>
+      <div className="max-h-[40vh] space-y-4 overflow-y-auto px-5 py-4 text-sm">
+        {roundIds.map((id) => {
+          const r = build.rounds[id];
+          const n = roundCount(r);
+          return (
+            <div key={id}>
+              {build.format === "split" && (
+                <div className="mb-1.5 flex items-baseline justify-between">
+                  <span className="font-semibold text-white">{roundName[id]}</span>
+                  <span className="font-mono text-xs text-glow">{money(roundTotal(r))}</span>
+                </div>
+              )}
+              <ul className="space-y-1.5">
+                {roundLines(id).map((l) => (
+                  <li key={l.label} className="flex justify-between gap-3">
+                    <span className="text-white/80">{l.label.replace(`${roundName[id]}: `, "")}</span>
+                    <span className="shrink-0 font-mono text-muted">{l.usd === null ? "Quote" : money(l.usd)}</span>
+                  </li>
+                ))}
+              </ul>
+              {n === 0 && (
+                <p className="mt-2 rounded-lg border-2 border-dashed border-line p-2.5 text-center text-xs text-muted">
+                  No challenges yet. Add some, or keep it hosting only if you bring your own.
+                </p>
+              )}
+            </div>
+          );
+        })}
+        {(build.website3d || build.custom) && (
+          <ul className="space-y-1.5 border-t border-line pt-3">
+            {build.website3d && (
+              <li className="flex justify-between gap-3">
+                <span className="text-white/80">3D event website</span>
+                <span className="font-mono text-muted">{money(P.website3dUsd)}</span>
+              </li>
+            )}
+            {build.custom && (
+              <li className="flex justify-between gap-3">
+                <span className="text-white/80">Custom challenges</span>
+                <span className="font-mono text-muted">Quote</span>
+              </li>
+            )}
+          </ul>
         )}
-        {challengeLines.map((l) => (
-          <li key={key(l.cat.id, l.tier)} className="flex justify-between gap-3">
-            <span className="text-white/85">
-              {l.cat.name} <span className="text-muted">· {l.tier} × {l.n}</span>
-            </span>
-            <span className="font-mono text-muted">{money(l.n * l.usd)}</span>
-          </li>
-        ))}
-        {build.website3d && (
-          <li className="flex justify-between gap-3">
-            <span className="text-white/85">3D event website</span>
-            <span className="font-mono text-muted">{money(P.website3dUsd)}</span>
-          </li>
-        )}
-        {build.custom && (
-          <li className="flex justify-between gap-3">
-            <span className="text-white/85">Custom challenges</span>
-            <span className="font-mono text-muted">Quote</span>
-          </li>
-        )}
-        {challengeCount === 0 && (
-          <li className="rounded-lg border-2 border-dashed border-line p-3 text-center text-xs text-muted">
-            Add challenges from the list, or start from a quick build.
-          </li>
-        )}
-      </ul>
+      </div>
 
       <div className="border-t-2 border-line px-5 py-5">
         <div className="flex items-baseline justify-between">
@@ -390,14 +509,34 @@ export default function HostYourCTF() {
             {build.custom && <span className="text-base text-muted"> +</span>}
           </span>
         </div>
-        <p className="mt-0.5 text-right text-xs text-muted">about ₹{(total * 100).toLocaleString("en-IN")}</p>
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+          <label className="flex items-center gap-1.5 text-muted">
+            Show in
+            <select
+              value={currency.code}
+              onChange={(e) => currency.setCurrency(e.target.value)}
+              className="rounded border border-line bg-ink px-1.5 py-0.5 text-white outline-none focus:border-lime"
+              aria-label="Currency for price equivalents"
+            >
+              {[...new Set([currency.code, ...currencyChoices])].map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+          <Local usd={total} className="font-semibold text-white/85" />
+        </div>
         <button type="button" onClick={checkoutBuild} className="btn btn-lime mt-4 w-full">
           Check out this build <ArrowRight size={16} />
         </button>
-        <p className="mt-2.5 text-center text-[11px] text-muted">No payment now. We email a payment link.</p>
+        <p className="mt-2.5 text-center text-[11px] text-muted">
+          Charged in USD. Local amounts are estimates. No payment now.
+        </p>
       </div>
     </div>
   );
+
+  const extraHours = extraHoursOf(round);
+  const extraBlocks = extraBlocksOf(round);
 
   return (
     <div className="min-h-screen overflow-x-clip bg-ink pb-24 pt-16 text-white sm:pt-[72px] lg:pb-0">
@@ -410,11 +549,7 @@ export default function HostYourCTF() {
               ["#prebuilt", "Prebuilt"],
               ["#how-it-works", "How it works"],
             ].map(([href, label]) => (
-              <a
-                key={href}
-                href={href}
-                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition hover:bg-white/[0.05] hover:text-white"
-              >
+              <a key={href} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition hover:bg-white/[0.05] hover:text-white">
                 {label}
               </a>
             ))}
@@ -429,17 +564,17 @@ export default function HostYourCTF() {
       </div>
 
       {/* Hero */}
-      <section className="mx-auto max-w-7xl px-5 pb-14 pt-12 sm:px-6 lg:px-8 lg:pb-16 lg:pt-16">
+      <section className="mx-auto max-w-7xl px-5 pb-12 pt-12 sm:px-6 lg:px-8 lg:pb-14 lg:pt-16">
         <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-lime">CyberHx CTF builder</p>
-            <h1 className="font-display mt-4 text-[2.4rem] leading-[1.02] sm:text-5xl lg:text-6xl">
+            <h1 className="font-display text-[2.4rem] leading-[1.02] sm:text-5xl lg:text-6xl">
               Build your CTF
               <span className="block text-white/35">part by part.</span>
             </h1>
             <p className="mt-6 max-w-lg leading-7 text-muted">
-              Like building a PC: pick the challenge types you want, choose how hard, set the event length. Hosting
-              and the live scoreboard come with every build from {money(P.hosting.usd)}.
+              Like building a PC: pick challenge types and difficulty, set hours and player count, and split it into a
+              qualifier and a grand finale if you want. Hosting and the live scoreboard come with every round from{" "}
+              {money(P.hosting.usd)} <Local usd={P.hosting.usd} />.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href="#build" className="btn btn-lime">
@@ -460,19 +595,15 @@ export default function HostYourCTF() {
       {/* Builder */}
       <section id="build" className="scroll-mt-32 border-t border-line bg-panel/30">
         <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-8 lg:py-16">
-          {/* Quick builds */}
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className={h2}>Pick your parts</h2>
-              <p className="mt-2 text-sm text-muted">Prices are per challenge. Or load a quick build and tweak it.</p>
-            </div>
-          </div>
+          <h2 className={h2}>Pick your parts</h2>
+          <p className="mt-2 text-sm text-muted">Prices are in USD, per challenge. Start from a quick build and tweak it, or start empty.</p>
+
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {presets.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setBuild(p.build)}
+                onClick={() => loadPreset(p.build)}
                 className="group rounded-xl border-2 border-line bg-ink p-4 text-left transition hover:border-lime"
               >
                 <div className="flex items-center justify-between">
@@ -486,58 +617,145 @@ export default function HostYourCTF() {
 
           <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
-              {/* 01 Hosting — always on */}
+              {/* Format */}
+              <div className="rounded-2xl border-2 border-line bg-ink p-5">
+                <h3 className="font-semibold">How many rounds?</h3>
+                <p className="mt-1 text-sm text-muted">
+                  A qualifier and a grand finale are hosted separately, each with its own hours, players and challenges.
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-panel p-1.5" role="radiogroup" aria-label="Event format">
+                  {(
+                    [
+                      ["single", "One round"],
+                      ["split", "Qualifier + grand finale"],
+                    ] as const
+                  ).map(([f, label]) => (
+                    <button
+                      key={f}
+                      type="button"
+                      role="radio"
+                      aria-checked={build.format === f}
+                      onClick={() => setFormat(f)}
+                      className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                        build.format === f ? "bg-lime text-ink" : "text-white/70 hover:text-white"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Round tabs */}
+              {build.format === "split" && (
+                <div className="sticky top-[118px] z-30 -mx-1 flex gap-2 bg-panel/80 px-1 py-2 backdrop-blur sm:top-[126px]" role="tablist">
+                  {(["qualifier", "finale"] as RoundId[]).map((id) => {
+                    const r = build.rounds[id];
+                    const on = editing === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        role="tab"
+                        aria-selected={on}
+                        onClick={() => setActive(id)}
+                        className={`flex-1 rounded-xl border-2 px-4 py-3 text-left transition ${
+                          on ? "border-glow bg-glow/10" : "border-line bg-ink hover:border-white/30"
+                        }`}
+                      >
+                        <span className="block font-semibold">{roundName[id]}</span>
+                        <span className="block text-xs text-muted">
+                          {roundCount(r)} challenges · {r.hours}h · {players(r.players)} players · {money(roundTotal(r))}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {build.format === "split" && editing === "finale" && roundCount(build.rounds.finale) === 0 && roundCount(build.rounds.qualifier) > 0 && (
+                <button
+                  type="button"
+                  onClick={copyQualifierToFinale}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line p-3 text-sm text-muted transition hover:border-glow hover:text-white"
+                >
+                  <Copy size={15} /> Copy the qualifier's challenge mix into the finale
+                </button>
+              )}
+
+              {/* Hosting for this round */}
               <div className="rounded-2xl border-2 border-lime/50 bg-ink p-5">
                 <div className="flex items-start gap-4">
                   <SiteIcon name="cloud" size={52} alt="" />
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs text-muted">01</span>
-                      <h3 className="font-semibold">Hosting + live scoreboard</h3>
-                      <span className="rounded bg-lime px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink">
-                        Included
-                      </span>
+                      <h3 className="font-semibold">
+                        Hosting + live scoreboard{build.format === "split" ? ` for the ${roundName[editing].toLowerCase()}` : ""}
+                      </h3>
+                      <span className="rounded bg-lime px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink">Included</span>
                     </div>
                     <p className="mt-1 text-sm text-muted">
-                      Platform, scoreboard and host dashboard for {P.hosting.hours} hours. Every build needs it.
+                      Platform, scoreboard and host dashboard for {P.hosting.hours} hours and up to {players(P.hosting.players)} players.
                     </p>
                   </div>
-                  <span className="font-display text-xl">{money(P.hosting.usd)}</span>
+                  <div className="text-right">
+                    <span className="font-display text-xl">{money(P.hosting.usd)}</span>
+                    <Local usd={P.hosting.usd} className="block text-xs text-muted" />
+                  </div>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 sm:pl-[68px]">
-                  <div>
-                    <p className="text-sm font-semibold">Event length</p>
-                    <p className="text-xs text-muted">
-                      Extra hours {money(P.extraHourUsd)} each, up to {P.maxHours}h
-                    </p>
+
+                <div className="mt-4 space-y-3 border-t border-line pt-4 sm:pl-[68px]">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">Event length</p>
+                      <p className="text-xs text-muted">
+                        {P.hosting.hours}h included, then {money(P.extraHourUsd)} per extra hour, up to {P.maxHours}h
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {extraHours > 0 && <span className="font-mono text-sm text-sun">+{money(extraHours * P.extraHourUsd)}</span>}
+                      <Stepper
+                        value={`${round.hours}h`}
+                        label="hours"
+                        onDec={() => patchRound((r) => ({ ...r, hours: Math.max(P.hosting.hours, r.hours - 1) }))}
+                        onInc={() => patchRound((r) => ({ ...r, hours: Math.min(P.maxHours, r.hours + 1) }))}
+                        decDisabled={round.hours <= P.hosting.hours}
+                        incDisabled={round.hours >= P.maxHours}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {extraHours > 0 && <span className="font-mono text-sm text-sun">+{money(hoursUsd)}</span>}
-                    <Stepper
-                      value={`${build.hours}h`}
-                      label="hours"
-                      onDec={() => setBuild((b) => ({ ...b, hours: Math.max(P.hosting.hours, b.hours - 1) }))}
-                      onInc={() => setBuild((b) => ({ ...b, hours: Math.min(P.maxHours, b.hours + 1) }))}
-                      decDisabled={build.hours <= P.hosting.hours}
-                      incDisabled={build.hours >= P.maxHours}
-                    />
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">Expected players</p>
+                      <p className="text-xs text-muted">
+                        Up to {players(P.hosting.players)} included, then {money(P.extraPlayersUsd)} per extra {players(P.playerBlock)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {extraBlocks > 0 && <span className="font-mono text-sm text-sun">+{money(extraBlocks * P.extraPlayersUsd)}</span>}
+                      <Stepper
+                        wide
+                        value={round.players >= 1000 ? `${round.players / 1000}k` : round.players}
+                        label="players"
+                        onDec={() => patchRound((r) => ({ ...r, players: Math.max(P.playerBlock, r.players - P.playerBlock) }))}
+                        onInc={() => patchRound((r) => ({ ...r, players: Math.min(P.maxPlayers, r.players + P.playerBlock) }))}
+                        decDisabled={round.players <= P.playerBlock}
+                        incDisabled={round.players >= P.maxPlayers}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Challenge categories */}
-              {builderCategories.map((c, i) => {
-                const catCount = c.tiers.reduce((s, t) => s + (build.qty[key(c.id, t.tier)] ?? 0), 0);
+              {builderCategories.map((c) => {
+                const catCount = c.tiers.reduce((s, t) => s + (round.qty[key(c.id, t.tier)] ?? 0), 0);
                 return (
-                  <div
-                    key={c.id}
-                    className={`rounded-2xl border-2 bg-ink p-5 transition ${catCount > 0 ? "border-glow/50" : "border-line"}`}
-                  >
+                  <div key={c.id} className={`rounded-2xl border-2 bg-ink p-5 transition ${catCount > 0 ? "border-glow/50" : "border-line"}`}>
                     <div className="flex items-start gap-4">
                       <SiteIcon name={c.icon} size={52} alt="" />
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-xs text-muted">{String(i + 2).padStart(2, "0")}</span>
                           <h3 className="font-semibold">{c.name}</h3>
                           {c.min && (
                             <span className="rounded border border-line px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
@@ -547,23 +765,20 @@ export default function HostYourCTF() {
                         </div>
                         <p className="mt-1 text-sm text-muted">{c.blurb}</p>
                       </div>
-                      {catCount > 0 && (
-                        <span className="rounded-md bg-glow/15 px-2 py-1 font-mono text-xs text-glow">{catCount}</span>
-                      )}
+                      {catCount > 0 && <span className="rounded-md bg-glow/15 px-2 py-1 font-mono text-xs text-glow">{catCount}</span>}
                     </div>
                     <div className="mt-4 space-y-2.5 border-t border-line pt-4 sm:pl-[68px]">
                       {c.tiers.map((t) => {
-                        const n = build.qty[key(c.id, t.tier)] ?? 0;
+                        const n = round.qty[key(c.id, t.tier)] ?? 0;
                         return (
                           <div key={t.tier} className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
-                              <span
-                                className={`w-16 rounded-md border py-1 text-center text-[11px] font-bold uppercase tracking-wider ${tierStyle[t.tier]}`}
-                              >
+                              <span className={`w-16 rounded-md border py-1 text-center text-[11px] font-bold uppercase tracking-wider ${tierStyle[t.tier]}`}>
                                 {t.tier}
                               </span>
                               <span className="text-sm text-white/85">
-                                {money(t.usd)} <span className="text-muted">each</span>
+                                {money(t.usd)} <span className="text-muted">each</span>{" "}
+                                <Local usd={t.usd} className="hidden text-xs text-muted sm:inline" />
                               </span>
                             </div>
                             <div className="flex items-center gap-3">
@@ -571,9 +786,10 @@ export default function HostYourCTF() {
                               <Stepper
                                 value={n}
                                 label={`${t.tier} ${c.name} challenges`}
-                                onDec={() => dec(c.id, t.tier, c.min)}
-                                onInc={() => inc(c.id, t.tier, c.min)}
+                                onDec={() => dec(c.id, t.tier)}
+                                onInc={() => inc(c.id, t.tier)}
                                 decDisabled={n === 0}
+                                incDisabled={n >= P.maxPerTier}
                               />
                             </div>
                           </div>
@@ -584,7 +800,8 @@ export default function HostYourCTF() {
                 );
               })}
 
-              {/* Extras */}
+              {/* Extras (whole event) */}
+              <h3 className="pt-4 font-semibold">For the whole event</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
                   {
@@ -593,15 +810,15 @@ export default function HostYourCTF() {
                     icon: "code-light" as IconName,
                     title: "3D event website",
                     text: "A themed 3D landing site made for your event.",
-                    price: money(P.website3dUsd),
+                    usd: P.website3dUsd as number | null,
                   },
                   {
                     on: build.custom,
                     flip: () => setBuild((b) => ({ ...b, custom: !b.custom })),
                     icon: "swords" as IconName,
                     title: "Custom challenges",
-                    text: "Built around your story or brand. Tell us at checkout.",
-                    price: "Quote",
+                    text: "Built around your story or brand. Describe them at checkout.",
+                    usd: null,
                   },
                 ].map((x) => (
                   <button
@@ -617,13 +834,12 @@ export default function HostYourCTF() {
                     <div className="flex-1">
                       <h3 className="font-semibold">{x.title}</h3>
                       <p className="mt-1 text-sm leading-6 text-muted">{x.text}</p>
-                      <p className="mt-2 font-display text-lg text-sun">{x.price}</p>
+                      <p className="mt-2 font-display text-lg text-sun">
+                        {x.usd === null ? "Quote" : money(x.usd)}{" "}
+                        {x.usd !== null && <Local usd={x.usd} className="font-sans text-xs font-normal text-muted" />}
+                      </p>
                     </div>
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 ${
-                        x.on ? "border-lime bg-lime text-ink" : "border-line text-white/50"
-                      }`}
-                    >
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 ${x.on ? "border-lime bg-lime text-ink" : "border-line text-white/50"}`}>
                       {x.on ? <Check size={14} /> : <Plus size={14} />}
                     </span>
                   </button>
@@ -631,31 +847,31 @@ export default function HostYourCTF() {
               </div>
             </div>
 
-            {/* Summary */}
             <aside className="hidden lg:block">
               <div className="sticky top-[140px]">{summary}</div>
             </aside>
           </div>
+
+          {/* Summary on small screens */}
+          <div className="mt-8 lg:hidden">{summary}</div>
         </div>
       </section>
 
       {/* Prebuilt */}
       <section id="prebuilt" className="mx-auto max-w-7xl scroll-mt-32 px-5 py-20 sm:px-6 lg:px-8">
         <h2 className={h2}>Or grab a prebuilt</h2>
-        <p className="mt-2 text-sm text-muted">Ready-made CTFs with hosting included. One click to checkout.</p>
+        <p className="mt-2 text-sm text-muted">Ready-made single-round CTFs with hosting included. One click to checkout.</p>
         <div className="mt-10 grid gap-5 lg:grid-cols-3">
           {plans.map((plan) => (
             <article key={plan.id} className={`sticker relative flex flex-col p-6 ${plan.featured ? "sticker-lime" : ""}`}>
               {plan.featured && (
-                <span className="absolute -top-3 left-6 rounded-md bg-lime px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-ink">
-                  Most picked
-                </span>
+                <span className="absolute -top-3 left-6 rounded-md bg-lime px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-ink">Most picked</span>
               )}
               <div className="flex items-start justify-between">
                 <SiteIcon name={plan.icon} size={60} alt="" />
                 <div className="text-right">
                   <div className={`font-display text-4xl ${plan.featured ? "text-lime" : "text-white"}`}>${plan.usd}</div>
-                  <div className="text-xs text-muted">about {plan.inr}</div>
+                  <Local usd={plan.usd} className="text-xs text-muted" />
                 </div>
               </div>
               <h3 className="font-display mt-4 text-xl">{plan.name}</h3>
@@ -668,11 +884,7 @@ export default function HostYourCTF() {
                   </li>
                 ))}
               </ul>
-              <button
-                type="button"
-                onClick={() => checkoutPlan(plan.id)}
-                className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}
-              >
+              <button type="button" onClick={() => checkoutPlan(plan.id)} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
                 Buy {plan.name}
               </button>
             </article>
@@ -685,7 +897,7 @@ export default function HostYourCTF() {
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:px-8">
           <div>
             <SiteIcon name="windows" size={64} alt="" />
-            <h2 className={`${h2} mt-4`}>Every build comes with a host dashboard.</h2>
+            <h2 className={`${h2} mt-4`}>Every round comes with a host dashboard.</h2>
             <p className="mt-3 text-sm leading-6 text-muted">Watch the board, manage teams and send certificates from one screen.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -730,10 +942,11 @@ export default function HostYourCTF() {
             <div className="flex-1">
               <div className="font-display text-xl text-lime">
                 {money(total)}
-                {build.custom && <span className="text-sm text-muted"> +</span>}
+                {build.custom && <span className="text-sm text-muted"> +</span>}{" "}
+                <Local usd={total} className="font-sans text-xs font-normal text-muted" />
               </div>
               <div className="text-[11px] text-muted">
-                {challengeCount} challenges · {build.hours}h hosting
+                {challengeCount} challenges · {build.format === "split" ? "2 rounds" : `${totalHours}h`}
               </div>
             </div>
             <button type="button" onClick={checkoutBuild} className="btn btn-lime">
@@ -786,6 +999,7 @@ export default function HostYourCTF() {
                         {order.quoted ? " +" : ""}
                       </span>
                     </div>
+                    <Local usd={order.total} className="mt-1 block text-right text-xs text-muted" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -855,7 +1069,7 @@ export default function HostYourCTF() {
                     {submitting ? "Placing order..." : `Place order · ${money(order.total)}${order.quoted ? " +" : ""}`}
                   </button>
                   <p className="mt-2.5 text-center text-xs text-muted">
-                    You won't be charged now. We confirm your date and email a secure payment link.
+                    You won't be charged now. We confirm your date and email a secure payment link in USD.
                   </p>
                 </footer>
               </form>

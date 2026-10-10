@@ -124,8 +124,12 @@ export const builderCategories: BuilderCategory[] = [
 ];
 
 export const builderPricing = {
-  hosting: { usd: 49, hours: 8 }, // always in every build
-  extraHourUsd: 13,
-  maxHours: 24,
+  hosting: { usd: 49, hours: 8, players: 1000 }, // always in every build (per round)
+  extraHourUsd: 2,
+  maxHours: 72,
+  extraPlayersUsd: 19, // per extra block of 1,000 players
+  playerBlock: 1000,
+  maxPlayers: 50000,
+  maxPerTier: 50,
   website3dUsd: 40,
 };
