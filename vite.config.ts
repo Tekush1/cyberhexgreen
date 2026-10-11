@@ -59,18 +59,20 @@ export default defineConfig({
     // Split chunks for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'animation-vendor': ['framer-motion', 'gsap'],
-          'router': ['react-router-dom'],
-          'ui': ['lucide-react'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('@supabase')) return 'supabase';
+          if (id.includes('framer-motion') || id.includes('gsap')) return 'animation-vendor';
+          if (id.includes('react-router') || id.includes('@remix-run')) return 'router';
+          if (id.includes('lucide-react')) return 'ui';
+          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) return 'react-vendor';
         },
       },
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
     // Generate source maps for production debugging
-    sourcemap: true,
+    sourcemap: false,
     // Optimize CSS
     cssCodeSplit: true,
     // Enable asset optimization

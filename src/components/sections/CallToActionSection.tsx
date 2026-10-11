@@ -18,7 +18,7 @@ export const CallToActionSection = () => (
             Tell us your date and we'll take it from there.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <Link to="/host-your-ctf#build" className="btn btn-lime group">
+            <Link to="/host-your-ctf#packages" className="btn btn-lime group">
               Build my CTF <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link to="/contact" className="btn btn-ghost">

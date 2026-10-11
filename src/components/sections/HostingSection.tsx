@@ -27,7 +27,7 @@ export const HostingSection = () => (
       {/* Builder banner */}
       <Reveal delay={0.1} className="mt-12">
         <Link
-          to="/host-your-ctf#build"
+          to="/host-your-ctf#packages"
           className="sticker sticker-glow lift shine group relative grid items-center gap-6 overflow-hidden p-6 sm:p-8 md:grid-cols-[auto_1fr_auto]"
         >
           <div className="flex -space-x-3">

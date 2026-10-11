@@ -3,9 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
 import { LoadingSpinner } from './components/shared/LoadingSpinner';
-import { HiringPopup } from './components/HiringPopup';
 import { HiringBanner } from './components/HiringBanner';
-import HostYourCTF from "./pages/HostYourCTF";
 
 // Lazy load pages
 const HomePage = lazy(() => import('./pages/HomePage').then(module => ({ default: module.HomePage })));
@@ -28,6 +26,8 @@ const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollaborationsPage = lazy(() => import('./pages/CollaborationsPage'));
 const BookInterviewPage = lazy(() => import('./pages/BookInterviewPage'));
+const HostYourCTF = lazy(() => import('./pages/HostYourCTF'));
+const HiringPopup = lazy(() => import('./components/HiringPopup').then(m => ({ default: m.HiringPopup })));
 
 // Scroll to top on page change, or to #section when the link carries a hash.
 function ScrollManager() {
@@ -98,7 +98,11 @@ function App() {
         
         {/* Hiring Components */}
         <HiringBanner />
-        <HiringPopup isOpen={isHiringPopupOpen} onClose={closeHiringPopup} />
+        {isHiringPopupOpen && (
+          <Suspense fallback={null}>
+            <HiringPopup isOpen={isHiringPopupOpen} onClose={closeHiringPopup} />
+          </Suspense>
+        )}
       </div>
     </Router>
   );

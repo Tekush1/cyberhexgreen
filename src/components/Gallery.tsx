@@ -260,7 +260,7 @@ export const Gallery = () => {
                 Build your own CTF challenge by challenge. Hosting and the live scoreboard start at ${builderPricing.hosting.usd}.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <Link to="/host-your-ctf#build" className="btn btn-lime group">
+                <Link to="/host-your-ctf#packages" className="btn btn-lime group">
                   Build your CTF <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <Link to="/host-your-ctf#prebuilt" className="btn btn-ghost">

@@ -140,7 +140,7 @@ export const Navigation = () => {
             )}
           </div>
 
-          <Link to="/host-your-ctf#build" className="btn btn-lime ml-3 !min-h-[44px] !px-5 !text-sm">
+          <Link to="/host-your-ctf#packages" className="btn btn-lime ml-3 !min-h-[44px] !px-5 !text-sm">
             See pricing
           </Link>
         </div>
@@ -208,7 +208,7 @@ export const Navigation = () => {
 
           <div className="relative mt-auto pt-24">
             <Mascot pose="jump" alt="" className="absolute -top-2 right-2 w-32" />
-            <Link to="/host-your-ctf#build" className="btn btn-lime w-full">
+            <Link to="/host-your-ctf#packages" className="btn btn-lime w-full">
               See hosting pricing
             </Link>
           </div>

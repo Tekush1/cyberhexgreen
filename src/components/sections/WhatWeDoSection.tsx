@@ -46,7 +46,7 @@ export const WhatWeDoSection = () => {
         <div className="mt-12 grid gap-5 lg:grid-cols-[1.15fr_1fr]">
           {/* Build your CTF */}
           <Link
-            to="/host-your-ctf#build"
+            to="/host-your-ctf#packages"
             className="sticker sticker-lime lift group relative grid gap-6 overflow-hidden p-6 sm:grid-cols-[1fr_15rem] sm:p-8"
           >
             <div className="flex flex-col">

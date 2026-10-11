@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Check, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
 import { Mascot } from "../components/shared/Mascot";
 import { Local } from "../components/shared/Local";
@@ -183,11 +183,67 @@ const dashboardFeatures: { icon: IconName; title: string; description: string }[
 ];
 
 const steps = [
-  { n: "01", title: "Build it", text: "Pick rounds, challenge types, difficulty, hours and players." },
+  { n: "01", title: "Pick a package", text: "Choose Beginner, Pro or Max, or build a custom CTF." },
   { n: "02", title: "Check out", text: "Tell us your event name, date and theme." },
   { n: "03", title: "Pay and confirm", text: "We email a payment link and lock your date." },
   { n: "04", title: "Go live", text: "We build every challenge, you run it from the dashboard." },
 ];
+
+/* ---------- package breakdown (compare table) ---------- */
+type Cell = boolean | string;
+const compareCols = [
+  { id: "hosting", name: "Hosting only", usd: P.hosting.usd },
+  ...plans.map((p) => ({ id: p.id, name: p.name, usd: p.usd })),
+];
+const compareRows: { label: string; cells: Cell[] }[] = [
+  { label: "Event length", cells: [`${P.hosting.hours}h`, `${P.hosting.hours}h`, `${P.hosting.hours}h`, `${P.hosting.hours}h`] },
+  { label: "Players included", cells: Array(4).fill(`Up to ${P.hosting.players.toLocaleString("en-US")}`) },
+  { label: "Live scoreboard + host dashboard", cells: [true, true, true, true] },
+  { label: "Certificates for players", cells: [true, true, true, true] },
+  { label: "Ready-made challenges", cells: ["Bring your own", "25", "40", "40"] },
+  { label: "Difficulty", cells: ["—", "Easy to medium", "Medium to hard", "Medium to hard"] },
+  { label: "Categories", cells: ["—", "Web, Steg, Forensics, OSINT, Crypto", "Pwn, Web, Boot2Root", "Pwn, Web, Boot2Root"] },
+  { label: "CyberHx chained challenge", cells: [false, false, true, true] },
+  { label: "3D event website", cells: [false, false, false, true] },
+  { label: "Custom challenges for your theme", cells: [false, false, false, true] },
+  { label: "Extra hours / players", cells: Array(4).fill(`+$${P.extraHourUsd}/h · +$${P.extraPlayersUsd} per 1k`) },
+];
+
+/* ---------- why CyberHx (facts from our own offer, no made-up stats) ---------- */
+const whyPoints: { icon: IconName; title: string; text: string }[] = [
+  { icon: "code", title: "Challenges included, not just a platform", text: "Most hosting gives you an empty scoreboard. Our packages ship with 25 to 40 challenges already built and tested." },
+  { icon: "trophy", title: "Our own chained challenge", text: "Pro and Max include the CyberHx chained challenge: OSINT, Forensics and Crypto linked into one run." },
+  { icon: "gauge", title: "Clear prices up front", text: `Packages from $${plans[0].usd}. Hosting from $${P.hosting.usd}. Every add-on is priced on this page.` },
+  { icon: "lock-key", title: "No payment to order", text: "Place the order, we confirm your date, then email a secure payment link. Nothing is charged at checkout." },
+  { icon: "hacker-team" as IconName, title: "Scales with your event", text: `Up to ${P.hosting.players.toLocaleString("en-US")} players included, and up to ${P.maxPlayers.toLocaleString("en-US")} if you need more.` },
+  { icon: "podium", title: "Run it yourself on the day", text: "Live scoreboard, team management, challenge control and certificates from one dashboard." },
+];
+
+const altCols = ["CyberHx package", "Self-host an open-source platform", "Hosting-only service"];
+const altRows: { label: string; cells: Cell[] }[] = [
+  { label: "Server setup and uptime", cells: ["Done for you", "Your job", "Done for you"] },
+  { label: "Challenges written and tested", cells: [true, false, false] },
+  { label: "Themed or custom challenges", cells: ["Max package", "If you write them", "Rarely"] },
+  { label: "Event website", cells: ["3D site in Max", false, false] },
+  { label: "Certificates", cells: [true, "Plugins / manual", "Varies"] },
+  { label: "Price known before you order", cells: [true, "Server costs vary", "Varies"] },
+];
+
+const faqs = [
+  { q: "Do I pay when I place the order?", a: "No. We confirm your event date first, then email a secure payment link. Prices are charged in USD." },
+  { q: "Which package should I pick?", a: "First CTF for a club or class: Beginner. A fest with a real leaderboard fight: Pro. You want your own look and custom challenges: Max." },
+  { q: "Can I bring my own challenges?", a: `Yes. Pick Hosting only for $${P.hosting.usd} and we run the platform and scoreboard.` },
+  { q: "Need more hours, more players or two rounds?", a: "Use the custom builder below. It lets you set hours, players, a qualifier plus finale, and every challenge type." },
+];
+
+const Mark = ({ v }: { v: Cell }) =>
+  v === true ? (
+    <Check size={17} className="mx-auto text-lime" aria-label="Included" />
+  ) : v === false ? (
+    <Minus size={17} className="mx-auto text-white/25" aria-label="Not included" />
+  ) : (
+    <span className="text-white/85">{v}</span>
+  );
 
 const inputCls =
   "w-full rounded-lg border border-line bg-ink px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-lime";
@@ -245,6 +301,15 @@ export default function HostYourCTF() {
   const [error, setError] = React.useState(false);
   const [orderId, setOrderId] = React.useState("");
   const currency = useLocalCurrency();
+  const [showBuilder, setShowBuilder] = React.useState(() => typeof window !== "undefined" && window.location.hash === "#build");
+
+  React.useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash === "#build") setShowBuilder(true);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   React.useEffect(() => {
     try {
@@ -365,6 +430,17 @@ export default function HostYourCTF() {
       title: `${p.name} prebuilt`,
       lines: [{ label: `${p.name} prebuilt CTF`, usd: p.usd, icon: p.icon }],
       total: p.usd,
+      quoted: false,
+    });
+    setError(false);
+    setDrawer("checkout");
+  };
+
+  const checkoutHosting = () => {
+    setOrder({
+      title: "Hosting only",
+      lines: [{ label: `Hosting + scoreboard (${P.hosting.hours}h, up to ${players(P.hosting.players)} players)`, usd: P.hosting.usd, icon: "cloud" }],
+      total: P.hosting.usd,
       quoted: false,
     });
     setError(false);
@@ -557,8 +633,8 @@ export default function HostYourCTF() {
   return (
     <div className="min-h-screen overflow-x-clip bg-ink pb-24 pt-16 text-white sm:pt-[72px] lg:pb-0">
       <Seo
-        title="Host Your CTF — Build a Custom Capture-the-Flag Event | CyberHx"
-        description="Build your own CTF like a PC: pick challenge types, difficulty, hours and players. Hosting and a live scoreboard from $49. Run one round or a qualifier plus grand finale."
+        title="Host Your CTF — Ready-made CTF Packages from $89 | CyberHx"
+        description="Buy a ready-made CTF for your college or company: hosting, live scoreboard and 25 to 40 tested challenges from $89. Compare packages or build your own."
         path="/host-your-ctf"
         keywords="host a ctf, buy ctf challenges, ctf hosting india, college ctf event, capture the flag platform"
       />
@@ -567,9 +643,10 @@ export default function HostYourCTF() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5 sm:px-6 lg:px-8">
           <nav className="hide-scrollbar flex items-center gap-1 overflow-x-auto">
             {[
-              ["#build", "Builder"],
-              ["#prebuilt", "Prebuilt"],
-              ["#how-it-works", "How it works"],
+              ["#packages", "Packages"],
+              ["#compare", "Compare"],
+              ["#why", "Why CyberHx"],
+              ["#build", "Custom build"],
             ].map(([href, label]) => (
               <a key={href} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition hover:bg-white/[0.05] hover:text-white">
                 {label}
@@ -577,48 +654,220 @@ export default function HostYourCTF() {
             ))}
           </nav>
           <a
-            href="#build"
-            className="flex shrink-0 items-center gap-2 rounded-lg border-2 border-lime px-3.5 py-1.5 text-sm font-semibold text-lime transition hover:bg-lime hover:text-ink"
+            href="#packages"
+            className="hidden shrink-0 items-center gap-2 rounded-lg border-2 border-lime px-3.5 py-1.5 text-sm font-semibold text-lime transition hover:bg-lime hover:text-ink sm:flex"
           >
-            Build <span className="font-mono">{money(total)}</span>
+            From <span className="font-mono">{money(plans[0].usd)}</span>
           </a>
         </div>
       </div>
 
       {/* Hero */}
-      <section className="mx-auto max-w-7xl px-5 pb-12 pt-12 sm:px-6 lg:px-8 lg:pb-14 lg:pt-16">
+      <section className="mx-auto max-w-7xl px-5 pb-10 pt-12 sm:px-6 lg:px-8 lg:pt-16">
         <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <h1 className="font-display text-[2.4rem] leading-[1.02] sm:text-5xl lg:text-6xl">
-              Build your CTF
-              <span className="block text-white/35">part by part.</span>
+              Your CTF, ready to run.
+              <span className="block text-white/35">Pick a package. We do the rest.</span>
             </h1>
             <p className="mt-6 max-w-lg leading-7 text-muted">
-              Like building a PC: pick challenge types and difficulty, set hours and player count, and split it into a
-              qualifier and a grand finale if you want. Hosting and the live scoreboard come with every round from{" "}
-              {money(P.hosting.usd)} <Local usd={P.hosting.usd} />.
+              Hosting, a live scoreboard and tested challenges in one price. Choose a package, tell us your date, and pay
+              only after we confirm it.
             </p>
+            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
+              {["No payment to order", "Challenges included", `Up to ${players(P.hosting.players)} players`].map((t) => (
+                <li key={t} className="flex items-center gap-2">
+                  <Check size={15} className="text-lime" /> {t}
+                </li>
+              ))}
+            </ul>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#build" className="btn btn-lime">
-                Start building
+              <a href="#packages" className="btn btn-lime">
+                See packages <ArrowRight size={16} />
               </a>
-              <a href="#prebuilt" className="btn btn-ghost">
-                See prebuilt CTFs
+              <a href="#compare" className="btn btn-ghost">
+                Compare them
               </a>
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-xs">
+          <div className="relative mx-auto hidden w-full max-w-xs sm:block">
             <div className="absolute inset-x-4 bottom-0 top-14 rounded-3xl border-2 border-line bg-panel" />
             <Mascot pose="thumbs" alt="CyberHx mascot giving a thumbs up" eager className="mascot-pop relative mx-auto w-60 lg:w-64" />
           </div>
         </div>
       </section>
 
+      {/* Packages */}
+      <section id="packages" className="mx-auto max-w-7xl scroll-mt-32 px-5 pb-20 pt-6 sm:px-6 lg:px-8">
+        <h2 className={h2}>Choose your package</h2>
+        <p className="mt-2 text-sm text-muted">Single-round CTFs with hosting included. Prices in USD.</p>
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <article key={plan.id} className={`sticker relative flex flex-col p-6 ${plan.featured ? "sticker-lime" : ""}`}>
+              {plan.featured && (
+                <span className="absolute -top-3 left-6 rounded-md bg-lime px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-ink">Most picked</span>
+              )}
+              <div className="flex items-start justify-between">
+                <SiteIcon name={plan.icon} size={60} alt="" />
+                <div className="text-right">
+                  <div className={`font-display text-4xl ${plan.featured ? "text-lime" : "text-white"}`}>${plan.usd}</div>
+                  <Local usd={plan.usd} className="text-xs text-muted" />
+                </div>
+              </div>
+              <h3 className="font-display mt-4 text-xl">{plan.name}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">{plan.blurb}</p>
+              <ul className="mt-5 flex-1 space-y-2.5 border-t border-line pt-5">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-white/85">
+                    <Check size={15} className="mt-0.5 shrink-0 text-lime" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button type="button" onClick={() => checkoutPlan(plan.id)} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
+                Buy {plan.name} <ArrowRight size={16} />
+              </button>
+            </article>
+          ))}
+        </div>
+        <div className="mt-5 flex flex-col items-start justify-between gap-4 rounded-2xl border-2 border-dashed border-line p-5 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4">
+            <SiteIcon name="cloud" size={44} alt="" />
+            <div>
+              <p className="font-semibold">Have your own challenges?</p>
+              <p className="text-sm text-muted">
+                Hosting only: platform, scoreboard and dashboard for {P.hosting.hours}h. {money(P.hosting.usd)} <Local usd={P.hosting.usd} />
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={checkoutHosting} className="btn btn-ghost shrink-0">
+            Buy hosting only
+          </button>
+        </div>
+        <p className="mt-6 text-center text-xs text-muted">You won't be charged at checkout. We confirm your date, then email a secure payment link.</p>
+      </section>
+
+      {/* Compare */}
+      <section id="compare" className="scroll-mt-32 border-y border-line bg-panel/30">
+        <div className="mx-auto max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
+          <h2 className={h2}>What you get in each package</h2>
+          <p className="mt-2 text-sm text-muted">The full breakdown, side by side.</p>
+          <div className="mt-10 overflow-x-auto rounded-2xl border-2 border-line bg-ink">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b-2 border-line">
+                  <th scope="col" className="w-[28%] px-5 py-4 text-left font-normal text-muted">Package</th>
+                  {compareCols.map((c) => (
+                    <th key={c.id} scope="col" className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
+                      <span className="block font-display text-lg text-white">{c.name}</span>
+                      <span className={`block font-mono ${c.id === "pro" ? "text-lime" : "text-white/70"}`}>{money(c.usd)}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {compareRows.map((r) => (
+                  <tr key={r.label} className="border-b border-line last:border-0">
+                    <th scope="row" className="px-5 py-3.5 text-left font-normal text-white/70">{r.label}</th>
+                    {r.cells.map((v, i) => (
+                      <td key={i} className={`px-4 py-3.5 text-center ${compareCols[i].id === "pro" ? "bg-lime/[0.06]" : ""}`}>
+                        <Mark v={v} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+                <tr>
+                  <td className="px-5 py-4" />
+                  {compareCols.map((c) => (
+                    <td key={c.id} className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
+                      <button
+                        type="button"
+                        onClick={() => (c.id === "hosting" ? checkoutHosting() : checkoutPlan(c.id))}
+                        className={`btn w-full !min-h-[40px] !text-sm ${c.id === "pro" ? "btn-lime" : "btn-ghost"}`}
+                      >
+                        Buy
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Why CyberHx */}
+      <section id="why" className="mx-auto max-w-7xl scroll-mt-32 px-5 py-20 sm:px-6 lg:px-8">
+        <h2 className={h2}>Why teams pick CyberHx</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted">
+          A CTF needs three things: a platform that stays up, good challenges, and someone to run it. Most options give you
+          one. Our packages give you all three.
+        </p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {whyPoints.map((w) => (
+            <div key={w.title} className="flex gap-4 rounded-2xl border-2 border-line bg-ink p-5">
+              <SiteIcon name={w.icon} size={44} alt="" />
+              <div>
+                <h3 className="font-semibold">{w.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-muted">{w.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h3 className="font-display mt-16 text-2xl">CyberHx vs the other ways to run a CTF</h3>
+        <div className="mt-6 overflow-x-auto rounded-2xl border-2 border-line bg-ink">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b-2 border-line">
+                <th scope="col" className="w-[30%] px-5 py-4 text-left font-normal text-muted" />
+                {altCols.map((c, i) => (
+                  <th key={c} scope="col" className={`px-4 py-4 text-center font-semibold ${i === 0 ? "bg-lime/[0.06] text-lime" : "text-white/80"}`}>
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {altRows.map((r) => (
+                <tr key={r.label} className="border-b border-line last:border-0">
+                  <th scope="row" className="px-5 py-3.5 text-left font-normal text-white/70">{r.label}</th>
+                  {r.cells.map((v, i) => (
+                    <td key={i} className={`px-4 py-3.5 text-center ${i === 0 ? "bg-lime/[0.06]" : ""}`}>
+                      <Mark v={v} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* Builder */}
       <section id="build" className="scroll-mt-32 border-t border-line bg-panel/30">
         <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-8 lg:py-16">
-          <h2 className={h2}>Pick your parts</h2>
-          <p className="mt-2 text-sm text-muted">Prices are in USD, per challenge. Start from a quick build and tweak it, or start empty.</p>
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <h2 className={h2}>Need something custom?</h2>
+              <p className="mt-2 max-w-xl text-sm text-muted">
+                More hours, more players, a qualifier plus grand finale, or your own challenge mix. Build it part by part and
+                see the price as you go.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowBuilder((v) => !v)}
+              aria-expanded={showBuilder}
+              className="btn btn-ghost shrink-0"
+            >
+              {showBuilder ? "Hide the builder" : "Open the builder"}
+              <ChevronDown size={16} className={`transition ${showBuilder ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+
+          {showBuilder && (
+          <>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {presets.map((p) => (
@@ -876,41 +1125,8 @@ export default function HostYourCTF() {
 
           {/* Summary on small screens */}
           <div className="mt-8 lg:hidden">{summary}</div>
-        </div>
-      </section>
-
-      {/* Prebuilt */}
-      <section id="prebuilt" className="mx-auto max-w-7xl scroll-mt-32 px-5 py-20 sm:px-6 lg:px-8">
-        <h2 className={h2}>Or grab a prebuilt</h2>
-        <p className="mt-2 text-sm text-muted">Ready-made single-round CTFs with hosting included. One click to checkout.</p>
-        <div className="mt-10 grid gap-5 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <article key={plan.id} className={`sticker relative flex flex-col p-6 ${plan.featured ? "sticker-lime" : ""}`}>
-              {plan.featured && (
-                <span className="absolute -top-3 left-6 rounded-md bg-lime px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-ink">Most picked</span>
-              )}
-              <div className="flex items-start justify-between">
-                <SiteIcon name={plan.icon} size={60} alt="" />
-                <div className="text-right">
-                  <div className={`font-display text-4xl ${plan.featured ? "text-lime" : "text-white"}`}>${plan.usd}</div>
-                  <Local usd={plan.usd} className="text-xs text-muted" />
-                </div>
-              </div>
-              <h3 className="font-display mt-4 text-xl">{plan.name}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">{plan.blurb}</p>
-              <ul className="mt-5 flex-1 space-y-2.5 border-t border-line pt-5">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-white/85">
-                    <Check size={15} className="mt-0.5 shrink-0 text-lime" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button type="button" onClick={() => checkoutPlan(plan.id)} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
-                Buy {plan.name}
-              </button>
-            </article>
-          ))}
+          </>
+          )}
         </div>
       </section>
 
@@ -948,7 +1164,21 @@ export default function HostYourCTF() {
             </li>
           ))}
         </ol>
-        <p className="mt-6 text-sm text-muted">
+        <div className="mt-16 grid gap-10 lg:grid-cols-[0.6fr_1.4fr]">
+          <h2 className={h2}>Questions</h2>
+          <div className="divide-y-2 divide-line rounded-2xl border-2 border-line bg-ink">
+            {faqs.map((f) => (
+              <details key={f.q} className="group px-5 py-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+                  {f.q}
+                  <ChevronDown size={16} className="shrink-0 text-muted transition group-open:rotate-180" />
+                </summary>
+                <p className="mt-2 text-sm leading-6 text-muted">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+        <p className="mt-10 text-sm text-muted">
           Need something else?{" "}
           <a href="/contact" className="font-semibold text-lime underline-offset-4 hover:underline">
             Talk to us first
@@ -958,7 +1188,7 @@ export default function HostYourCTF() {
       </section>
 
       {/* Mobile build bar */}
-      {drawer === "closed" && (
+      {drawer === "closed" && showBuilder && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-ink/95 p-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-3">
             <div className="flex-1">
@@ -990,7 +1220,7 @@ export default function HostYourCTF() {
                     type="button"
                     onClick={() => setDrawer("closed")}
                     className="rounded p-1 text-muted hover:text-white"
-                    aria-label="Back to builder"
+                    aria-label="Back"
                   >
                     <ArrowLeft size={18} />
                   </button>
@@ -1106,7 +1336,7 @@ export default function HostYourCTF() {
                   payment link and confirm your event date within a day.
                 </p>
                 <button type="button" onClick={() => setDrawer("closed")} className="btn btn-ghost mt-6">
-                  Back to the builder
+                  Close
                 </button>
               </div>
             )}
