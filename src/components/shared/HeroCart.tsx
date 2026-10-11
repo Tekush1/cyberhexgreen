@@ -95,15 +95,6 @@ export const HeroCart = () => {
         </div>
       </div>
 
-      {/* floating glass chips (true facts only) */}
-      <div className="cart-chip left-[-6%] top-[12%]" style={{ animationDelay: '1.9s' }}>
-        <span className="cart-chip-dot bg-lime" />
-        25–40 challenges included
-      </div>
-      <div className="cart-chip right-[-6%] top-[66%]" style={{ animationDelay: '2.15s' }}>
-        <span className="cart-chip-dot bg-glow" />
-        Pay after we confirm
-      </div>
     </div>
   );
 };
