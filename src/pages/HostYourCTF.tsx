@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
-import { Mascot } from "../components/shared/Mascot";
+import { HeroCart } from "../components/shared/HeroCart";
 import { ShopMascot, type ShopFrame } from "../components/shared/ShopMascot";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
@@ -813,9 +813,8 @@ export default function HostYourCTF() {
               </a>
             </div>
           </div>
-          <div className="relative mx-auto hidden w-full max-w-xs sm:block">
-            <div className="absolute inset-x-4 bottom-0 top-14 card-ob rounded-3xl" />
-            <Mascot pose="thumbs" alt="CyberHx mascot giving a thumbs up" eager className="mascot-pop relative mx-auto w-60 lg:w-64" />
+          <div className="hidden pt-6 sm:block">
+            <HeroCart />
           </div>
         </div>
       </section>

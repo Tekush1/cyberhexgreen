@@ -638,3 +638,50 @@ img[loading="lazy"] { transition: filter 0.3s; }
   .shop-enter, .shop-float, .shop-aura, .shop-ring, .shop-beam, .shop-frame-in, .shop-frame-out, .shop-count, .shop-trail i { animation: none !important; }
   .shop-trail, .shop-confetti, .shop-frame-out { display: none; }
 }
+
+/* ===== Host Your CTF hero cart (src/components/shared/HeroCart.tsx) ===== */
+.cart-enter { animation: shop-enter 1.7s cubic-bezier(.22,.8,.24,1) .15s both; }
+.cart-trail { position: absolute; right: 74%; top: 0; bottom: 8%; width: 95%; pointer-events: none; }
+.cart-trail i { position: absolute; right: 0; height: 3px; border-radius: 9px; transform-origin: right center; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(59,211,255,.9) 60%, #c6f135);
+  box-shadow: 0 0 10px rgba(59,211,255,.8), 0 0 22px rgba(198,241,53,.45);
+  animation: shop-trail 1.7s ease-out .15s both; }
+.cart-trail i:nth-child(even) { background: linear-gradient(90deg, transparent, rgba(198,241,53,.9) 60%, #3bd3ff); }
+
+.cart-stage { position: relative; perspective: 1000px; }
+.cart-tilt { transform-style: preserve-3d; transition: transform .6s cubic-bezier(.2,.8,.2,1); will-change: transform; }
+.cart-float { animation: shop-float 4.2s ease-in-out 2s infinite; }
+.cart-img { filter: drop-shadow(0 0 14px rgba(59,211,255,.45)) drop-shadow(0 0 40px rgba(59,211,255,.18)) drop-shadow(0 28px 34px rgba(0,0,0,.6)); }
+
+/* holographic sweep across the artwork */
+.cart-sheen { position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+.cart-sheen i { position: absolute; top: -20%; bottom: -20%; left: 0; width: 55%;
+  background: linear-gradient(105deg, transparent 20%, rgba(198,241,53,.0) 30%, rgba(255,255,255,.5) 48%, rgba(59,211,255,.45) 56%, transparent 72%);
+  mix-blend-mode: screen; transform: translateX(-130%) skewX(-12deg);
+  animation: cart-sheen 6s cubic-bezier(.4,0,.2,1) 2.4s infinite; }
+@keyframes cart-sheen { 0% { transform: translateX(-130%) skewX(-12deg); } 28%, 100% { transform: translateX(240%) skewX(-12deg); } }
+
+/* spotlight cone from above */
+.cart-spot { position: absolute; left: 50%; top: -18%; width: 78%; height: 112%; translate: -50% 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(59,211,255,.2), rgba(198,241,53,.06) 55%, transparent 85%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%); filter: blur(6px);
+  animation: shop-pulse 4s ease-in-out infinite; }
+
+/* glass info chips */
+.cart-chip { position: absolute; z-index: 3; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  padding: 8px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 700; color: #eaf2ff;
+  background: linear-gradient(180deg, rgba(20,30,54,.78), rgba(9,13,26,.78));
+  border: 1px solid rgba(255,255,255,.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 18px 40px -18px rgba(0,0,0,.9);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  animation: cart-chip-in .7s cubic-bezier(.2,.8,.2,1) both, cart-chip-float 5s ease-in-out infinite; }
+.cart-chip + .cart-chip { animation-duration: .7s, 6s; }
+.cart-chip-dot { width: 7px; height: 7px; border-radius: 999px; box-shadow: 0 0 10px currentColor; }
+.cart-chip-dot.bg-lime { color: #c6f135; } .cart-chip-dot.bg-glow { color: #3bd3ff; }
+@keyframes cart-chip-in { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes cart-chip-float { 0%,100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-enter, .cart-float, .cart-spot, .cart-chip, .cart-trail i, .cart-sheen i { animation: none !important; }
+  .cart-trail, .cart-sheen { display: none; }
+}
