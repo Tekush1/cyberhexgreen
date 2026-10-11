@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PenLine, Search, X } from 'lucide-react';
-import { Mascot } from '../../components/shared/Mascot';
 import { explain, isConfigured, listCategories, listPosts, PAGE_SIZE, type Category, type PostCard as Card } from './api';
 import { Byline, CardSkeleton, Cover, PostCard } from './PostCard';
 import { Seo } from '../seo/Seo';
+import { BlogCompanion } from './BlogCompanion';
 
 export default function BlogListPage() {
   const [params, setParams] = useSearchParams();
@@ -140,6 +140,7 @@ export default function BlogListPage() {
             <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40" />
             <input
               value={search}
+              data-companion="search"
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search posts"
               className="w-full rounded-full border border-black/10 bg-white py-2.5 pl-10 pr-9 text-sm text-ink shadow-sm outline-none transition placeholder:text-ink/35 focus:border-lime focus:ring-2 focus:ring-lime/30"
@@ -190,8 +191,7 @@ export default function BlogListPage() {
 
           {state === 'error' && (
             <div className="rounded-3xl border border-black/[0.07] bg-[#f4f6f1] p-10 text-center">
-              <Mascot pose="crying" alt="" className="mx-auto w-32" />
-              <h2 className="font-display mt-4 text-2xl text-ink">The blog couldn't load</h2>
+              <h2 className="font-display text-2xl text-ink">The blog couldn't load</h2>
               <p className="mx-auto mt-2 max-w-md text-ink/55">{error}</p>
               {isConfigured() && (
                 <button type="button" onClick={() => load(1)} className="btn-light-ghost mt-6">Try again</button>
@@ -201,10 +201,9 @@ export default function BlogListPage() {
 
           {(state === 'ready' || state === 'more') && posts.length === 0 && (
             <div className="rounded-3xl border border-dashed border-black/15 p-12 text-center">
-              <Mascot pose={filtering ? 'confused' : 'point'} alt="" className="mx-auto w-32" />
               {filtering ? (
                 <>
-                  <h2 className="font-display mt-4 text-2xl text-ink">No posts match that</h2>
+                  <h2 className="font-display text-2xl text-ink">No posts match that</h2>
                   <p className="mt-2 text-ink/55">Try another word or category.</p>
                   <button type="button" onClick={clearAll} className="btn-light-ghost mt-6">Clear filters</button>
                 </>
@@ -258,6 +257,7 @@ export default function BlogListPage() {
           )}
         </div>
       </div>
+      <BlogCompanion signals={{ mode: 'list', state, total: Math.max(total, posts.length), filtering, q, category, tag }} />
     </div>
   );
 }

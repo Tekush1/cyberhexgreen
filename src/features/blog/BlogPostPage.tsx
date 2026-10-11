@@ -7,6 +7,7 @@ import { addView, checkAdmin, explain, getPost, likePost, relatedPosts, type Pos
 import { Byline, Cover, PostCard } from './PostCard';
 import { Seo, breadcrumbLd, SITE } from '../seo/Seo';
 import { compactNumber, tocFrom } from './utils';
+import { BlogCompanion } from './BlogCompanion';
 
 const likedKey = (id: string) => `cyberhx-liked:${id}`;
 const safeGet = (k: string, store: Storage = localStorage) => {
@@ -143,9 +144,16 @@ export default function BlogPostPage() {
     }
   };
 
+  const companion = (
+    <BlogCompanion
+      signals={{ mode: 'post', state, liked, copied, progress: Math.round(progress * 100), minutes: post?.read_time || undefined }}
+    />
+  );
+
   if (state === 'loading') {
     return (
       <div className="min-h-screen bg-white pt-32">
+        {companion}
         <div className="mx-auto max-w-3xl space-y-4 px-5">
           <div className="h-4 w-24 animate-pulse rounded bg-black/[0.06]" />
           <div className="h-12 w-full animate-pulse rounded bg-black/[0.06]" />
@@ -329,6 +337,7 @@ export default function BlogPostPage() {
           </Link>
         </div>
       </section>
+      {companion}
     </div>
   );
 }

@@ -12,20 +12,25 @@ export type ShopSound =
   | 'enter' | 'discover' | 'pick' | 'add' | 'remove' | 'rush'
   | 'bill' | 'buy' | 'cheer' | 'ready' | 'sad' | 'toggle';
 
-const KEY = 'cyberhx-shop-sound';
+/* Each page area keeps its own on/off choice. The shop is on by default;
+   the blog is off by default (people are reading and writing there). */
+let KEY = 'cyberhx-shop-sound';
+let defaultOff = false;
 const MASTER = 0.22;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let verb: GainNode | null = null;
 let unlocked = false;
-let muted = (() => {
+const readMuted = () => {
   try {
-    return localStorage.getItem(KEY) === 'off';
+    const v = localStorage.getItem(KEY);
+    return v ? v === 'off' : defaultOff;
   } catch {
-    return false;
+    return defaultOff;
   }
-})();
+};
+let muted = readMuted();
 const lastPlayed: Partial<Record<ShopSound, number>> = {};
 const listeners = new Set<(m: boolean) => void>();
 
@@ -72,6 +77,15 @@ export function initShopSound() {
 }
 
 export const isMuted = () => muted;
+
+/** Switch to the sound settings of a page area ("shop" or "blog"). */
+export function setSoundScope(scope: 'shop' | 'blog') {
+  KEY = `cyberhx-${scope}-sound`;
+  defaultOff = scope === 'blog';
+  muted = readMuted();
+  if (ctx && master) master.gain.setTargetAtTime(muted ? 0 : MASTER, ctx.currentTime, 0.02);
+  listeners.forEach((fn) => fn(muted));
+}
 export function onMuteChange(fn: (m: boolean) => void) {
   listeners.add(fn);
   return () => listeners.delete(fn);

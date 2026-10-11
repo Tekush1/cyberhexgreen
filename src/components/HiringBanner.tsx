@@ -37,7 +37,7 @@ export const HiringBanner = () => {
     }
   };
 
-  const hidden = ['/host-your-ctf', '/blog/write', '/blog/edit', '/admin', '/contact'].some((p) => pathname.startsWith(p));
+  const hidden = ['/host-your-ctf', '/blog', '/admin', '/contact'].some((p) => pathname.startsWith(p));
   if (dismissed || hidden) return null;
 
   return (

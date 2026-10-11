@@ -16,11 +16,13 @@ const FRAMES: ShopFrame[] = [
   'enter', 'arrive', 'discover', 'pick', 'rush', 'bill', 'buy', 'cheer', 'ready',
   'add-1', 'add-2', 'fill', 'success', 'sad', 'idle',
 ];
-const src = (f: ShopFrame) => `/mascots/shop/${f}.webp`;
+
 
 const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+/** Shared mascot stage. The shop uses it as-is; the blog passes its own folder,
+    frames and tag (see BlogCompanion). */
 export const ShopMascot = ({
   frame,
   bubble,
@@ -29,8 +31,20 @@ export const ShopMascot = ({
   beside = false,
   hidden = false,
   raised = false,
+  folder = '/mascots/shop',
+  frames = FRAMES,
+  tag = 'Live · Orders open',
+  stickyFrames = ['bill'],
 }: {
-  frame: ShopFrame;
+  frame: string;
+  /** Where the frame images live, e.g. "/mascots/blog". */
+  folder?: string;
+  /** Every frame this mascot can show (preloaded after first paint). */
+  frames?: readonly string[];
+  /** Small glowing label under the platform. */
+  tag?: string;
+  /** Frames whose bubble stays until the frame changes. */
+  stickyFrames?: readonly string[];
   /** Text for the speech bubble; change it (or `frame`) to show it again. */
   bubble?: string;
   /** Items in the trolley; shows a counter badge when above zero. */
@@ -45,7 +59,8 @@ export const ShopMascot = ({
 }) => {
   const tiltRef = useRef<HTMLDivElement>(null);
   const [hot, setHot] = useState(false);
-  const [shown, setShown] = useState<{ cur: ShopFrame; prev: ShopFrame | null; n: number }>({ cur: frame, prev: null, n: 0 });
+  const src = (f: string) => `${folder}/${f}.webp`;
+  const [shown, setShown] = useState<{ cur: string; prev: string | null; n: number }>({ cur: frame, prev: null, n: 0 });
   const [bubbleOn, setBubbleOn] = useState(false);
 
   // Frame change: keep the old frame underneath for a crossfade.
@@ -55,10 +70,11 @@ export const ShopMascot = ({
 
   // Load the other frames once the first one is on screen.
   useEffect(() => {
-    const go = () => FRAMES.forEach((f) => { const i = new Image(); i.decoding = 'async'; i.src = src(f); });
+    const go = () => frames.forEach((f) => { const i = new Image(); i.decoding = 'async'; i.src = src(f); });
     const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
     const t = window.setTimeout(() => (w.requestIdleCallback ? w.requestIdleCallback(go) : go()), 1200);
     return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Speech bubble: show on every new message, hide after a while.
@@ -68,10 +84,11 @@ export const ShopMascot = ({
       return;
     }
     setBubbleOn(true);
-    const sticky = frame === 'bill';
+    const sticky = stickyFrames.includes(frame);
     if (sticky) return;
     const t = window.setTimeout(() => setBubbleOn(false), 4200);
     return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bubble, frame]);
 
   // 3D tilt toward the cursor, brighter glow over a Buy button.
@@ -175,7 +192,7 @@ export const ShopMascot = ({
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-75" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime" />
         </span>
-        Live · Orders open
+        {tag}
       </span>
       </div>
     </div>

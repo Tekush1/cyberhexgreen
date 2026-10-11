@@ -24,6 +24,7 @@ import {
 import { Mascot } from '../../components/shared/Mascot';
 import { Markdown } from './Markdown';
 import { TEMPLATES, type Template } from './templates';
+import { BlogCompanion } from './BlogCompanion';
 import {
   checkAdmin,
   deletePost,
@@ -452,18 +453,30 @@ export default function EditorPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-ink px-5 pb-24 pt-32 text-center">
-        <Mascot pose="blogging" alt="" eager className="mascot-pop mx-auto w-48" />
-        <h1 className="font-display mt-6 text-4xl text-white">Sent for review.</h1>
+      <div className="relative isolate min-h-screen overflow-hidden bg-ink px-5 pb-24 pt-28 text-center">
+        <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-16 -z-10 h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(198,241,53,0.22),transparent_65%)]" />
+        <div aria-hidden="true" className="blog-confetti pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem]">
+          {Array.from({ length: 30 }, (_, i) => (
+            <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 10) * 0.12}s`, background: ['#c6f135', '#3bd3ff', '#ffc93c'][i % 3] }} />
+          ))}
+        </div>
+        <img
+          src="/mascots/blog/published.webp"
+          width={480}
+          height={480}
+          alt="CyberHx mascot celebrating a published post"
+          className="blog-celebrate mx-auto h-56 w-56 sm:h-64 sm:w-64"
+        />
+        <h1 className="font-display mt-4 text-4xl text-white sm:text-5xl">Sent for review.</h1>
         <p className="mx-auto mt-4 max-w-md leading-7 text-muted">
           Thanks for writing for CyberHx. An editor reads every post before it goes live. We'll email you at{' '}
           <span className="text-white">{email}</span> once it's published.
         </p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link to="/blog" className="btn btn-lime">Back to the blog</Link>
-          <button type="button" className="btn btn-ghost" onClick={() => { setSubmitted(false); startOver(); }}>
+          <button type="button" className="btn btn-lime" onClick={() => { setSubmitted(false); startOver(); }}>
             Write another
           </button>
+          <Link to="/blog" className="btn btn-ghost">Back to the blog</Link>
         </div>
       </div>
     );
@@ -570,7 +583,6 @@ export default function EditorPage() {
       ) : chooseTemplate ? (
         <div className="mx-auto max-w-5xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
           <div className="text-center">
-            <Mascot pose="blogging" alt="" eager className="mascot-pop mx-auto w-40 sm:w-48" />
             <h1 className="font-display mt-4 text-4xl sm:text-5xl">What are you writing?</h1>
             <p className="mt-3 text-muted">Pick a starting point. You can change anything after.</p>
           </div>
@@ -579,6 +591,7 @@ export default function EditorPage() {
               <button
                 key={t.id}
                 type="button"
+                data-tpl={t.id}
                 onClick={() => applyTemplate(t)}
                 className="group flex items-start gap-4 rounded-2xl border-2 border-line bg-panel p-5 text-left transition hover:-translate-y-0.5 hover:border-glow"
               >
@@ -807,6 +820,22 @@ export default function EditorPage() {
           </aside>
         </div>
       )}
+
+      <BlogCompanion
+        raised
+        signals={{
+          mode: 'editor',
+          choosing: chooseTemplate,
+          view,
+          hasTitle: !!draft.title.trim(),
+          words: draft.content.trim() ? draft.content.trim().split(/\s+/).length : 0,
+          hasCover: !!draft.cover_image,
+          uploads,
+          errors: errors.length,
+          busy,
+          dragging: coverDrag || bodyDrag,
+        }}
+      />
 
       {/* Mobile action bar */}
       <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t-2 border-line bg-ink/95 p-3 backdrop-blur sm:hidden">

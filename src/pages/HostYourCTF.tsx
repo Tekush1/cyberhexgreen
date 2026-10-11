@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
 import { HeroCart } from "../components/shared/HeroCart";
 import { ShopMascot, type ShopFrame } from "../components/shared/ShopMascot";
-import { initShopSound, playShopSound, type ShopSound } from "../lib/shopSound";
+import { initShopSound, playShopSound, setSoundScope, type ShopSound } from "../lib/shopSound";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
 import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
@@ -365,7 +365,10 @@ export default function HostYourCTF() {
   const currency = useLocalCurrency();
   /* ---------- shop mascot: one character that acts out the purchase ---------- */
   const [frame, setFrame] = React.useState<ShopFrame>("idle");
-  React.useEffect(() => initShopSound(), []);
+  React.useEffect(() => {
+    setSoundScope("shop");
+    initShopSound();
+  }, []);
   const [bubble, setBubble] = React.useState<string | undefined>();
   const [celebrate, setCelebrate] = React.useState(0);
   const seenPackages = React.useRef(false);

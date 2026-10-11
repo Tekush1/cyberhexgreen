@@ -712,3 +712,11 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .arc-big small { display: block; margin-top: 6px; font: 500 10.5px 'JetBrains Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: #8a9bbe; }
 
 @media (prefers-reduced-motion: reduce) { .arc-cursor { animation: none; } .arc-card:hover { transform: none; } }
+
+/* ===== Blog: "Sent for review" celebration ===== */
+.blog-celebrate { filter: drop-shadow(0 0 30px rgba(198,241,53,.35)) drop-shadow(0 24px 30px rgba(0,0,0,.6)); animation: blog-pop .9s cubic-bezier(.3,1.5,.5,1) both, shop-float 3.6s ease-in-out 1s infinite; }
+@keyframes blog-pop { from { opacity: 0; transform: translateY(30px) scale(.8); } to { opacity: 1; transform: none; } }
+.blog-confetti i { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px; opacity: 0; animation: blog-fall 2.6s cubic-bezier(.3,.6,.4,1) both; }
+.blog-confetti i:nth-child(4n) { width: 7px; height: 7px; border-radius: 50%; }
+@keyframes blog-fall { 0% { opacity: 0; transform: translateY(0) rotate(0); } 10% { opacity: 1; } 100% { opacity: 0; transform: translateY(32rem) rotate(540deg); } }
+@media (prefers-reduced-motion: reduce) { .blog-celebrate { animation: none; } .blog-confetti { display: none; } }
