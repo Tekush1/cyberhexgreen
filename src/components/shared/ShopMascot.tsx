@@ -5,9 +5,15 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
    the frame-to-frame transition, the speech bubble, the trolley counter and
    the confetti. Motion is transform/opacity only and stops for reduced motion. */
 
-export type ShopFrame = 'idle' | 'arrive' | 'add-1' | 'add-2' | 'bill' | 'success' | 'sad';
+export type ShopFrame =
+  | 'idle' | 'arrive' | 'enter' | 'discover' | 'pick' | 'add-1' | 'add-2' | 'fill'
+  | 'rush' | 'bill' | 'buy' | 'cheer' | 'success' | 'ready' | 'sad';
 
-const FRAMES: ShopFrame[] = ['idle', 'arrive', 'add-1', 'add-2', 'bill', 'success', 'sad'];
+// Most likely next frames first, so they are cached before they are needed.
+const FRAMES: ShopFrame[] = [
+  'enter', 'arrive', 'discover', 'pick', 'rush', 'bill', 'buy', 'cheer', 'ready',
+  'add-1', 'add-2', 'fill', 'success', 'sad', 'idle',
+];
 const src = (f: ShopFrame) => `/mascots/shop/${f}.webp`;
 
 const reducedMotion = () =>
@@ -129,7 +135,7 @@ export const ShopMascot = ({
           <div ref={tiltRef} className="shop-tilt">
             <div className="shop-float">
               <div className="shop-aura" />
-              <div className="relative aspect-[480/476] w-full">
+              <div className="relative aspect-square w-full">
                 {shown.prev && (
                   <img key={`p${shown.n}`} src={src(shown.prev)} alt="" className="shop-frame shop-frame-out" draggable={false} />
                 )}
@@ -137,7 +143,7 @@ export const ShopMascot = ({
                   key={`c${shown.n}`}
                   src={src(shown.cur)}
                   width={480}
-                  height={476}
+                  height={480}
                   alt=""
                   decoding="async"
                   fetchPriority={shown.n === 0 ? 'high' : 'auto'}

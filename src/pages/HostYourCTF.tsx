@@ -376,7 +376,9 @@ export default function HostYourCTF() {
             if (e.isIntersecting && !seenPackages.current) {
               seenPackages.current = true;
               if (restFrame.current === "idle") restFrame.current = "arrive";
-              act("arrive", "Choose a package and I'll add it to your cart.");
+              // Only make an entrance if nothing else is happening (no checkout, no action in progress).
+              if (lastDrawer.current === "closed" && ["idle", "arrive"].includes(frameRef.current))
+                act("enter", "Let's go shopping! Pick a package and I'll carry it.", 2600);
             }
           },
           { threshold: 0.25 }
@@ -389,17 +391,35 @@ export default function HostYourCTF() {
       window.clearTimeout(watch);
       window.clearTimeout(actTimer.current);
       window.clearTimeout(openTimer.current);
+      window.clearTimeout(rushTimer.current);
       io?.disconnect();
     };
   }, [act]);
 
   /* Buy: the pack goes into the trolley, then checkout opens. */
+  const rushTimer = React.useRef<number>();
   const withAdd = (label: string, open: () => void) => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    act("add-1", label);
+    act("pick", label);
     window.clearTimeout(openTimer.current);
-    if (reduce) open();
-    else openTimer.current = window.setTimeout(open, 800);
+    window.clearTimeout(rushTimer.current);
+    if (reduce) return open();
+    rushTimer.current = window.setTimeout(() => setFrame("rush"), 650);
+    openTimer.current = window.setTimeout(open, 1150);
+  };
+
+  /* Row 4: hovering a package card while the mascot is resting -> discover it. */
+  const frameRef = React.useRef(frame);
+  React.useEffect(() => {
+    frameRef.current = frame;
+  }, [frame]);
+  const RESTING: ShopFrame[] = ["idle", "arrive", "fill", "ready", "discover"];
+  const hoverPlan = (p: (typeof plans)[number] | null) => {
+    if (!window.matchMedia("(pointer: fine)").matches || !RESTING.includes(frameRef.current)) return;
+    if (p) {
+      const n = p.features.find((f) => /\d+ challenges/.test(f))?.match(/\d+ challenges/)?.[0];
+      act("discover", `${p.name}? ${n ? `${n}, ` : ""}$${p.usd}.`);
+    } else act(restFrame.current);
   };
   const [showBuilder, setShowBuilder] = React.useState(() => typeof window !== "undefined" && window.location.hash === "#build");
 
@@ -445,26 +465,40 @@ export default function HostYourCTF() {
   /* ---------- mascot reacts to the trolley, checkout, idling and leaving ---------- */
   // Resting frame: trolley with packs while a custom build has challenges in it.
   React.useEffect(() => {
-    const rest: ShopFrame = showBuilder && challengeCount > 0 ? "add-2" : seenPackages.current ? "arrive" : "idle";
+    const rest: ShopFrame = showBuilder && challengeCount > 0 ? "fill" : seenPackages.current ? "arrive" : "idle";
     restFrame.current = rest;
   }, [showBuilder, challengeCount]);
 
   // Checkout opens -> the bill; order placed -> celebrate; closed without ordering -> sad.
   const lastDrawer = React.useRef(drawer);
+  const buyAt = React.useRef(0);
+  const cheerTimer = React.useRef<number>();
   React.useEffect(() => {
     const was = lastDrawer.current;
     lastDrawer.current = drawer;
     if (drawer === "checkout" && order) {
       act("bill", `Total ${money(order.total)}${order.quoted ? " + quote" : ""}. No payment now: we confirm your date first.`);
     } else if (drawer === "done") {
-      act("success", "Order received. Check your email for next steps.");
-      setCelebrate((n) => n + 1);
+      // Let "pressing BUY" be seen for a moment even when the order is instant.
+      const wait = Math.max(0, 900 - (Date.now() - buyAt.current));
+      window.clearTimeout(cheerTimer.current);
+      cheerTimer.current = window.setTimeout(() => {
+        act("cheer", "Order received! Check your email for next steps.");
+        setCelebrate((n) => n + 1);
+      }, wait);
     } else if (drawer === "closed" && was === "checkout") {
       act("sad", "No problem. Come back whenever you're ready.", 3200);
     } else if (drawer === "closed" && was === "done") {
-      act("success", "Thank you! See you on the scoreboard.", 3000);
+      act("ready", "Thank you! Ready for the next one anytime.", 3200);
     }
   }, [drawer, order, act]);
+
+  React.useEffect(() => {
+    if (!submitting) return;
+    buyAt.current = Date.now();
+    act("buy", "Placing your order…");
+  }, [submitting, act]);
+  React.useEffect(() => () => window.clearTimeout(cheerTimer.current), []);
 
   // Idle for 30s -> looks around with a hint (twice at most).
   React.useEffect(() => {
@@ -535,7 +569,7 @@ export default function HostYourCTF() {
     // Is anything left in the whole build after this removal?
     const leftAfter = challengeCount - (cur - next);
     if (leftAfter <= 0) act("arrive", "Your cart is empty. Add a category to start.", 2400);
-    else act("idle", `Removed ${cur - next} × ${catName(catId)} (${tier}).`, 1300);
+    else act("arrive", `Removed ${cur - next} × ${catName(catId)} (${tier}).`, 1300);
     setQty(catId, tier, next);
   };
 
@@ -881,6 +915,8 @@ export default function HostYourCTF() {
           {plans.map((plan) => (
             <article
               key={plan.id}
+              onPointerEnter={() => hoverPlan(plan)}
+              onPointerLeave={() => hoverPlan(null)}
               className={`relative flex flex-col p-6 ${plan.featured ? "card-luxe lg:-translate-y-3" : "sticker"}`}
             >
               <div className="flex items-start justify-between">

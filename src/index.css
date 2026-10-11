@@ -569,7 +569,7 @@ img[loading="lazy"] { transition: filter 0.3s; }
   filter: blur(26px); opacity: .55; animation: shop-pulse 2.8s ease-in-out infinite; transition: transform .35s ease; }
 @keyframes shop-pulse { 0%,100% { opacity: .4; } 50% { opacity: .9; } }
 [data-hot] .shop-aura { transform: scale(1.2); animation-duration: 1s; }
-[data-frame="success"] .shop-aura { background: radial-gradient(circle, rgba(198,241,53,.7), rgba(59,211,255,.25) 50%, transparent 72%); }
+[data-frame="success"] .shop-aura, [data-frame="cheer"] .shop-aura, [data-frame="ready"] .shop-aura { background: radial-gradient(circle, rgba(198,241,53,.7), rgba(59,211,255,.25) 50%, transparent 72%); }
 [data-frame="sad"] .shop-aura { background: radial-gradient(circle, rgba(120,140,255,.45), transparent 70%); }
 
 .shop-platform { position: absolute; left: 6%; right: 6%; bottom: -4%; height: 26%; pointer-events: none; perspective: 500px; }
@@ -599,7 +599,10 @@ img[loading="lazy"] { transition: filter 0.3s; }
 @keyframes shop-look { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-3deg) translateY(-3px); } 60% { transform: rotate(3deg); } }
 [data-frame="sad"] .shop-float { animation-name: shop-sob; animation-duration: 1.4s; }
 @keyframes shop-sob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(3px) scaleY(.98); } }
-[data-frame="success"] .shop-float { animation-name: shop-hop; animation-duration: .9s; }
+[data-frame="success"] .shop-float, [data-frame="cheer"] .shop-float { animation-name: shop-hop; animation-duration: .9s; }
+[data-frame="rush"] .shop-float { animation-name: shop-rush; animation-duration: .45s; }
+@keyframes shop-rush { 0%,100% { transform: translate(0,0) rotate(0); } 50% { transform: translate(3px,-3px) rotate(-1.5deg); } }
+[data-frame="discover"] .shop-float { animation-name: shop-look; animation-duration: 2.4s; }
 @keyframes shop-hop { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-12px); } }
 
 /* trolley counter */
