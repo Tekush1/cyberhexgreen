@@ -53,8 +53,6 @@ export const Gallery = () => {
     return e.category === activeFilter;
   });
 
-  const [featured, ...rest] = filtered;
-
   return (
     <div className="min-h-screen bg-ink pb-24">
       {/* Header */}
@@ -109,77 +107,12 @@ export const Gallery = () => {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 pt-14 sm:px-6 lg:px-8">
-        {/* Featured: latest event */}
-        {featured && (
-          <Reveal>
-            <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-muted">Latest event</p>
-            <article className="sticker sticker-sun lift group grid overflow-hidden md:grid-cols-[1.05fr_1fr]">
-              <button
-                type="button"
-                onClick={() => setSelected(featured)}
-                className="relative min-h-[16rem] overflow-hidden border-b-2 border-line bg-black md:border-b-0 md:border-r-2"
-                aria-label={`Open ${featured.title}`}
-              >
-                <img
-                  src={featured.image}
-                  alt={featured.title}
-                  className="absolute inset-0 h-full w-full object-contain transition-transform duration-700 group-hover:scale-105"
-                />
-                <span className={`absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-sm ${statusConfig[featured.status].badge}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[featured.status].dot}`} />
-                  {statusConfig[featured.status].label}
-                </span>
-              </button>
-              <div className="flex flex-col p-6 sm:p-8">
-                <h2 className="font-display text-3xl text-white sm:text-4xl">{featured.title}</h2>
-                <p className="mt-1.5 text-muted">{featured.subtitle}</p>
-                <div className="mt-6 grid grid-cols-2 gap-3">
-                  {[
-                    [<Calendar size={15} key="c" />, featured.date],
-                    [<Clock size={15} key="t" />, featured.duration],
-                    [<Users size={15} key="u" />, featured.participants],
-                    [<MapPin size={15} key="m" />, featured.location],
-                  ].map(([icon, text], i) => (
-                    <span key={i} className="flex items-center gap-2 rounded-lg border-2 border-line px-3 py-2 text-sm text-white/85">
-                      <span className="text-glow">{icon}</span>
-                      {text}
-                    </span>
-                  ))}
-                </div>
-                {featured.highlights && (
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {featured.highlights.slice(0, 4).map((h) => (
-                      <span key={h} className="rounded-full bg-lime/10 px-3 py-1 text-xs font-semibold text-lime">
-                        {h}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-auto pt-7">
-                  <p className="font-display text-3xl text-sun">{featured.prize}</p>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => setSelected(featured)} className="btn btn-lime">
-                      See details
-                    </button>
-                    {featured.social?.leaderboard && (
-                      <a href={featured.social.leaderboard} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-                        Leaderboard
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </article>
-          </Reveal>
-        )}
-
-        {/* The rest + what's next */}
+      <div className="mx-auto max-w-6xl px-5 pt-14 sm:px-6 lg:px-8">
         <Reveal>
-          <p className="mb-4 mt-16 font-mono text-xs uppercase tracking-[0.2em] text-muted">Earlier and upcoming</p>
+          <p className="mb-5 font-mono text-xs uppercase tracking-[0.2em] text-muted">All events</p>
         </Reveal>
-        <div className="grid grid-cols-1 items-stretch gap-8 sm:grid-cols-2">
-          {rest.map((event, i) => {
+        <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
+          {filtered.map((event, i) => {
             const s = statusConfig[event.status];
             return (
               <Reveal key={event.id} delay={i * 0.1} className="h-full">
@@ -187,27 +120,27 @@ export const Gallery = () => {
                   onClick={() => setSelected(event)}
                   className={`sticker lift shine group flex h-full w-full flex-col overflow-hidden text-left ${event.status === 'live' ? 'sticker-lime' : ''}`}
                 >
-                  <div className="relative h-48 w-full overflow-hidden border-b-2 border-line bg-black">
+                  <div className="relative h-52 w-full overflow-hidden border-b-2 border-line bg-black sm:h-60">
                     <img
                       src={event.image}
                       alt={event.title}
                       className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
                     />
-                    <span className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-sm ${s.badge}`}>
+                    <span className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border bg-ink/85 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider shadow-[0_4px_14px_rgba(0,0,0,0.4)] backdrop-blur-sm ${s.badge}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${event.status === 'live' ? 'animate-pulse' : ''}`} />
                       {s.label}
                     </span>
                   </div>
-                  <div className="flex w-full flex-1 flex-col p-6">
-                    <h2 className="font-display text-2xl text-white">{event.title}</h2>
+                  <div className="flex w-full flex-1 flex-col p-6 sm:p-7">
+                    <h2 className="font-display text-2xl text-white sm:text-[1.75rem]">{event.title}</h2>
                     <p className="mt-1.5 text-sm text-muted">{event.subtitle}</p>
                     <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
                       <span className="flex items-center gap-1.5"><Calendar size={15} className="text-glow" />{event.date}</span>
                       <span className="flex items-center gap-1.5"><Users size={15} className="text-glow" />{event.participants}</span>
                     </div>
                     <div className="mt-auto flex items-end justify-between gap-3 pt-6">
-                      <span className="font-display text-xl text-sun">{event.prize}</span>
-                      <span className="text-sm font-semibold text-lime transition-transform group-hover:translate-x-1">Open →</span>
+                      <span className="font-display text-xl text-sun sm:text-2xl">{event.prize}</span>
+                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-lime transition-transform group-hover:translate-x-1">Open →</span>
                     </div>
                   </div>
                 </button>
@@ -215,14 +148,16 @@ export const Gallery = () => {
             );
           })}
 
-          <Reveal delay={rest.length * 0.1} className="h-full">
-            <div className="relative flex h-full flex-col rounded-[1.25rem] border-2 border-dashed border-line p-6 pt-28">
-              <Mascot pose="confused" alt="" className="absolute -top-6 left-1/2 w-32 -translate-x-1/2" />
-              <h2 className="font-display text-2xl text-white">What's next?</h2>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                We're picking the date for our next open CTF. Follow along to hear the moment registrations open.
-              </p>
-              <div className="mt-auto flex flex-col gap-3 pt-6">
+          <Reveal delay={filtered.length * 0.1} className="mt-8 md:col-span-2 md:mt-0">
+            <div className="relative grid items-center gap-6 rounded-[1.25rem] border-2 border-dashed border-line p-6 pt-24 sm:p-8 md:grid-cols-[auto_1fr_auto] md:gap-8 md:pt-8">
+              <Mascot pose="confused" alt="" className="absolute -top-8 left-1/2 w-28 -translate-x-1/2 md:static md:w-28 md:translate-x-0" />
+              <div>
+                <h2 className="font-display text-2xl text-white sm:text-3xl">What's next?</h2>
+                <p className="mt-2 max-w-lg text-sm leading-6 text-muted sm:text-base sm:leading-7">
+                  We're picking the date for our next open CTF. Follow along to hear the moment registrations open.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
                 <a href="https://instagram.com/nulloriginctf" target="_blank" rel="noopener noreferrer" className="btn btn-lime">
                   <Instagram size={16} /> Follow on Instagram
                 </a>

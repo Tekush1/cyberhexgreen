@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
@@ -27,6 +27,17 @@ const SOLVES = [
   { team: 'nullbytes', chal: 'Crypto · baby_rsa', pts: 400 },
   { team: 'osint_owls', chal: 'Forensics · lost_pixels', pts: 300 },
   { team: 'stack_smash', chal: 'Web · cookie_jar', pts: 350 },
+];
+
+// Sparks that drift up around the mascot. x = start position, d = delay, drift = sideways sway.
+const SPARKS = [
+  { x: '14%', d: '0s', dur: '5.2s', drift: '-14px' },
+  { x: '28%', d: '1.7s', dur: '4.6s', drift: '10px', lime: true },
+  { x: '42%', d: '3.1s', dur: '5.8s', drift: '-8px' },
+  { x: '61%', d: '0.9s', dur: '4.9s', drift: '12px' },
+  { x: '74%', d: '2.4s', dur: '5.4s', drift: '-10px', lime: true },
+  { x: '86%', d: '4s', dur: '4.4s', drift: '8px' },
+  { x: '50%', d: '4.6s', dur: '6s', drift: '-6px', lime: true },
 ];
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -202,8 +213,26 @@ export const HeroSection = () => {
               initial={reduce ? false : { opacity: 0, y: 70, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 1.3, delay: 0.35, ease }}
+              className="relative"
             >
-              <div className={reduce ? '' : 'hero-breathe'}>
+              {/* energy around the mascot: aura, spawn ring at the feet, rising sparks */}
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                <span className="hero-aura" />
+                <span className="hero-aura hero-aura-lime" />
+                <span className="hero-portal-anchor">
+                  <span className="hero-portal" />
+                  <span className="hero-portal hero-portal-wave" />
+                  <span className="hero-portal hero-portal-wave [animation-delay:1.6s]" />
+                </span>
+                {SPARKS.map((s, i) => (
+                  <span
+                    key={i}
+                    className={`hero-spark ${s.lime ? 'is-lime' : ''}`}
+                    style={{ '--x': s.x, '--d': s.d, '--dur': s.dur, '--drift': s.drift } as CSSProperties}
+                  />
+                ))}
+              </div>
+              <div className={reduce ? 'relative' : 'hero-breathe relative'}>
                 <Mascot pose="flag" still eager alt="CyberHx mascot planting a CTF flag" className="h-[16.5rem] w-auto sm:h-[23rem] lg:h-[31rem]" />
               </div>
             </motion.div>

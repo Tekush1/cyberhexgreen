@@ -275,3 +275,71 @@ img[loading="lazy"] { transition: filter 0.3s; }
 @media (prefers-reduced-motion: reduce) {
   .arena-floor, .hero-breathe { animation: none; }
 }
+
+/* ---------- Hero mascot energy ---------- */
+/* Aura: a soft cyan glow that breathes behind the mascot, with a lime
+   counter-glow near the flag, half a cycle out of phase. */
+.hero-aura {
+  position: absolute; left: 48%; top: 48%; width: 140%; aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 9999px;
+  background: radial-gradient(closest-side, rgba(59, 211, 255, 0.55), rgba(59, 211, 255, 0.2) 42%, rgba(59, 211, 255, 0.06) 62%, transparent 76%);
+  animation: aura-breathe 5.5s ease-in-out infinite;
+}
+.hero-aura-lime {
+  left: 66%; top: 24%; width: 85%;
+  background: radial-gradient(closest-side, rgba(198, 241, 53, 0.34), rgba(198, 241, 53, 0.08) 55%, transparent 76%);
+  animation-delay: -2.75s;
+}
+@keyframes aura-breathe {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* Spawn ring on the floor under the feet: a spinning energy ring
+   seen in perspective, plus shockwaves that roll outward. */
+.hero-portal-anchor { position: absolute; left: 50%; bottom: 3%; width: 88%; height: 0; translate: -50% 0; }
+.hero-portal {
+  position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 1; translate: 0 -50%;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0 12%, rgba(59, 211, 255, 0.95) 22%, transparent 34%,
+    transparent 50%, rgba(198, 241, 53, 0.9) 62%, transparent 74%, transparent 88%, rgba(59, 211, 255, 0.7) 96%, transparent);
+  -webkit-mask: radial-gradient(farthest-side, transparent 90%, #000 92%, #000 97%, transparent 100%);
+  mask: radial-gradient(farthest-side, transparent 90%, #000 92%, #000 97%, transparent 100%);
+  filter: drop-shadow(0 0 6px rgba(59, 211, 255, 0.9));
+  transform: perspective(700px) rotateX(76deg) rotate(0deg);
+  animation: portal-spin 9s linear infinite;
+}
+@keyframes portal-spin { to { transform: perspective(700px) rotateX(76deg) rotate(360deg); } }
+.hero-portal-wave {
+  background: none;
+  -webkit-mask: none; mask: none;
+  border: 2px solid rgba(59, 211, 255, 0.7);
+  box-shadow: 0 0 18px rgba(59, 211, 255, 0.55), inset 0 0 18px rgba(59, 211, 255, 0.35);
+  filter: none; opacity: 0;
+  animation: portal-wave 3.2s cubic-bezier(.2, .7, .3, 1) infinite;
+}
+@keyframes portal-wave {
+  0% { opacity: 0.9; transform: perspective(700px) rotateX(76deg) scale(0.55); }
+  100% { opacity: 0; transform: perspective(700px) rotateX(76deg) scale(1.35); }
+}
+
+/* Sparks: small glowing motes that float up and fade. */
+.hero-spark {
+  --rise: -230px;
+  position: absolute; bottom: 8%; left: var(--x); width: 6px; height: 6px; border-radius: 9999px;
+  background: #dffaff; box-shadow: 0 0 12px 3px rgba(59, 211, 255, 0.9);
+  opacity: 0; animation: spark-rise var(--dur, 5s) ease-out var(--d, 0s) infinite;
+}
+.hero-spark.is-lime { background: #efffc2; box-shadow: 0 0 10px 2px rgba(198, 241, 53, 0.8); }
+@media (min-width: 1024px) { .hero-spark { --rise: -420px; } }
+@keyframes spark-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  12% { opacity: 1; }
+  70% { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(var(--drift, 8px), var(--rise)) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-aura, .hero-portal { animation: none; }
+  .hero-portal-wave, .hero-spark { display: none; }
+}
