@@ -18,6 +18,7 @@ export interface Event {
   location: string;
   image: string;
   gallery?: string[];
+  hostLogos?: { name: string; logo: string }[];
   social?: {
     instagram?: string;
     x?: string;
@@ -30,6 +31,64 @@ export interface Event {
 }
 
 export const events: Event[] = [
+  {
+    id: 3,
+
+    title: 'Pinaka CTF',
+
+    subtitle: 'National-Level 24-Hour Capture The Flag Challenge',
+
+    description:
+      'Pinaka CTF is a national-level Capture The Flag competition hosted by the National Forensic Sciences University (NFSU), Chennai Campus — an Institution of National Importance under the Ministry of Home Affairs, Government of India. The 24-hour online qualifier runs on ctf.cyberhx.com, with CyberHX powering the platform, and top teams advancing to an offline final at NFSU Chennai.',
+
+    date: '31 October 2026, 10:00 IST',
+
+    duration: '24 Hours',
+
+    participants: 'Open Registrations',
+
+    prize: '₹1 Cr+',
+
+    tags: [
+      'National CTF',
+      'Web Exploitation',
+      'Reverse Engineering',
+      'Cryptography',
+      'OSINT',
+      'Digital Forensics',
+      'Pwn',
+      'Jeopardy CTF',
+    ],
+
+    status: 'upcoming',
+
+    category: 'Hacking',
+
+    link: 'https://ctf.cyberhx.com',
+
+    highlights: [
+      '24-Hour Online Qualifier',
+      '₹1 Crore+ Prize Pool',
+      'Hosted by NFSU Chennai Campus',
+      'Under the Ministry of Home Affairs, Govt. of India',
+      'Offline Final at NFSU Chennai',
+      'Powered by CyberHX',
+    ],
+
+    location: 'Online (Qualifier) — NFSU Chennai Campus (Final)',
+
+    image: '/events/pinaka-ctf.webp',
+
+    hostLogos: [
+      { name: 'National Forensic Sciences University', logo: '/events/nfsu-logo.webp' },
+      { name: 'Ministry of Home Affairs, Government of India', logo: '/events/mha-logo.webp' },
+    ],
+
+    social: {
+      website: 'https://pinakactf.com',
+      leaderboard: 'https://ctf.cyberhx.com/leaderboard',
+    },
+  },
   {
     id: 2,
   

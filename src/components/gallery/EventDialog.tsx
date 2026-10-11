@@ -199,6 +199,14 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
               <SiteIcon name="trophy" size={64} alt="" />
             </motion.div>
 
+            {event.hostLogos && event.hostLogos.length > 0 && (
+              <motion.div variants={item} className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/[0.07] bg-[#0b1020] px-5 py-4">
+                {event.hostLogos.map((h) => (
+                  <img key={h.name} src={h.logo} alt={h.name} title={h.name} className="h-10 w-auto object-contain" />
+                ))}
+              </motion.div>
+            )}
+
             {event.highlights && event.highlights.length > 0 && (
               <motion.div variants={item}>
                 <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">Highlights</h3>
