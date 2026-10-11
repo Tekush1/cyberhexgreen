@@ -22,6 +22,7 @@ export function DatePicker({
   value,
   onChange,
   min,
+  max,
   label,
   error,
   hint,
@@ -30,6 +31,8 @@ export function DatePicker({
   value: string;
   onChange: (iso: string) => void;
   min: Date;
+  /** Last bookable day (inclusive). */
+  max: Date;
   label: string;
   error?: string;
   hint?: string;
@@ -46,7 +49,7 @@ export function DatePicker({
   // Keep the calendar on the selected month / earliest month when opening.
   useEffect(() => {
     if (!open) return;
-    const start = selected && selected >= min ? selected : min;
+    const start = selected && !blocked(selected) ? selected : min;
     setView(new Date(start.getFullYear(), start.getMonth(), 1));
     setFocus(start);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,12 +74,15 @@ export function DatePicker({
     return Array.from({ length: 42 }, (_, i) => addDays(first, i - offset));
   }, [view]);
 
+  const blocked = (d: Date) => d < min || d > max;
+  const clamp = (d: Date) => (d < min ? min : d > max ? max : d);
   const pick = (d: Date) => {
-    if (d < min) return;
+    if (blocked(d)) return;
     onChange(toISO(d));
     setOpen(false);
   };
-  const move = (d: Date) => {
+  const move = (raw: Date) => {
+    const d = clamp(raw);
     setFocus(d);
     if (d.getMonth() !== view.getMonth() || d.getFullYear() !== view.getFullYear()) setView(new Date(d.getFullYear(), d.getMonth(), 1));
   };
@@ -101,6 +107,18 @@ export function DatePicker({
 
   const today = new Date();
   const canPrev = new Date(view.getFullYear(), view.getMonth(), 0) >= new Date(min.getFullYear(), min.getMonth(), 1);
+  const canNext = new Date(view.getFullYear(), view.getMonth() + 1, 1) <= max;
+  const years = Array.from({ length: max.getFullYear() - min.getFullYear() + 1 }, (_, i) => min.getFullYear() + i);
+  const monthOk = (y: number, m: number) =>
+    new Date(y, m + 1, 0) >= min && new Date(y, m, 1) <= max;
+  const jump = (y: number, m: number) => {
+    // Land on the nearest bookable month for that year.
+    let mm = m;
+    if (!monthOk(y, mm)) mm = y === min.getFullYear() ? min.getMonth() : max.getMonth();
+    setView(new Date(y, mm, 1));
+  };
+  const selCls =
+    'appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-2.5 pr-6 font-display !text-[14px] text-white outline-none transition hover:border-white/25 focus-visible:border-lime bg-no-repeat bg-[right_0.4rem_center] bg-[length:10px] bg-[url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 10 6%27%3E%3Cpath d=%27M1 1l4 4 4-4%27 stroke=%27%23ffffff80%27 fill=%27none%27 stroke-width=%271.5%27/%3E%3C/svg%3E")]';
 
   return (
     <div ref={wrap} className="relative">
@@ -141,14 +159,38 @@ export function DatePicker({
             >
               <ChevronLeft size={17} />
             </button>
-            <p className="font-display text-[15px]" aria-live="polite">
-              {view.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-            </p>
+            <div className="flex items-center gap-1.5" aria-live="polite">
+              <select
+                aria-label="Month"
+                value={view.getMonth()}
+                onChange={(e) => jump(view.getFullYear(), Number(e.target.value))}
+                className={selCls}
+              >
+                {Array.from({ length: 12 }, (_, m) => (
+                  <option key={m} value={m} disabled={!monthOk(view.getFullYear(), m)} className="bg-[#0b1020]">
+                    {new Date(2000, m, 1).toLocaleDateString(undefined, { month: 'short' })}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Year"
+                value={view.getFullYear()}
+                onChange={(e) => jump(Number(e.target.value), view.getMonth())}
+                className={selCls}
+              >
+                {years.map((y) => (
+                  <option key={y} value={y} className="bg-[#0b1020]">
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               type="button"
+              disabled={!canNext}
               onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
               aria-label="Next month"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-25"
             >
               <ChevronRight size={17} />
             </button>
@@ -163,7 +205,7 @@ export function DatePicker({
           <div ref={grid} role="grid" className="mt-1 grid grid-cols-7 gap-1">
             {days.map((d) => {
               const out = d.getMonth() !== view.getMonth();
-              const disabled = d < min;
+              const disabled = blocked(d);
               const isSel = !!selected && sameDay(d, selected);
               const isToday = sameDay(d, today);
               const iso = toISO(d);
@@ -194,7 +236,8 @@ export function DatePicker({
             })}
           </div>
           <p className="mt-2 border-t border-white/[0.07] pt-2 text-[11.5px] text-muted">
-            Earliest available: <span className="text-white/80">{prettyDate(toISO(min))}</span>
+            Open from <span className="text-white/80">{prettyDate(toISO(min))}</span> to{' '}
+            <span className="text-white/80">{prettyDate(toISO(max))}</span>
           </p>
         </div>
       )}

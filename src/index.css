@@ -745,3 +745,31 @@ img[loading="lazy"] { transition: filter 0.3s; }
 @media (max-width: 639px) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
 }
+
+/* About: team portrait cards (obsidian frame, lime edge light on hover). */
+.team-card { position: relative; border-radius: 1.6rem; padding: .7rem .7rem 1.1rem;
+  background: radial-gradient(120% 50% at 50% -10%, rgba(255,255,255,.07), transparent 60%), linear-gradient(180deg, #0c1224, #070a14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 40px 80px -46px rgba(0,0,0,1);
+  transition: transform .5s cubic-bezier(.2,.8,.2,1), box-shadow .5s; isolation: isolate; }
+.team-card::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; z-index: -1;
+  background: linear-gradient(160deg, rgba(255,255,255,.16), rgba(255,255,255,.03) 40%, rgba(198,241,53,.0) 60%, rgba(198,241,53,.35));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  transition: opacity .5s; }
+.team-card::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; z-index: -2; opacity: 0; transition: opacity .6s;
+  background: radial-gradient(60% 40% at 50% 100%, rgba(198,241,53,.22), transparent 70%); filter: blur(18px); }
+.team-card:hover { transform: translateY(-6px); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 50px 90px -40px rgba(0,0,0,1), 0 0 0 1px rgba(198,241,53,.18); }
+.team-card:hover::after { opacity: 1; }
+.team-photo { position: relative; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 1.15rem; background: #0b1020; }
+.team-photo::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, transparent 55%, rgba(7,10,20,.65)), linear-gradient(115deg, rgba(255,255,255,.08), transparent 35%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); border-radius: inherit; }
+.team-index { position: absolute; left: .9rem; bottom: .8rem; z-index: 2; font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .2em; color: rgba(255,255,255,.75); padding: .4rem .55rem; border-radius: .5rem;
+  background: rgba(7,10,20,.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.1); }
+.team-photo img { filter: grayscale(1) contrast(1.08) brightness(.86); transition: filter .7s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+.team-card:hover .team-photo img { filter: grayscale(0) contrast(1.02) brightness(.98); }
+.team-photo::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; mix-blend-mode: soft-light; transition: opacity .7s;
+  background: linear-gradient(180deg, rgba(59,211,255,.35), rgba(13,20,40,.6) 60%, rgba(198,241,53,.25)); }
+.team-card:hover .team-photo::before { opacity: 0; }
+@media (hover: none) { .team-photo img { filter: grayscale(.35) contrast(1.04) brightness(.95); } }
+@media (prefers-reduced-motion: reduce) { .team-card, .team-card:hover { transform: none; transition: none; } }

@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Linkedin, Github, Instagram } from 'lucide-react';
-import { Target, Users, Zap, Shield, Trophy } from './shared/icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Mascot } from './shared/Mascot';
 
@@ -491,13 +489,13 @@ const Terminal = () => {
   }, []);
 
   return (
-    <div className="glass-effect rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-dark-300 border-b border-gray-700 kali-terminal-header">
+    <div className="card-ob overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500" />
-          <div className="w-3 h-3 rounded-full bg-green-500" />
-          <span className="text-gray-400 text-sm ml-2">root@cyberhx: ~/security</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+          <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+          <span className="h-2.5 w-2.5 rounded-full bg-lime/80 shadow-[0_0_10px_rgba(198,241,53,0.7)]" />
+          <span className="ml-2 font-mono text-xs text-white/45">root@cyberhx: ~/security</span>
         </div>
         {isLocked && (
           <div className="text-primary text-sm animate-pulse">
@@ -508,7 +506,7 @@ const Terminal = () => {
       
       <div 
         ref={terminalRef}
-        className="p-4 h-[400px] overflow-y-auto font-mono text-sm space-y-2 bg-dark-300 cursor-text kali-terminal"
+        className="h-[360px] cursor-text space-y-2 overflow-y-auto p-4 font-mono text-[13px] sm:h-[400px] sm:text-sm"
       >
         {history.map((cmd, i) => (
           <div key={i} className="space-y-1">
@@ -566,7 +564,10 @@ const Terminal = () => {
             onKeyDown={handleKeyPress}
             className="bg-transparent border-none outline-none text-white flex-1"
             disabled={isLocked}
-            autoFocus
+            aria-label="Terminal command"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </div>
         {showSuggestions && suggestions.length > 0 && (
@@ -593,291 +594,100 @@ const Terminal = () => {
   );
 };
 
-export const About = () => {
-  const [expandedValue, setExpandedValue] = useState<number | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+/* Team: only the name and the role at CyberHx. Add a person by adding a line. */
+const team: { name: string; role: string; image: string }[] = [
+  { name: 'Kushagra Dwivedi', role: 'Founder', image: 'https://i.ibb.co/dw8SKDgt/kush1.jpg' },
+  { name: 'Aman Singh Tomar', role: 'Organizer', image: 'https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png' },
+];
 
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsMobile(window.innerWidth < 768);
-      const handleResize = () => {
-        setIsMobile(window.innerWidth < 768);
-      };
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, []);
+const initials = (n: string) =>
+  n
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
 
-  const values = [
-    {
-      icon: <Target className="w-6 h-6" />,
-      title: "Our Mission",
-      description: "Empower the next generation of ethical hackers",
-      details: "Creating a secure digital future through education and hands-on training."
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: "Community",
-      description: "Building a network of security experts",
-      details: "Our community thrives on collaboration and knowledge sharing."
-    },
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: "Innovation",
-      description: "Pushing boundaries in cybersecurity research",
-      details: "We stay ahead of emerging threats through innovation."
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: "Excellence",
-      description: "Maintaining highest security standards",
-      details: "Our members uphold the highest ethical standards."
-    }
-  ];
-
-  const teamMembers = [
-    {
-      name: "Kushagra Dwivedi",
-      role: "Founder of cyberhx",
-      image: "https://i.ibb.co/dw8SKDgt/kush1.jpg" ,
-      achievements: [
-        "Ethical hacker government",
-        "CTF National Player"
-      ],
-      expertise: [
-        "Network Security",
-        "Penetration Testing",
-        "Ethical Hacking"
-      ],
-      socials: {
-        linkedin: "https://in.linkedin.com/in/kushagra-dwivedi-0342062b8",
-        instagram: "https://www.instagram.com/iamkushagra.dwivedi"
-      }
-    },
-
-  {
-    name: "Aman Singh Tomar",
-    role: "Cyber Security Engineer | Security Researcher",
-    image: "https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png",
-    achievements: [
-      "CTF National Player"
-    ],
-    expertise: [
-      "Penetration Testing",
-      "Network Security",
-      "Web Security"
-    ],
-    socials: {
-      linkedin: "https://www.linkedin.com/in/aman-singh-tomar"
-    }
-  }
-  ];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
-
-  const detailsVariants = {
-    hidden: { height: 0, opacity: 0 },
-    visible: { height: "auto", opacity: 1 }
-  };
-
+function TeamCard({ m, i }: { m: (typeof team)[number]; i: number }) {
+  const [broken, setBroken] = useState(false);
   return (
-    <section id="about" className="bg-ink pb-20 pt-28 sm:pb-28 sm:pt-32">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-        <div className="mb-20 grid items-center gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-            <h1 className="font-display text-5xl leading-[1.02] text-white sm:text-6xl">
-              The people behind
-              <span className="block text-white/45">the scoreboard.</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-muted">
-              CyberHx started as a group of CTF players. Today we run open CTFs for the global security community, build
-              events for universities and companies worldwide, and train people on our Pentest Lab.
-            </p>
-          </motion.div>
+    <motion.article
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.7, delay: i * 0.12, ease: [0.2, 0.8, 0.2, 1] }}
+      className="team-card group"
+    >
+      <div className="team-photo">
+        {broken ? (
+          <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_35%,rgba(198,241,53,0.18),transparent_60%),linear-gradient(180deg,#101a33,#070a14)]">
+            <span className="font-display text-6xl text-white/80">{initials(m.name)}</span>
+          </div>
+        ) : (
+          <img
+            src={m.image}
+            alt={m.name}
+            loading="lazy"
+            decoding="async"
+            onError={() => setBroken(true)}
+            className="h-full w-full object-cover object-top transition duration-700 ease-out group-hover:scale-[1.04]"
+          />
+        )}
+        <span className="team-index">{String(i + 1).padStart(2, '0')}</span>
+      </div>
+      <div className="relative px-1.5 pb-1 pt-5">
+        <h3 className="font-display text-[1.6rem] leading-tight text-white">{m.name}</h3>
+        <p className="mt-2 inline-flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-lime">
+          <span className="h-1.5 w-1.5 rounded-full bg-lime shadow-[0_0_10px_rgba(198,241,53,0.9)]" />
+          {m.role} · CyberHx
+        </p>
+      </div>
+    </motion.article>
+  );
+}
 
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="relative pt-16 sm:pt-20"
-          >
-            <Mascot pose="laugh-point" alt="CyberHx mascot" eager className="absolute -top-2 right-2 z-10 w-28 sm:right-6 sm:w-36" />
-            <Terminal />
-          </motion.div>
-        </div>
-
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
-        >
-          {values.map((value, index) => (
-            <motion.div
-              key={index}
-              variants={itemVariants}
-              className="glass-effect rounded-xl overflow-hidden"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <motion.div
-                className="p-6"
-                onClick={() => setExpandedValue(expandedValue === index ? null : index)}
-              >
-                <motion.div
-                  className="text-primary mb-3 flex justify-center"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {value.icon}
-                </motion.div>
-                <h3 className="text-lg font-semibold text-white mb-2">{value.title}</h3>
-                <p className="text-sm text-gray-400">{value.description}</p>
-                
-                <motion.button
-                  className="mt-4 text-primary flex items-center gap-2 mx-auto"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale:  0.9 }}
-                >
-                  {expandedValue === index ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  <span className="text-sm">{expandedValue === index ? 'Show Less' : 'Learn More'}</span>
-                </motion.button>
-              </motion.div>
-
-              <AnimatePresence>
-                {expandedValue === index && (
-                  <motion.div
-                    variants={detailsVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                    className="px-6 pb-6"
-                  >
-                    <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent my-4" />
-                    <p className="text-gray-300 text-sm">{value.details}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
+export const About = () => (
+  <section id="about" className="relative overflow-hidden bg-ink pb-24 pt-28 sm:pb-32 sm:pt-32">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[38rem] bg-[radial-gradient(60%_50%_at_75%_10%,rgba(59,211,255,0.10),transparent_70%),radial-gradient(45%_40%_at_10%_0%,rgba(198,241,53,0.07),transparent_70%)]" />
+    <div className="relative mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+          <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-lime" /> About CyberHx
+          </p>
+          <h1 className="mt-6 font-display text-5xl leading-[1.02] text-white sm:text-6xl">
+            The people behind
+            <span className="block text-white/45">the scoreboard.</span>
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-muted">
+            CyberHx started as a group of CTF players. Today we run open CTFs for the global security community, build
+            events for universities and companies worldwide, and train people on our Pentest Lab.
+          </p>
         </motion.div>
 
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="mb-16"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+          className="relative pt-16 sm:pt-20"
         >
-          <h2 className="font-display mb-8 text-3xl text-white sm:text-4xl">Organizers</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {teamMembers.map((member, index) => (
-              <motion.div
-                key={member.name}
-                variants={itemVariants}
-                className="glass-effect rounded-xl p-6 hover-scale"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-primary"
-                  />
-                  <div>
-                    <h4 className="text-xl font-semibold text-white">{member.name}</h4>
-                    <p className="text-primary">{member.role}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h5 className="text-sm font-medium text-white mb-2">Achievements</h5>
-                    <div className="space-y-2">
-                      {member.achievements.map((achievement, i) => (
-                        <div key={i} className="flex items-center text-gray-300">
-                          <Trophy className="w-4 h-4 text-primary mr-2" />
-                          <span className="text-sm">{achievement}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h5 className="text-sm font-medium text-white mb-2">Expertise</h5>
-                    <div className="flex flex-wrap gap-2">
-                      {member.expertise.map((skill, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {member.socials && (
-                    <div className="pt-2 border-t border-gray-700/50">
-                      <div className="flex items-center gap-3 mt-3">
-                        {member.socials.linkedin && (
-                          <a
-                            href={member.socials.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-all hover:scale-105 hover:brightness-110"
-                            style={{ backgroundColor: '#0A66C2' }}
-                          >
-                            <Linkedin className="w-4 h-4" />
-                            <span>LinkedIn</span>
-                          </a>
-                        )}
-                        {member.socials.instagram && (
-                          <a
-                            href={member.socials.instagram}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-all hover:scale-105 hover:brightness-110"
-                            style={{ background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
-                          >
-                            <Instagram className="w-4 h-4" />
-                            <span>Instagram</span>
-                          </a>
-                        )}
-                        {member.socials.github && (
-                          <a
-                            href={member.socials.github}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-all hover:scale-105 hover:brightness-110"
-                            style={{ backgroundColor: '#161B22', border: '1px solid #30363d' }}
-                          >
-                            <Github className="w-4 h-4" />
-                            <span>GitHub</span>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <Mascot pose="laugh-point" alt="CyberHx mascot" eager className="absolute -top-2 right-2 z-10 w-28 sm:right-6 sm:w-36" />
+          <Terminal />
         </motion.div>
       </div>
-    </section>
-  );
-};
+
+      <div className="mt-28 sm:mt-36">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-lime">The team</p>
+          <h2 className="mt-3 font-display text-4xl text-white sm:text-5xl">Who runs CyberHx</h2>
+        </div>
+        <div className="mx-auto mt-14 grid max-w-[19rem] gap-7 sm:max-w-3xl sm:grid-cols-2 sm:gap-8">
+          {team.map((m, i) => (
+            <TeamCard key={m.name} m={m} i={i} />
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+);

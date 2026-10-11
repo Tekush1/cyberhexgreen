@@ -245,6 +245,8 @@ const endOf = (dateISO: string, time: string, hours: number) => {
   return days === 0 ? t : `${end.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${t}`;
 };
 
+const LAST_DATE = fromISO(booking.lastDate)!;
+
 function validate(f: FormState, o: Order, minDate: Date): FieldErrors {
   const e: FieldErrors = {};
   if (f.name.trim().length < 2) e.name = "Please enter your name.";
@@ -256,10 +258,13 @@ function validate(f: FormState, o: Order, minDate: Date): FieldErrors {
   const start = fromISO(f.eventDate);
   if (!start) e.eventDate = "Pick a date for your event.";
   else if (start < minDate) e.eventDate = `The earliest date we can build this for is ${prettyDate(toISODate(minDate))}.`;
+  else if (start > (o.split ? addDays(LAST_DATE, -booking.finaleGapDays) : LAST_DATE))
+    e.eventDate = `We take bookings up to ${prettyDate(booking.lastDate)}.`;
   if (o.split) {
     const fin = fromISO(f.finaleDate);
     if (!fin) e.finaleDate = "Pick a date for the grand finale.";
     else if (start && fin < addDays(start, booking.finaleGapDays)) e.finaleDate = "The finale needs to be at least a day after the qualifier.";
+    else if (fin > LAST_DATE) e.finaleDate = `We take bookings up to ${prettyDate(booking.lastDate)}.`;
   }
   if (!/^\d{2}:\d{2}$/.test(f.startTime)) e.startTime = "Pick a start time.";
   if (!f.timeZone) e.timeZone = "Pick a time zone.";
@@ -304,28 +309,45 @@ const compareCols = [
   { id: "hosting", name: "Hosting only", usd: P.hosting.usd },
   ...plans.map((p) => ({ id: p.id, name: p.name, usd: p.usd })),
 ];
-const compareRows: { label: string; cells: Cell[] }[] = [
+type CompareRow = { label: string; sub?: string; cells: Cell[] } | { group: string; note?: string };
+const IN_CHAIN = "In the chained challenge";
+const compareRows: CompareRow[] = [
+  { group: "The event" },
   { label: "Event length", cells: [`${P.hosting.hours}h`, `${P.hosting.hours}h`, `${P.hosting.hours}h`, `${P.hosting.hours}h`] },
   { label: "Players included", cells: Array(4).fill(P.hosting.players.toLocaleString("en-US")) },
-  { label: "More players", cells: Array(4).fill(`Unlimited · +$${P.extraPlayersUsd} per 1,000`) },
+  { label: "More players", sub: "No upper limit", cells: Array(4).fill(`+$${P.extraPlayersUsd} per 1,000`) },
+  { label: "Longer events", sub: `Up to ${P.maxHours}h in total`, cells: Array(4).fill(`+$${P.extraHourUsd} per hour`) },
   { label: "Live scoreboard + host dashboard", cells: [true, true, true, true] },
   { label: "Certificates for players", cells: [true, true, true, true] },
-  { label: "Ready-made challenges", cells: ["Bring your own", "25", "40", "40"] },
-  { label: "Difficulty", cells: ["—", "Easy to medium", "Medium to hard", "Medium to hard"] },
-  { label: "Categories", cells: ["—", "Web, Steg, Forensics, OSINT, Crypto", "Pwn, Web, Boot2Root", "Pwn, Web, Boot2Root"] },
-  { label: "CyberHx chained challenge", cells: [false, false, true, true] },
-  { label: "3D event website", cells: [false, false, false, true] },
-  { label: "Custom challenges for your theme", cells: [false, false, false, true] },
-  { label: "Longer events", cells: Array(4).fill(`+$${P.extraHourUsd} per hour, up to ${P.maxHours}h`) },
   {
     label: "Earliest event date",
+    sub: "Counted from the day you order",
     cells: [
-      `${booking.leadDays.hosting} days after ordering`,
+      `${booking.leadDays.hosting} days`,
       `${booking.leadDays.prebuilt} days`,
       `${booking.leadDays.prebuilt} days`,
       `${booking.leadDays.custom} days`,
     ],
   },
+
+  { group: "Challenges" },
+  { label: "Ready-made challenges", cells: ["Bring your own", "25", "40", "40"] },
+  { label: "Difficulty", cells: ["—", "Easy to medium", "Medium to hard", "Medium to hard"] },
+  { label: "CyberHx chained challenge", sub: "OSINT, Forensics and Crypto linked into one run", cells: [false, false, true, true] },
+  { label: "Custom challenges for your theme", sub: "Written around your story, brand or course", cells: [false, false, false, true] },
+
+  { group: "Challenge categories", note: "What players will actually solve in each package." },
+  { label: "Web exploitation", sub: "SQL injection, XSS, SSRF, auth bypass, IDOR and logic bugs", cells: [false, true, true, true] },
+  { label: "Pwn (binary exploitation)", sub: "Buffer overflows, format strings, ROP chains on Linux binaries", cells: [false, false, true, true] },
+  { label: "Boot2Root", sub: "A full machine: find a foothold, then escalate to root", cells: [false, false, true, true] },
+  { label: "Forensics", sub: "Packet captures, memory dumps, disk images and logs", cells: [false, true, IN_CHAIN, IN_CHAIN] },
+  { label: "OSINT", sub: "Track people, places and leaks using open sources", cells: [false, true, IN_CHAIN, IN_CHAIN] },
+  { label: "Cryptography", sub: "Classic ciphers, encodings, XOR and weak RSA", cells: [false, true, IN_CHAIN, IN_CHAIN] },
+  { label: "Steganography", sub: "Flags hidden inside images, audio and files", cells: [false, true, false, false] },
+  { label: "Reverse engineering, Mobile and more", sub: "Any category you ask for, built as custom challenges", cells: [false, false, false, "On request"] },
+
+  { group: "Extras" },
+  { label: "3D event website", sub: "Designed to match your event's look", cells: [false, false, false, true] },
 ];
 
 /* ---------- why CyberHx (facts from our own offer, no made-up stats) ---------- */
@@ -357,13 +379,17 @@ const faqs = [
   { q: "Need more hours or two rounds?", a: "Use the custom builder below. It lets you set event length, player count, a qualifier plus grand finale, and every challenge type." },
 ];
 
+// First column stays pinned on phones while the packages scroll sideways.
+const stickyCol =
+  "sticky left-0 z-10 w-[8.75rem] min-w-[8.75rem] max-w-[8.75rem] bg-[#0a0f1d] max-sm:shadow-[8px_0_14px_-10px_rgba(0,0,0,1)] sm:static sm:w-auto sm:min-w-0 sm:max-w-none sm:bg-transparent";
+
 const Mark = ({ v }: { v: Cell }) =>
   v === true ? (
     <Check size={17} className="mx-auto text-lime" aria-label="Included" />
   ) : v === false ? (
     <Minus size={17} className="mx-auto text-white/25" aria-label="Not included" />
   ) : (
-    <span className="text-white/85">{v}</span>
+    <span className={v === IN_CHAIN ? "text-xs leading-snug text-glow/90" : "text-white/85"}>{v}</span>
   );
 
 // 16px text on phones so iOS does not zoom in when a field is tapped.
@@ -1159,33 +1185,55 @@ export default function HostYourCTF() {
       <section id="compare" className="scroll-mt-32 border-y border-line bg-panel/30">
         <div className="mx-auto max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
           <h2 className={h2}>What you get in each package</h2>
-          <p className="mt-2 text-sm text-muted">The full breakdown, side by side.</p>
-          <div className="card-ob mt-10 overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
+          <p className="mt-2 text-sm text-muted">The full breakdown, side by side, including every challenge category.</p>
+          <p className="mt-6 flex items-center gap-1.5 text-xs text-muted sm:hidden">Swipe the table sideways to see every package <span aria-hidden="true">→</span></p>
+          <div className="card-ob mt-3 overflow-x-auto overscroll-x-contain sm:mt-10">
+            <table className="w-full min-w-[680px] border-collapse text-sm sm:min-w-[760px]">
               <thead>
                 <tr className="border-b border-white/[0.08]">
-                  <th scope="col" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent w-[28%] px-4 py-4 text-left font-normal text-muted sm:px-5">Package</th>
+                  <th scope="col" className={`${stickyCol} w-[8.75rem] min-w-[8.75rem] px-3.5 py-4 text-left font-normal text-muted sm:w-[30%] sm:px-5`}>Package</th>
                   {compareCols.map((c) => (
-                    <th key={c.id} scope="col" className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
-                      <span className="block font-display text-lg text-white">{c.name}</span>
+                    <th key={c.id} scope="col" className={`min-w-[8.5rem] px-3 py-4 text-center sm:px-4 ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
+                      <span className="block whitespace-nowrap font-display text-base text-white sm:text-lg">{c.name}</span>
                       <span className={`block font-mono ${c.id === "pro" ? "text-lime" : "text-white/70"}`}>{money(c.usd)}</span>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {compareRows.map((r) => (
-                  <tr key={r.label} className="border-b border-white/[0.05] last:border-0">
-                    <th scope="row" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent max-w-[9.5rem] px-4 py-3.5 text-left font-normal text-white/70 sm:max-w-none sm:px-5">{r.label}</th>
-                    {r.cells.map((v, i) => (
-                      <td key={i} className={`px-4 py-3.5 text-center ${compareCols[i].id === "pro" ? "bg-lime/[0.06]" : ""}`}>
-                        <Mark v={v} />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {compareRows.map((r) =>
+                  "group" in r ? (
+                    <tr key={r.group} className="border-b border-white/[0.06]">
+                      <th scope="colgroup" className={`${stickyCol} !bg-[#0c1222] px-3.5 pb-2.5 pt-6 text-left font-normal sm:!bg-white/[0.025] sm:px-5`}>
+                        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-lime">{r.group}</span>
+                        {r.note && <span className="mt-1 block text-xs text-muted max-sm:hidden">{r.note}</span>}
+                      </th>
+                      {compareCols.map((c) => (
+                        <td
+                          key={c.id}
+                          aria-hidden="true"
+                          className={`bg-white/[0.025] px-3 pb-2.5 pt-6 text-center font-mono text-[10.5px] uppercase tracking-[0.14em] ${c.id === "pro" ? "text-lime/80" : "text-white/40"}`}
+                        >
+                          {c.name}
+                        </td>
+                      ))}
+                    </tr>
+                  ) : (
+                    <tr key={r.label} className="border-b border-white/[0.05] transition-colors hover:bg-white/[0.015]">
+                      <th scope="row" className={`${stickyCol} px-3.5 py-3.5 text-left font-normal sm:px-5`}>
+                        <span className="block text-[13px] leading-snug text-white/85 sm:text-sm">{r.label}</span>
+                        {r.sub && <span className="mt-0.5 block text-[11.5px] leading-snug text-muted sm:text-xs">{r.sub}</span>}
+                      </th>
+                      {r.cells.map((v, i) => (
+                        <td key={i} className={`px-3 py-3.5 text-center text-[13px] sm:px-4 sm:text-sm ${compareCols[i].id === "pro" ? "bg-lime/[0.06]" : ""}`}>
+                          <Mark v={v} />
+                        </td>
+                      ))}
+                    </tr>
+                  ),
+                )}
                 <tr>
-                  <td className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent px-4 py-4 sm:px-5" />
+                  <td className={`${stickyCol} px-3.5 py-4 sm:px-5`} />
                   {compareCols.map((c) => (
                     <td key={c.id} className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
                       <button
@@ -1233,7 +1281,7 @@ export default function HostYourCTF() {
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-white/[0.08]">
-                <th scope="col" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent w-[30%] px-4 py-4 text-left font-normal text-muted sm:px-5" />
+                <th scope="col" className={`${stickyCol} w-[8.75rem] min-w-[8.75rem] px-3.5 py-4 text-left font-normal text-muted sm:w-[30%] sm:px-5`} />
                 {altCols.map((c, i) => (
                   <th key={c} scope="col" className={`px-4 py-4 text-center font-semibold ${i === 0 ? "bg-lime/[0.06] text-lime" : "text-white/80"}`}>
                     {c}
@@ -1244,7 +1292,7 @@ export default function HostYourCTF() {
             <tbody>
               {altRows.map((r) => (
                 <tr key={r.label} className="border-b border-white/[0.05] last:border-0">
-                  <th scope="row" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent max-w-[9.5rem] px-4 py-3.5 text-left font-normal text-white/70 sm:max-w-none sm:px-5">{r.label}</th>
+                  <th scope="row" className={`${stickyCol} px-3.5 py-3.5 text-left text-[13px] font-normal leading-snug text-white/75 sm:px-5 sm:text-sm`}>{r.label}</th>
                   {r.cells.map((v, i) => (
                     <td key={i} className={`px-4 py-3.5 text-center ${i === 0 ? "bg-lime/[0.06]" : ""}`}>
                       <Mark v={v} />
@@ -1701,6 +1749,7 @@ export default function HostYourCTF() {
                               label={order.split ? "Qualifier date *" : "Event date *"}
                               value={form.eventDate}
                               min={minDate}
+                              max={order.split ? addDays(LAST_DATE, -booking.finaleGapDays) : LAST_DATE}
                               onChange={(v) => {
                                 setField("eventDate", v);
                                 const fin = fromISO(form.finaleDate);
@@ -1718,6 +1767,7 @@ export default function HostYourCTF() {
                                 label="Grand finale date *"
                                 value={form.finaleDate}
                                 min={form.eventDate && fromISO(form.eventDate) ? addDays(fromISO(form.eventDate)!, booking.finaleGapDays) : addDays(minDate, booking.finaleGapDays)}
+                                max={LAST_DATE}
                                 onChange={(v) => setField("finaleDate", v)}
                                 error={err.finaleDate}
                                 hint="At least a day after the qualifier, so you can announce the finalists."

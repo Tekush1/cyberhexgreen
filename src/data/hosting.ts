@@ -106,4 +106,6 @@ export const booking = {
   },
   /** Minimum days between a qualifier and its grand finale. */
   finaleGapDays: 1,
+  /** Last date the calendar offers (events can be booked up to five years ahead). */
+  lastDate: '2031-12-31',
 };
