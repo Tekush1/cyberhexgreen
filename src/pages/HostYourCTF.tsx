@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
+import { Mascot } from "../components/shared/Mascot";
 import { ShopMascot, type ShopFrame } from "../components/shared/ShopMascot";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
@@ -786,7 +787,7 @@ export default function HostYourCTF() {
 
       {/* Hero */}
       <section className="mx-auto max-w-7xl px-5 pb-10 pt-12 sm:px-6 lg:px-8 lg:pt-16">
-        <div className="max-w-2xl">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <h1 className="font-display text-[2.4rem] leading-[1.02] sm:text-5xl lg:text-6xl">
               Your CTF, ready to run.
@@ -811,6 +812,10 @@ export default function HostYourCTF() {
                 Compare them
               </a>
             </div>
+          </div>
+          <div className="relative mx-auto hidden w-full max-w-xs sm:block">
+            <div className="absolute inset-x-4 bottom-0 top-14 rounded-3xl border-2 border-line bg-panel" />
+            <Mascot pose="thumbs" alt="CyberHx mascot giving a thumbs up" eager className="mascot-pop relative mx-auto w-60 lg:w-64" />
           </div>
         </div>
       </section>
