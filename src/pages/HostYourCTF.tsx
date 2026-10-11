@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
 import { Mascot } from "../components/shared/Mascot";
+import { StoreMascot, type CartDrop } from "../components/shared/StoreMascot";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
 import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
@@ -301,6 +302,34 @@ export default function HostYourCTF() {
   const [error, setError] = React.useState(false);
   const [orderId, setOrderId] = React.useState("");
   const currency = useLocalCurrency();
+  const [drop, setDrop] = React.useState<CartDrop>(null);
+  const [heroInView, setHeroInView] = React.useState(true);
+  const [isPhone, setIsPhone] = React.useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches);
+  const heroRef = React.useRef<HTMLDivElement>(null);
+  const dropTimer = React.useRef<number>();
+
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const onMq = () => setIsPhone(mq.matches);
+    mq.addEventListener("change", onMq);
+    const el = heroRef.current;
+    const io = el ? new IntersectionObserver(([e]) => setHeroInView(e.isIntersecting), { threshold: 0.35 }) : null;
+    if (el && io) io.observe(el);
+    return () => {
+      mq.removeEventListener("change", onMq);
+      io?.disconnect();
+      window.clearTimeout(dropTimer.current);
+    };
+  }, []);
+
+  /* Buy: drop the item into the mascot's cart, then open checkout. */
+  const withDrop = (icon: IconName, open: () => void) => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setDrop({ id: Date.now(), icon });
+    window.clearTimeout(dropTimer.current);
+    if (reduce) open();
+    else dropTimer.current = window.setTimeout(open, 750);
+  };
   const [showBuilder, setShowBuilder] = React.useState(() => typeof window !== "undefined" && window.location.hash === "#build");
 
   React.useEffect(() => {
@@ -617,7 +646,7 @@ export default function HostYourCTF() {
           </label>
           <Local usd={total} className="font-semibold text-white/85" />
         </div>
-        <button type="button" onClick={checkoutBuild} className="btn btn-lime mt-4 w-full">
+        <button type="button" data-buy onClick={() => withDrop("toolbox", checkoutBuild)} className="btn btn-lime mt-4 w-full">
           Check out this build <ArrowRight size={16} />
         </button>
         <p className="mt-2.5 text-center text-[11px] text-muted">
@@ -690,9 +719,8 @@ export default function HostYourCTF() {
               </a>
             </div>
           </div>
-          <div className="relative mx-auto hidden w-full max-w-xs sm:block">
-            <div className="absolute inset-x-4 bottom-0 top-14 rounded-3xl border-2 border-line bg-panel" />
-            <Mascot pose="thumbs" alt="CyberHx mascot giving a thumbs up" eager className="mascot-pop relative mx-auto w-60 lg:w-64" />
+          <div ref={heroRef} className="hidden pt-6 sm:block">
+            <StoreMascot variant="hero" drop={drop} />
           </div>
         </div>
       </section>
@@ -724,7 +752,7 @@ export default function HostYourCTF() {
                   </li>
                 ))}
               </ul>
-              <button type="button" onClick={() => checkoutPlan(plan.id)} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
+              <button type="button" data-buy onClick={() => withDrop(plan.icon, () => checkoutPlan(plan.id))} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
                 Buy {plan.name} <ArrowRight size={16} />
               </button>
             </article>
@@ -740,7 +768,7 @@ export default function HostYourCTF() {
               </p>
             </div>
           </div>
-          <button type="button" onClick={checkoutHosting} className="btn btn-ghost shrink-0">
+          <button type="button" data-buy onClick={() => withDrop("cloud", checkoutHosting)} className="btn btn-ghost shrink-0">
             Buy hosting only
           </button>
         </div>
@@ -782,7 +810,12 @@ export default function HostYourCTF() {
                     <td key={c.id} className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
                       <button
                         type="button"
-                        onClick={() => (c.id === "hosting" ? checkoutHosting() : checkoutPlan(c.id))}
+                        data-buy
+                        onClick={() =>
+                          c.id === "hosting"
+                            ? withDrop("cloud", checkoutHosting)
+                            : withDrop(plans.find((p) => p.id === c.id)?.icon ?? "trophy", () => checkoutPlan(c.id))
+                        }
                         className={`btn w-full !min-h-[40px] !text-sm ${c.id === "pro" ? "btn-lime" : "btn-ghost"}`}
                       >
                         Buy
@@ -1201,12 +1234,14 @@ export default function HostYourCTF() {
                 {challengeCount} challenges · {build.format === "split" ? "2 rounds" : `${totalHours}h`}
               </div>
             </div>
-            <button type="button" onClick={checkoutBuild} className="btn btn-lime">
+            <button type="button" data-buy onClick={() => withDrop("toolbox", checkoutBuild)} className="btn btn-lime">
               Check out <ArrowRight size={16} />
             </button>
           </div>
         </div>
       )}
+
+      <StoreMascot variant="dock" drop={drop} visible={drawer === "closed" && (isPhone || !heroInView)} raised={showBuilder} />
 
       {/* Checkout drawer */}
       {drawer !== "closed" && order && (
