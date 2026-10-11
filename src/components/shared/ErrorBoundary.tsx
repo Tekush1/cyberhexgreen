@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { isChunkLoadError, reloadForNewVersion } from '../../lib/chunkReload';
 
 interface Props {
   children: ReactNode;
@@ -20,10 +21,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // A new version was deployed while this tab was open: reload instead of showing an error.
+    if (isChunkLoadError(error) && reloadForNewVersion()) return;
     console.error('Uncaught error:', error, errorInfo);
   }
 
   public render() {
+    if (this.state.hasError && isChunkLoadError(this.state.error)) return null;
     if (this.state.hasError) {
       return this.props.fallback || (
         <div className="min-h-screen flex items-center justify-center bg-dark-300">

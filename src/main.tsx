@@ -2,25 +2,20 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { listenForStaleFiles } from './lib/chunkReload';
 import './index.css';
 
-// Performance monitoring
-const reportWebVitals = (metric: any) => {
-  // Send metrics to analytics
-  console.log(metric);
-};
+listenForStaleFiles();
 
-// Hydrate the app
-const root = createRoot(document.getElementById('root')!);
-
-// Enable concurrent features and wrap with ErrorBoundary
-root.render(
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
-  </StrictMode>
+  </StrictMode>,
 );
 
-// Report web vitals
-reportWebVitals(window.performance);
+// Hide the loading screen as soon as the page has painted, instead of waiting
+// for every image and font on the page (the old "load" event did that).
+const hideLoader = () => document.body.classList.add('loaded');
+requestAnimationFrame(() => requestAnimationFrame(hideLoader));

@@ -129,7 +129,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://bqdegvtqnqcmzvrohbow.supabase.co" />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
   </head>
   <body style="background:#05080f;">
@@ -156,12 +158,10 @@
       (function(){
         var loader=document.getElementById('loader');
         if(!loader)return;
-        window.addEventListener('load',function(){
-          requestAnimationFrame(function(){
-            document.body.classList.add('loaded');
-            setTimeout(function(){loader.style.display='none';},400);
-          });
-        });
+        // The app hides the loader once it paints; this is only a safety net.
+        function done(){document.body.classList.add('loaded');setTimeout(function(){loader.style.display='none';},400);}
+        new MutationObserver(function(m,o){if(document.body.classList.contains('loaded')){o.disconnect();setTimeout(function(){loader.style.display='none';},400);}}).observe(document.body,{attributes:true,attributeFilter:['class']});
+        setTimeout(done,4000);
       })();
     </script>
   </body>

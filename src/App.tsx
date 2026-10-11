@@ -4,30 +4,31 @@ import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
 import { LoadingSpinner } from './components/shared/LoadingSpinner';
 import { HiringBanner } from './components/HiringBanner';
+import { retryImport } from './lib/chunkReload';
 
 // Lazy load pages
-const HomePage = lazy(() => import('./pages/HomePage').then(module => ({ default: module.HomePage })));
-const AboutPage = lazy(() => import('./pages/AboutPage').then(module => ({ default: module.AboutPage })));
-const PrizesPage = lazy(() => import('./pages/PrizesPage').then(module => ({ default: module.PrizesPage })));
-const GalleryPage = lazy(() => import('./pages/GalleryPage').then(module => ({ default: module.GalleryPage })));
-const ContactPage = lazy(() => import('./pages/ContactPage').then(module => ({ default: module.ContactPage })));
-const BecomeMentorPage = lazy(() => import('./pages/BecomeMentorPage').then(module => ({ default: module.BecomeMentorPage })));
-const BookSessionPage = lazy(() => import('./pages/BookSessionPage').then(module => ({ default: module.BookSessionPage })));
-const RegistrationPage = lazy(() => import('./pages/RegistrationPage').then(module => ({ default: module.default })));
-const BlogPage = lazy(() => import('./features/blog/BlogListPage'));
-const BlogPostPage = lazy(() => import('./features/blog/BlogPostPage'));
-const BlogEditorPage = lazy(() => import('./features/blog/EditorPage'));
-const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ default: module.default })));
-const EventsPage = lazy(() => import('./pages/EventsPage').then(module => ({ default: module.default })));
-const ResponsibleDisclosurePage = lazy(() => import('./pages/ResponsibleDisclosurePage'));
-const HallOfFamePage = lazy(() => import('./pages/HallOfFamePage'));
-const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
-const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
-const CollaborationsPage = lazy(() => import('./pages/CollaborationsPage'));
-const BookInterviewPage = lazy(() => import('./pages/BookInterviewPage'));
-const HostYourCTF = lazy(() => import('./pages/HostYourCTF'));
-const HiringPopup = lazy(() => import('./components/HiringPopup').then(m => ({ default: m.HiringPopup })));
+const HomePage = lazy(retryImport(() => import('./pages/HomePage').then(module => ({ default: module.HomePage }))));
+const AboutPage = lazy(retryImport(() => import('./pages/AboutPage').then(module => ({ default: module.AboutPage }))));
+const PrizesPage = lazy(retryImport(() => import('./pages/PrizesPage').then(module => ({ default: module.PrizesPage }))));
+const GalleryPage = lazy(retryImport(() => import('./pages/GalleryPage').then(module => ({ default: module.GalleryPage }))));
+const ContactPage = lazy(retryImport(() => import('./pages/ContactPage').then(module => ({ default: module.ContactPage }))));
+const BecomeMentorPage = lazy(retryImport(() => import('./pages/BecomeMentorPage').then(module => ({ default: module.BecomeMentorPage }))));
+const BookSessionPage = lazy(retryImport(() => import('./pages/BookSessionPage').then(module => ({ default: module.BookSessionPage }))));
+const RegistrationPage = lazy(retryImport(() => import('./pages/RegistrationPage').then(module => ({ default: module.default }))));
+const BlogPage = lazy(retryImport(() => import('./features/blog/BlogListPage')));
+const BlogPostPage = lazy(retryImport(() => import('./features/blog/BlogPostPage')));
+const BlogEditorPage = lazy(retryImport(() => import('./features/blog/EditorPage')));
+const AdminPage = lazy(retryImport(() => import('./pages/AdminPage').then(module => ({ default: module.default }))));
+const EventsPage = lazy(retryImport(() => import('./pages/EventsPage').then(module => ({ default: module.default }))));
+const ResponsibleDisclosurePage = lazy(retryImport(() => import('./pages/ResponsibleDisclosurePage')));
+const HallOfFamePage = lazy(retryImport(() => import('./pages/HallOfFamePage')));
+const PrivacyPolicyPage = lazy(retryImport(() => import('./pages/PrivacyPolicyPage')));
+const TermsOfServicePage = lazy(retryImport(() => import('./pages/TermsOfServicePage')));
+const NotFoundPage = lazy(retryImport(() => import('./pages/NotFoundPage')));
+const CollaborationsPage = lazy(retryImport(() => import('./pages/CollaborationsPage')));
+const BookInterviewPage = lazy(retryImport(() => import('./pages/BookInterviewPage')));
+const HostYourCTF = lazy(retryImport(() => import('./pages/HostYourCTF')));
+const HiringPopup = lazy(retryImport(() => import('./components/HiringPopup').then(m => ({ default: m.HiringPopup }))));
 
 // Scroll to top on page change, or to #section when the link carries a hash.
 function ScrollManager() {
