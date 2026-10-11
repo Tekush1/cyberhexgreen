@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Seo } from '../features/seo/Seo';
 import { MeetingsPanel, type MeetingKind, type MeetingPrefill } from '../components/admin/MeetingsPanel';
-import { ApplicationsPanel, CtfRequestsPanel } from '../components/admin/RequestsPanels';
+import { ApplicationsPanel, CtfRequestsPanel, InboxPanel } from '../components/admin/RequestsPanels';
 import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
 import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -239,13 +239,13 @@ const SubmissionCard = ({ sub, onApprove, onReject, onDelete, loading }: {
   );
 };
 
-type TabId = 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf' | 'availability';
+type TabId = 'inbox' | 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf' | 'availability';
 
 // ─── Main Admin Panel ─────────────────────────────────────────
 const AdminPage: React.FC = () => {
   const [authed, setAuthed] = useState(() => !!getAdminToken());
-  const [tab, setTab] = useState<TabId>('submissions');
-  const [newCounts, setNewCounts] = useState({ applications: 0, ctf: 0 });
+  const [tab, setTab] = useState<TabId>('inbox');
+  const [newCounts, setNewCounts] = useState({ inbox: 0, applications: 0, ctf: 0 });
   const [prefill, setPrefill] = useState<MeetingPrefill | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -280,11 +280,12 @@ const AdminPage: React.FC = () => {
   };
 
   const loadCounts = async () => {
-    const [applications, ctf] = await Promise.all([
+    const [inbox, applications, ctf] = await Promise.all([
+      sbCount('form_submissions', { status: 'eq.new' }),
       sbCount('job_applications', { status: 'eq.new' }),
       sbCount('ctf_requests', { status: 'eq.new' }),
     ]);
-    setNewCounts({ applications, ctf });
+    setNewCounts({ inbox, applications, ctf });
   };
 
   const goSchedule = (name: string, email: string, kind: MeetingKind) => {
@@ -389,7 +390,8 @@ const AdminPage: React.FC = () => {
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1">
           {([
-            { id: 'submissions', label: 'Submissions', badge: stats.pending },
+            { id: 'inbox', label: 'Inbox', badge: newCounts.inbox },
+            { id: 'submissions', label: 'Blog submissions', badge: stats.pending },
             { id: 'posts', label: 'Published Posts', badge: 0 },
             { id: 'meetings', label: 'Meetings', badge: 0 },
             { id: 'applications', label: 'Applications', badge: newCounts.applications },
@@ -447,6 +449,7 @@ const AdminPage: React.FC = () => {
         )}
 
         {tab === 'meetings' && <MeetingsPanel prefill={prefill} />}
+        {tab === 'inbox' && <InboxPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {tab === 'applications' && <ApplicationsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {tab === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {tab === 'availability' && <AvailabilityPanel />}

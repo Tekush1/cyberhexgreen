@@ -3,14 +3,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Search, RefreshCw, Loader2, Trash2, ChevronDown, ChevronUp, Mail, Phone, CalendarClock,
-  Briefcase, Flag, Building2, Inbox, AlertTriangle, Save, GraduationCap, ExternalLink,
+  Briefcase, Flag, Building2, Inbox, AlertTriangle, Save, GraduationCap, ExternalLink, FileText, MessageSquare,
 } from 'lucide-react';
-import { sbSelect, sbUpdate, sbRemove, timeAgo, fmtDateTime } from './adminApi';
+import { sbSelect, sbUpdate, sbRemove, timeAgo, fmtDateTime, SUPABASE_URL, SUPABASE_KEY, getAdminToken } from './adminApi';
 import type { MeetingKind } from './MeetingsPanel';
 
 type Row = { id: string; status: string; admin_notes: string | null; created_at: string } & Record<string, any>;
 
-interface Field { label: string; key: string; long?: boolean; link?: boolean }
+interface Field { label: string; key: string; long?: boolean; link?: boolean; file?: string /* storage bucket */ }
 
 interface Config {
   table: string;
@@ -64,7 +64,8 @@ const APPLICATIONS: Config = {
     { label: 'Experience', key: 'experience' },
     { label: 'Availability', key: 'availability' },
     { label: 'Portfolio / links', key: 'portfolio', link: true },
-    { label: 'Resume', key: 'resume_note' },
+    { label: 'Resume', key: 'resume_path', file: 'applications' },
+    { label: 'Resume note', key: 'resume_note' },
     { label: 'Skills', key: 'skills' },
     { label: 'Why CyberHx?', key: 'motivation', long: true },
   ],
@@ -98,12 +99,62 @@ const CTF: Config = {
     { label: 'Preferred date', key: 'event_date' },
     { label: 'Participants', key: 'participants' },
     { label: 'Budget', key: 'budget' },
+    { label: 'Order ID', key: 'order_id' },
+    { label: 'Order total', key: 'order_total' },
+    { label: 'Order', key: 'order_items', long: true },
     { label: 'Requirements', key: 'requirements', long: true },
     { label: 'Message', key: 'message', long: true },
   ],
   searchKeys: ['name', 'email', 'organization', 'event_name', 'phone'],
   mailSubject: (r) => `CyberHx - your CTF hosting request${r.event_name ? ` (${r.event_name})` : ''}`,
 };
+
+const FORM_LABEL: Record<string, string> = {
+  contact: 'Contact message',
+  partnership: 'Partnership',
+  registration: 'Hackathon registration',
+  mentor: 'Mentor application',
+  session: 'Session booking',
+  other: 'Other',
+};
+
+const INBOX: Config = {
+  table: 'form_submissions',
+  kind: 'other',
+  noun: 'message',
+  statuses: [
+    { value: 'new', label: 'New', cls: STATUS_CLS.new },
+    { value: 'read', label: 'Read', cls: STATUS_CLS.mid },
+    { value: 'replied', label: 'Replied', cls: STATUS_CLS.done },
+    { value: 'archived', label: 'Archived', cls: STATUS_CLS.bad },
+  ],
+  name: (r) => r.name,
+  tag: (r) => r.subject || FORM_LABEL[r.form] || pretty(r.form),
+  tagIcon: <MessageSquare size={13} />,
+  tagLabel: 'About',
+  subline: (r) => [FORM_LABEL[r.form] || pretty(r.form), r.page && `from ${r.page}`].filter(Boolean).join(' · '),
+  fields: [
+    { label: 'Email', key: 'email', link: true },
+    { label: 'Phone', key: 'phone' },
+    { label: 'Form', key: 'form' },
+    { label: 'Page', key: 'page' },
+    { label: 'Message', key: 'message', long: true },
+  ],
+  searchKeys: ['name', 'email', 'subject', 'message', 'form'],
+  mailSubject: (r) => `Re: ${r.subject || 'your message to CyberHx'}`,
+};
+
+/** Opens a private file (e.g. a resume) with a link that works for 10 minutes. */
+async function openPrivateFile(bucket: string, path: string) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expiresIn: 600 }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.signedURL) throw new Error(data?.message || 'Could not open the file');
+  window.open(`${SUPABASE_URL}/storage/v1${data.signedURL}`, '_blank', 'noopener');
+}
 
 const isUrl = (v: string) => /^https?:\/\//i.test(v);
 
@@ -156,6 +207,20 @@ const RequestCard: React.FC<{
                 const raw = row[f.key];
                 const val = Array.isArray(raw) ? raw.join(', ') : String(raw ?? '').trim();
                 if (!val) return null;
+                if (f.file) {
+                  return (
+                    <div key={f.key} className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-wide text-gray-600 mb-0.5">{f.label}</p>
+                      <button
+                        type="button"
+                        onClick={() => openPrivateFile(f.file!, val).catch((e) => alert(e.message))}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#a3e635]/30 bg-[#a3e635]/10 px-3 py-1.5 text-sm text-[#a3e635] hover:bg-[#a3e635]/20"
+                      >
+                        <FileText size={13} /> Open resume
+                      </button>
+                    </div>
+                  );
+                }
                 return (
                   <div key={f.key} className="min-w-0">
                     <p className="text-[11px] uppercase tracking-wide text-gray-600 mb-0.5">{f.label}</p>
@@ -170,6 +235,20 @@ const RequestCard: React.FC<{
                 );
               })}
             </div>
+            {row.data && typeof row.data === 'object' && Object.keys(row.data).length > 0 && (
+              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border-t border-white/5 pt-3">
+                {Object.entries(row.data as Record<string, unknown>).map(([k, v]) => {
+                  const val = Array.isArray(v) ? v.join(', ') : String(v ?? '').trim();
+                  if (!val) return null;
+                  return (
+                    <div key={k} className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-wide text-gray-600 mb-0.5">{pretty(k.replace(/_/g, '-'))}</p>
+                      <p className="text-sm text-gray-200 break-words">{val}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             {cfg.fields.filter((f) => f.long).map((f) => {
               const val = String(row[f.key] ?? '').trim();
               if (!val) return null;
@@ -216,7 +295,7 @@ const RequestCard: React.FC<{
 
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onSchedule} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#a3e635] text-[#05080f] font-semibold text-sm hover:bg-[#bef264] transition-colors">
-            <CalendarClock size={14} /> Schedule {cfg.kind === 'ctf' ? 'call' : 'interview'}
+            <CalendarClock size={14} /> Schedule {cfg.kind === 'interview' ? 'interview' : 'call'}
           </button>
           <a
             href={`mailto:${row.email}?subject=${encodeURIComponent(cfg.mailSubject(row))}`}
@@ -357,4 +436,7 @@ export const ApplicationsPanel: React.FC<{ onSchedule: (n: string, e: string, k:
 );
 export const CtfRequestsPanel: React.FC<{ onSchedule: (n: string, e: string, k: MeetingKind) => void; onChanged?: () => void }> = (p) => (
   <RequestsPanel cfg={CTF} {...p} />
+);
+export const InboxPanel: React.FC<{ onSchedule: (n: string, e: string, k: MeetingKind) => void; onChanged?: () => void }> = (p) => (
+  <RequestsPanel cfg={INBOX} {...p} />
 );

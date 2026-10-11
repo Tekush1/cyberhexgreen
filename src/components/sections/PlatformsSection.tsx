@@ -9,7 +9,7 @@ const items: { icon: IconName; title: string; text: string; href: string; extern
 ];
 
 export const PlatformsSection = () => (
-  <section className="border-t-2 border-line bg-ink py-16 sm:py-20">
+  <section className="border-t border-white/[0.06] bg-ink py-20 sm:py-28">
     <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
       <h2 className="font-display text-3xl text-white sm:text-4xl">Between events</h2>
       <div className="mt-8 grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">

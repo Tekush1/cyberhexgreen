@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Loader } from 'lucide-react';
+import { submitForm } from '../../lib/forms';
 
 interface BookSessionFormProps {
   onClose: () => void;
@@ -40,21 +41,24 @@ export const BookSessionForm: React.FC<BookSessionFormProps> = ({ onClose }) => 
     setStatus('idle');
     
     try {
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Emails the team AND saves to Supabase (Admin → Inbox).
+      const result = await submitForm({
+        subject: 'New Session Booking',
+        table: 'form_submissions',
+        replyTo: formData.email,
+        row: {
+          form: 'session',
+          name: formData.name,
+          email: formData.email,
+          subject: formData.sessionType ? `Session: ${formData.sessionType}` : 'Session booking',
+          message: formData.notes,
+          page: window.location.pathname,
+          data: { date: formData.date, time: formData.time, session_type: formData.sessionType },
         },
-        body: JSON.stringify({
-          access_key: 'ae826816-f65e-4d6f-8491-3362df582e13',
-          subject: 'New Session Booking',
-          ...formData
-        }),
+        email: formData,
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (result.ok) {
         setStatus('success');
         setTimeout(() => onClose(), 1500);
       } else {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Loader } from 'lucide-react';
+import { submitForm } from '../../lib/forms';
 
 interface BecomeMentorFormProps {
   onClose: () => void;
@@ -57,23 +58,24 @@ export const BecomeMentorForm: React.FC<BecomeMentorFormProps> = ({ onClose }) =
     setStatus('idle');
     
     try {
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Emails the team AND saves to Supabase (Admin → Inbox).
+      const result = await submitForm({
+        subject: 'New Mentor Application',
+        table: 'form_submissions',
+        replyTo: formData.email,
+        row: {
+          form: 'mentor',
+          name: formData.fullName,
+          email: formData.email,
+          subject: 'Mentor application',
+          message: formData.motivation,
+          page: window.location.pathname,
+          data: { background: formData.background, expertise: formData.expertise, availability: formData.availability },
         },
-        body: JSON.stringify({
-          access_key: 'ae826816-f65e-4d6f-8491-3362df582e13',
-          subject: 'New Mentor Application',
-          ...formData,
-          expertise: formData.expertise.join(', '),
-          availability: formData.availability.join(', ')
-        }),
+        email: formData,
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (result.ok) {
         setStatus('success');
         setTimeout(() => onClose(), 1500);
       } else {

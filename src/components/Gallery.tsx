@@ -104,7 +104,7 @@ export const Gallery = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 120, damping: 14, delay: 0.1 }}
           >
-            <Mascot pose="cheer" alt="" eager className="float-y mx-auto w-44 sm:w-52 md:w-64" />
+            <Mascot pose="cheer" alt="" eager className="mx-auto w-44 sm:w-52 md:w-64" />
           </motion.div>
         </div>
       </header>
@@ -217,7 +217,7 @@ export const Gallery = () => {
 
           <Reveal delay={rest.length * 0.1} className="h-full">
             <div className="relative flex h-full flex-col rounded-[1.25rem] border-2 border-dashed border-line p-6 pt-28">
-              <Mascot pose="confused" alt="" className="float-y absolute -top-6 left-1/2 w-32 -translate-x-1/2" />
+              <Mascot pose="confused" alt="" className="absolute -top-6 left-1/2 w-32 -translate-x-1/2" />
               <h2 className="font-display text-2xl text-white">What's next?</h2>
               <p className="mt-2 text-sm leading-6 text-muted">
                 We're picking the date for our next open CTF. Follow along to hear the moment registrations open.
@@ -237,7 +237,7 @@ export const Gallery = () => {
         {/* Hosting nudge */}
         <Reveal>
           <div className="sticker sticker-glow relative mt-40 grid gap-6 p-7 sm:p-10 md:grid-cols-[1fr_auto] md:items-center">
-            <Mascot pose="point" alt="" className="float-y absolute -top-36 left-4 w-40 sm:-top-40 sm:left-8 sm:w-44" />
+            <Mascot pose="point" alt="" className="absolute -top-36 left-4 w-40 sm:-top-40 sm:left-8 sm:w-44" />
             <div className="pt-16">
               <h2 className="font-display text-3xl text-white sm:text-4xl">Want one of these for your college?</h2>
               <p className="mt-3 max-w-xl text-muted">

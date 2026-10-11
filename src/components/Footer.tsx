@@ -36,15 +36,12 @@ export const Footer = () => {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-auto border-t-2 border-line bg-dark-200 pt-14 sm:pt-16">
-      <Mascot
-        pose="jump"
-        alt=""
-        className="absolute -top-12 right-4 w-32 sm:right-10 sm:w-36 lg:right-[8%] lg:-top-14 lg:w-40"
-      />
-
+    <footer className="relative mt-auto border-t border-white/[0.06] bg-[#050812] pt-16 sm:pt-20">
       <div className="mx-auto max-w-7xl px-5 pb-10 sm:px-6 lg:px-8">
-        <p className="font-display max-w-xl pr-32 text-3xl text-white sm:pr-0 sm:text-5xl">See you on the scoreboard.</p>
+        <div className="flex items-end justify-between gap-6">
+          <p className="font-display max-w-xl text-3xl leading-[1.05] text-white sm:text-5xl">See you on the scoreboard.</p>
+          <Mascot pose="jump" alt="" className="-mb-2 w-24 shrink-0 sm:w-32 lg:w-36" />
+        </div>
         <div className="mt-14 grid grid-cols-2 gap-x-6 gap-y-12 sm:mt-20 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" aria-label="CyberHx home" className="inline-block">

@@ -694,35 +694,27 @@ export const About = () => {
   };
 
   return (
-    <section id="about" className="py-16 bg-dark-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-3xl font-bold gradient-text mb-3">About CyberHx</h2>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto">
-            Elite cybersecurity community dedicated to securing the digital realm.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="h-[400px] w-full relative"
-          >
-            <Mascot pose="laugh-point" alt="CyberHx mascot" className="absolute inset-x-0 mx-auto bottom-0 h-full w-auto" />
+    <section id="about" className="bg-ink pb-20 pt-28 sm:pb-28 sm:pt-32">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+        <div className="mb-20 grid items-center gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+            <h1 className="font-display text-5xl leading-[1.02] text-white sm:text-6xl">
+              The people behind
+              <span className="block text-white/45">the scoreboard.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-muted">
+              CyberHx started in Bhopal as a group of CTF players. Today we run open CTFs for India's security crowd, build
+              events for colleges and companies, and train people on our Pentest Lab.
+            </p>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="relative pt-16 sm:pt-20"
           >
+            <Mascot pose="laugh-point" alt="CyberHx mascot" eager className="absolute -top-2 right-2 z-10 w-28 sm:right-6 sm:w-36" />
             <Terminal />
           </motion.div>
         </div>
@@ -791,7 +783,7 @@ export const About = () => {
           viewport={{ once: true }}
           className="mb-16"
         >
-          <h3 className="text-2xl font-bold text-white text-center mb-8">ORGANIZERS</h3>
+          <h2 className="font-display mb-8 text-3xl text-white sm:text-4xl">Organizers</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {teamMembers.map((member, index) => (
               <motion.div

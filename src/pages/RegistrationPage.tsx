@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Book, Code, Brain, Loader, Check, ArrowRight } from 'lucide-react';
 import { Shield } from '../components/shared/icons';
+import { submitForm } from '../lib/forms';
 
 export const RegistrationPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,21 +57,31 @@ export const RegistrationPage = () => {
     setStatus('idle');
     
     try {
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Emails the team AND saves to Supabase (Admin → Inbox).
+      const result = await submitForm({
+        subject: 'New Hackathon Registration',
+        table: 'form_submissions',
+        replyTo: formData.email,
+        row: {
+          form: 'registration',
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          subject: 'Hackathon registration',
+          message: formData.expectations,
+          page: '/register',
+          data: {
+            college: formData.college,
+            year: formData.year,
+            branch: formData.branch,
+            interests: formData.interests,
+            experience: formData.experience,
+          },
         },
-        body: JSON.stringify({
-          access_key: 'ae826816-f65e-4d6f-8491-3362df582e13',
-          subject: 'New Hackathon Registration',
-          ...formData
-        }),
+        email: formData,
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (result.ok) {
         setStatus('success');
         // Reset form
         setFormData({

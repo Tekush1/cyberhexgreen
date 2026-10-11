@@ -6,6 +6,7 @@ import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
 import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
 import { Seo } from "../features/seo/Seo";
+import { submitForm } from "../lib/forms";
 
 /* =============================================================
    HOST YOUR CTF — build your CTF like a PC.
@@ -384,22 +385,36 @@ export default function HostYourCTF() {
     const totalText =
       money(order.total) + (order.quoted ? " plus quoted custom challenges" : "") + (local ? ` (≈ ${local})` : "");
     try {
-      const res = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_key: "ae826816-f65e-4d6f-8491-3362df582e13",
-          subject: `New CTF order ${id}: ${form.eventName} (${totalText})`,
+      // Emails the team AND saves the order to Supabase (Admin → CTF Requests).
+      const result = await submitForm({
+        subject: `New CTF order ${id}: ${form.eventName} (${totalText})`,
+        table: "ctf_requests",
+        replyTo: form.email,
+        row: {
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          organization: form.organization,
+          event_name: form.eventName,
+          event_format: form.eventFormat,
+          event_date: form.eventDate,
+          participants: form.participants,
+          requirements: `${order.title}\n${lines}`,
+          message: [form.eventTheme && `Theme: ${form.eventTheme}`, form.message].filter(Boolean).join("\n\n"),
+          order_id: id,
+          order_total: totalText,
+          order_items: lines,
+        },
+        email: {
           order_id: id,
           order_type: order.title,
           order_items: lines,
           order_total_usd: totalText,
           visitor_currency: currency.code,
           ...form,
-        }),
+        },
       });
-      const data = await res.json();
-      if (!data.success) throw new Error("failed");
+      if (!result.ok) throw new Error("failed");
       setOrderId(id);
       setForm(emptyForm);
       if (order.title.startsWith("Custom CTF build")) reset();

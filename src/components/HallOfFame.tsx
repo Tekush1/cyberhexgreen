@@ -392,7 +392,7 @@ export const HallOfFame = () => {
   };
 
   return (
-    <section className="py-24 bg-dark-300">
+    <section className="border-t border-white/[0.06] bg-ink py-20 sm:py-28">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -405,7 +405,7 @@ export const HallOfFame = () => {
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold gradient-text mb-6"
+            className="font-display mb-6 text-4xl text-white md:text-5xl"
           >
             Our Team
           </motion.h2>

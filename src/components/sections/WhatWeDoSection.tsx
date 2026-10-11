@@ -35,9 +35,13 @@ export const WhatWeDoSection = () => {
   const reduce = useReducedMotion();
 
   return (
-    <section className="bg-ink py-20 sm:py-24">
+    <section className="border-t border-white/[0.06] bg-ink py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
-        <h2 className="font-display max-w-2xl text-4xl text-white sm:text-5xl">Play one. Build one. Get certified.</h2>
+        <h2 className="font-display text-[2.1rem] leading-[1.05] text-white sm:text-5xl">
+          <span className="block sm:inline">Play one. </span>
+          <span className="block sm:inline">Build one. </span>
+          <span className="block text-white/45 sm:inline">Get certified.</span>
+        </h2>
 
         <div className="mt-12 grid gap-5 lg:grid-cols-[1.15fr_1fr]">
           {/* Build your CTF */}
@@ -100,7 +104,7 @@ export const WhatWeDoSection = () => {
               name="ctf-green"
               size={150}
               alt=""
-              className="pointer-events-none absolute -right-5 -top-4 rotate-12 transition-transform duration-500 group-hover:rotate-[4deg] group-hover:scale-105"
+              className="pointer-events-none absolute -right-6 -top-6 origin-top-right rotate-12 scale-[0.62] opacity-90 transition-transform duration-500 group-hover:rotate-[4deg] sm:-right-5 sm:-top-4 sm:scale-100 sm:opacity-100"
             />
             <h3 className="font-display max-w-[11ch] text-3xl text-white sm:text-4xl">Play our CTFs</h3>
             <p className="mt-3 max-w-[24ch] leading-7 text-muted">Open to everyone. Here's what we've run so far.</p>
