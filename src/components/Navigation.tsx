@@ -7,6 +7,7 @@ import { Mascot } from './shared/Mascot';
 const links = [
   { name: 'Events', to: '/gallery' },
   { name: 'Host a CTF', to: '/host-your-ctf' },
+  { name: 'Certifications', to: '/#certifications' },
   { name: 'Blog', to: '/blog' },
   { name: 'About', to: '/about' },
   { name: 'Contact', to: '/contact' },
@@ -99,7 +100,7 @@ export const Navigation = () => {
         {/* Desktop */}
         <div className="hidden items-center gap-1 lg:flex">
           {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={linkCls}>
+            <NavLink key={l.to} to={l.to} className={({ isActive }) => linkCls({ isActive: isActive && !l.to.includes('#') })}>
               {l.name}
             </NavLink>
           ))}
@@ -179,11 +180,12 @@ export const Navigation = () => {
             <NavLink
               key={l.to}
               to={l.to}
-              className={({ isActive }) =>
-                `font-display border-b-2 py-4 text-3xl ${light ? 'border-black/10' : 'border-line'} ${
+              className={({ isActive: active }) => {
+                const isActive = active && !l.to.includes('#');
+                return `font-display border-b-2 py-4 text-3xl ${light ? 'border-black/10' : 'border-line'} ${
                   isActive ? (light ? 'text-ink underline decoration-lime decoration-2 underline-offset-8' : 'text-lime') : light ? 'text-ink' : 'text-white'
-                }`
-              }
+                }`;
+              }}
             >
               {l.name}
             </NavLink>
