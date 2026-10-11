@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { AnimatePresence, motion, useInView, useReducedMotion, useScroll, useSpring } from 'framer-motion';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import { ArrowRight, Instagram } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { events } from '../data/events';
@@ -35,44 +35,15 @@ const Line = ({ children, delay, reduce }: { children: ReactNode; delay: number;
   </span>
 );
 
-/** Flickering digits for a date nobody knows yet. */
-function UnknownDate({ reduce }: { reduce: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref);
-  const [d, setD] = useState(['?', '?', '?', '?', '?', '?']);
-  useEffect(() => {
-    if (reduce || !inView) return;
-    const t = setInterval(() => setD((p) => p.map(() => String(Math.floor(Math.random() * 10)))), 120);
-    return () => clearInterval(t);
-  }, [reduce, inView]);
-  const groups = [
-    { v: d.slice(0, 2), l: 'days' },
-    { v: d.slice(2, 4), l: 'hrs' },
-    { v: d.slice(4, 6), l: 'min' },
-  ];
+/** Honest "no date yet" badge — not a countdown, because nothing is scheduled. */
+function UnknownDate() {
   return (
-    <div ref={ref} className="mt-6">
-      <span className="sr-only">Date to be announced.</span>
-      <div aria-hidden="true" className="flex items-end gap-2">
-        {groups.map((g, i) => (
-          <div key={g.l} className="flex items-end gap-2">
-            <div>
-              <div className="flex gap-1">
-                {g.v.map((ch, j) => (
-                  <span
-                    key={j}
-                    className="flex h-11 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] font-mono text-lg tabular-nums text-white/80 sm:h-12 sm:w-9 sm:text-xl"
-                  >
-                    {ch}
-                  </span>
-                ))}
-              </div>
-              <p className="mt-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">{g.l}</p>
-            </div>
-            {i < 2 && <span className="mb-7 font-mono text-white/30">:</span>}
-          </div>
-        ))}
-      </div>
+    <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.04] px-4 py-2">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-60 motion-reduce:hidden" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
+      </span>
+      <span className="font-mono text-xs uppercase tracking-[0.16em] text-white/70">Date — to be announced</span>
     </div>
   );
 }
@@ -302,7 +273,7 @@ export const Gallery = () => {
               <p className="mt-4 max-w-md leading-7 text-muted">
                 We're picking the date for our next open CTF. Follow along to hear the moment registrations open.
               </p>
-              <UnknownDate reduce={reduce} />
+              <UnknownDate />
             </div>
             <div className="relative flex flex-col gap-3 sm:flex-row md:col-span-2 lg:col-span-1 lg:flex-col">
               <a href="https://instagram.com/nulloriginctf" target="_blank" rel="noopener noreferrer" className="btn btn-lime">

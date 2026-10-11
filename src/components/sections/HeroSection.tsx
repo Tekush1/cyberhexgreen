@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { type CSSProperties, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Mascot } from '../shared/Mascot';
 import { CountUp } from '../shared/CountUp';
@@ -10,24 +10,12 @@ import { events } from '../../data/events';
 
 /* ─────────────────────────────────────────────────────────────
    The Arena: a CTF stage. A perspective grid floor runs to a
-   glowing horizon, the mascot plants its flag on it, and a small
-   live UI (countdown, scoreboard, flag toasts) shows what a
-   CyberHx event feels like. The scoreboard is illustrative.
+   glowing horizon and the mascot plants its flag on it. The two
+   floating cards show our real events, pulled from the events data.
    ───────────────────────────────────────────────────────────── */
 
-type Team = { name: string; score: number };
-const START_TEAMS: Team[] = [
-  { name: 'nullbytes', score: 4820 },
-  { name: 'stack_smash', score: 4310 },
-  { name: 'osint_owls', score: 3975 },
-];
-const SOLVES = [
-  { team: 'stack_smash', chal: 'Pwn · ret2win', pts: 500 },
-  { team: 'osint_owls', chal: 'OSINT · find_the_cafe', pts: 250 },
-  { team: 'nullbytes', chal: 'Crypto · baby_rsa', pts: 400 },
-  { team: 'osint_owls', chal: 'Forensics · lost_pixels', pts: 300 },
-  { team: 'stack_smash', chal: 'Web · cookie_jar', pts: 350 },
-];
+// "6000+ Hackers" -> "6000+", "1.4K+" stays as is.
+const compactPlayers = (s: string) => s.replace(/\s*(hackers?|players?|participants?)\s*/i, '').trim();
 
 // Sparks that drift up around the mascot. x = start position, d = delay, drift = sideways sway.
 const SPARKS = [
@@ -41,45 +29,11 @@ const SPARKS = [
 ];
 
 const ease = [0.16, 1, 0.3, 1] as const;
-const pad = (n: number) => String(n).padStart(2, '0');
-
-function useCountdown(start = 5 * 3600 + 42 * 60 + 10, active = true) {
-  const [left, setLeft] = useState(start);
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => setLeft((s) => (s <= 0 ? start : s - 1)), 1000);
-    return () => clearInterval(t);
-  }, [start, active]);
-  return `${pad(Math.floor(left / 3600))}:${pad(Math.floor((left % 3600) / 60))}:${pad(left % 60)}`;
-}
 
 export const HeroSection = () => {
   const reduce = !!useReducedMotion();
   const latest = events[0];
-
-  /* live scoreboard */
-  const [teams, setTeams] = useState(START_TEAMS);
-  const [solve, setSolve] = useState<(typeof SOLVES)[number] | null>(null);
-  const solveIdx = useRef(0);
-  const clock = useCountdown(undefined, !reduce);
-
-  useEffect(() => {
-    if (reduce) return;
-    let hide: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      const s = SOLVES[solveIdx.current++ % SOLVES.length];
-      setSolve(s);
-      setTeams((ts) => [...ts.map((t) => (t.name === s.team ? { ...t, score: t.score + s.pts } : t))].sort((a, b) => b.score - a.score));
-      hide = setTimeout(() => setSolve(null), 2600);
-    };
-    const first = setTimeout(tick, 2400);
-    const loop = setInterval(tick, 4200);
-    return () => {
-      clearTimeout(first);
-      clearTimeout(hide);
-      clearInterval(loop);
-    };
-  }, [reduce]);
+  const second = events[1];
 
   /* pointer parallax */
   const mx = useMotionValue(0);
@@ -106,8 +60,6 @@ export const HeroSection = () => {
 
   const rise = (delay: number, y = 26) =>
     reduce ? {} : { initial: { opacity: 0, y }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.9, delay, ease } };
-
-  const max = teams[0].score;
 
   return (
     <section
@@ -238,72 +190,56 @@ export const HeroSection = () => {
             </motion.div>
           </motion.div>
 
-          {/* scoreboard card */}
-          <motion.div
-            style={{ x: nearX, y: nearY }}
-            initial={reduce ? false : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 1.0, ease }}
-            className="absolute bottom-[10%] left-0 w-[11rem] sm:bottom-auto sm:top-[2%] sm:w-[15rem] lg:left-[1%] lg:top-[13%] lg:w-[15.5rem]"
-          >
-            <div className="glass-card p-3.5 sm:p-4">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 font-mono text-[11px] text-white/70">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-60 motion-reduce:hidden" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
-                  </span>
-                  LIVE
+          {/* latest event — real, from the events data */}
+          {latest && (
+            <motion.div
+              style={{ x: nearX, y: nearY }}
+              initial={reduce ? false : { opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 1.0, ease }}
+              className="absolute bottom-[9%] left-0 w-[12.5rem] sm:bottom-auto sm:top-[2%] sm:w-[16rem] lg:left-[1%] lg:top-[12%]"
+            >
+              <Link to="/gallery" className="glass-card group block p-4 transition hover:border-white/25">
+                <span className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/55">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  Latest event
                 </span>
-                <span className="font-mono text-[11px] tabular-nums text-white/55">{clock} left</span>
-              </div>
-              <ol className="mt-3 space-y-2">
-                {teams.map((t, i) => (
-                  <motion.li layout={!reduce} key={t.name} className="grid grid-cols-[1rem_1fr_auto] items-center gap-2 font-mono text-[11.5px]">
-                    <span className={i === 0 ? 'text-lime' : 'text-white/40'}>{i + 1}</span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-white/85">{t.name}</span>
-                      <span className="mt-1 block h-1 overflow-hidden rounded-full bg-white/[0.07]">
-                        <motion.span
-                          className={`block h-full rounded-full ${i === 0 ? 'bg-lime' : 'bg-glow/70'}`}
-                          animate={{ width: `${Math.round((t.score / max) * 100)}%` }}
-                          transition={{ duration: 0.8, ease }}
-                        />
-                      </span>
-                    </span>
-                    <span className="tabular-nums text-white/70">{t.score.toLocaleString('en-IN')}</span>
-                  </motion.li>
-                ))}
-              </ol>
-            </div>
-          </motion.div>
+                <p className="font-display mt-2 text-lg leading-tight text-white">{latest.title}</p>
+                <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-white/60">
+                  <span className="text-lime">{compactPlayers(latest.participants)}</span>
+                  <span className="text-white/25">·</span>
+                  <span>{latest.duration}</span>
+                </div>
+                <span className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-white/70 transition group-hover:text-white">
+                  See all events
+                  <ArrowUpRight size={12} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+            </motion.div>
+          )}
 
-          {/* flag accepted toast */}
-          <motion.div
-            style={{ x: farX }}
-            className="absolute bottom-[22%] right-0 hidden w-[15rem] sm:block lg:bottom-[24%] lg:right-[-3%] lg:w-[17.5rem]"
-          >
-            <AnimatePresence mode="wait">
-              {solve && (
-                <motion.div
-                  key={solve.chal + solve.team}
-                  initial={{ opacity: 0, y: 14, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                  transition={{ duration: 0.45, ease }}
-                  className="glass-card flex items-center gap-3 p-3"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-lime/15 font-mono text-sm font-bold text-lime">✓</span>
-                  <span className="min-w-0">
-                    <span className="block font-mono text-[11.5px] text-white">flag accepted · +{solve.pts}</span>
-                    <span className="block truncate font-mono text-[11px] text-white/50">
-                      {solve.team} · {solve.chal}
-                    </span>
+          {/* second event — real */}
+          {second && (
+            <motion.div
+              style={{ x: farX }}
+              initial={reduce ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 1.3, ease }}
+              className="absolute bottom-[20%] right-0 hidden w-[14.5rem] sm:block lg:bottom-[22%] lg:right-[-3%]"
+            >
+              <Link to="/gallery" className="glass-card group flex items-center gap-3 p-3 transition hover:border-white/25">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-glow/15 font-display text-sm text-glow">
+                  {second.title.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-display text-[14px] text-white">{second.title}</span>
+                  <span className="block font-mono text-[11px] text-white/55">
+                    {compactPlayers(second.participants)} players · {second.duration}
                   </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+                </span>
+              </Link>
+            </motion.div>
+          )}
 
           {/* build price chip */}
           <motion.div
