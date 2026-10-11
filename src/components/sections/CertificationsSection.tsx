@@ -19,7 +19,6 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { certifications, type Cert } from '../../data/pentest';
-import { CertBadge } from '../shared/CertBadge';
 import { Local } from '../shared/Local';
 
 const ease = [0.2, 0.8, 0.2, 1] as const;
@@ -39,13 +38,22 @@ function ShowcaseBadge({ cert, index }: { cert: Cert; index: number }) {
     >
       <div className="cb-show-float relative" style={{ animationDelay: `${index * -3}s` }}>
         <div className="cb-show-glow pointer-events-none absolute inset-[12%] rounded-full" aria-hidden="true" />
-        <CertBadge
-          code={cert.code}
-          tone={cert.tone}
-          emblem={cert.emblem}
-          title={`CyberHx ${cert.code} — ${cert.title}`}
-          className="cb-show-svg relative w-[9.5rem] sm:w-[12.5rem] lg:w-[14rem]"
-        />
+        <div className="cb-show-svg relative w-[9.5rem] sm:w-[12.5rem] lg:w-[14rem]">
+          <img
+            src={cert.badge}
+            alt={`CyberHx ${cert.code} — ${cert.title} badge`}
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            className="w-full select-none"
+          />
+          {/* Sheen clipped to the badge shape */}
+          <span
+            className="cb-img-sheen pointer-events-none absolute inset-0"
+            style={{ WebkitMaskImage: `url(${cert.badge})`, maskImage: `url(${cert.badge})` }}
+            aria-hidden="true"
+          />
+        </div>
       </div>
       <div className="mt-6 text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{cert.level}</p>
@@ -128,14 +136,24 @@ function CertCard({ cert, index }: { cert: Cert; index: number }) {
             />
           )}
           <div className="cert-sweep pointer-events-none absolute inset-0" aria-hidden="true" />
+          <img
+            src={cert.mascot}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="cb-watermark pointer-events-none absolute -right-10 top-24 w-64 select-none"
+          />
 
           {/* Header */}
           <div className="relative flex items-start gap-5">
-            <CertBadge
-              code={cert.code}
-              tone={cert.tone}
-              emblem={cert.emblem}
-              className="cb-card-svg w-[5.5rem] shrink-0 sm:w-24"
+            <img
+              src={cert.badge}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              className="cb-card-svg w-[5.5rem] shrink-0 select-none sm:w-24"
             />
             <div className="min-w-0 pt-1">
               <span className={`text-xs font-semibold uppercase tracking-[0.2em] ${toneText}`}>{cert.level}</span>
