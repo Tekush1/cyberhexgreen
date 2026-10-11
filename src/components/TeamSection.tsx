@@ -28,7 +28,7 @@ const still = () => typeof window !== 'undefined' && window.matchMedia?.('(prefe
 
 function Badge({ m, id, tier, label, i }: { m: TeamMember; id: number; tier: TeamTier; label: string; i: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [broken, setBroken] = useState(!m.image);
+  const [broken, setBroken] = useState(!m.image || !!m.anonymous);
   const img = useRef<HTMLImageElement>(null);
   // A photo already in the cache can finish before onLoad is attached.
   useEffect(() => {
@@ -73,7 +73,15 @@ function Badge({ m, id, tier, label, i }: { m: TeamMember; id: number; tier: Tea
         </div>
 
         <div className="badge-photo">
-          {broken ? (
+          {m.anonymous ? (
+            <span className="badge-anon" aria-hidden="true">
+              <svg viewBox="0 0 100 100" className="h-full w-full">
+                <circle cx="50" cy="40" r="17" fill="currentColor" opacity=".18" />
+                <path d="M18 92c4-18 17-28 32-28s28 10 32 28" fill="currentColor" opacity=".18" />
+              </svg>
+              <span className="badge-q font-display">?</span>
+            </span>
+          ) : broken ? (
             <span className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_30%,rgba(198,241,53,0.22),transparent_65%),linear-gradient(180deg,#121c38,#070a14)] font-display text-[1.6em] text-white/85">
               {initials(m.name)}
             </span>

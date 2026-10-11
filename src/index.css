@@ -747,9 +747,9 @@ img[loading="lazy"] { transition: filter 0.3s; }
 }
 
 /* Team: CyberHx access badges. Sizes scale with font-size per tier. */
-.badge-wrap { perspective: 1000px; height: 100%; }
+.badge-wrap { perspective: 1000px; }
 .badge { --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 30%;
-  position: relative; height: 100%; overflow: hidden; isolation: isolate; text-align: center;
+  position: relative; overflow: hidden; isolation: isolate; text-align: center;
   font-size: 16px; padding: 1.35em 1.2em 1.15em; border-radius: 1.4em;
   background: radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.07), transparent 60%), linear-gradient(180deg, #0f1730, #080c18);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 0 0 1px rgba(255,255,255,.07), 0 40px 80px -46px #000;
@@ -778,7 +778,7 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .badge-lead .badge-photo { width: 9.5em; height: 9.5em; }
 .badge-name { margin-top: 1.15em; font-size: 1.3em; line-height: 1.12; color: #fff; transform: translateZ(20px); }
 .badge-role { margin-top: .55em; font-size: .7em; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); }
-.badge-foot { margin-top: 1.3em; padding-top: .9em; border-top: 1px dashed rgba(255,255,255,.12); display: flex; justify-content: space-between; align-items: center; gap: .6em;
+.badge-foot { padding-top: .9em; border-top: 1px dashed rgba(255,255,255,.12); display: flex; justify-content: space-between; align-items: center; gap: .6em;
   font-size: .62em; letter-spacing: .2em; color: rgba(255,255,255,.4); }
 .badge-code { display: flex; gap: 2px; height: 2.2em; align-items: stretch; opacity: .55; }
 .badge-code i { display: block; background: #fff; }
@@ -810,3 +810,14 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .badge-photo { background: radial-gradient(circle at 50% 35%, rgba(198,241,53,.12), transparent 65%), linear-gradient(180deg, #121c38, #070a14); }
 .badge-img { opacity: 0; transition: opacity .6s ease; }
 .badge-img.is-in { opacity: 1; }
+.badge-anon { position: relative; display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; color: #c6f135;
+  background: radial-gradient(circle at 50% 30%, rgba(198,241,53,.14), transparent 65%), repeating-linear-gradient(180deg, rgba(198,241,53,.05) 0 1px, transparent 1px 4px), linear-gradient(180deg, #111a33, #060912); }
+.badge-anon svg { position: absolute; inset: 0; }
+.badge-q { position: relative; font-size: 3.2em; line-height: 1; color: #c6f135; text-shadow: 0 0 18px rgba(198,241,53,.7); animation: badge-q 3.2s ease-in-out infinite; }
+@keyframes badge-q { 0%,100% { opacity: .85; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .badge-q { animation: none; } }
+/* Equal-height badges in a row; the barcode strip sits on the bottom edge. */
+.badge-wrap { display: flex; }
+.badge { flex: 1; display: flex; flex-direction: column; }
+.badge-foot { margin-top: auto; }
+.badge-role { margin-bottom: 1.3em; }

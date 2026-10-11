@@ -6,7 +6,7 @@
 const KEY = 'cyberhx-chunk-reload-at';
 
 export const isChunkLoadError = (e: unknown) =>
-  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS|ChunkLoadError|Loading chunk [\w-]+ failed/i.test(
+  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS|ChunkLoadError|Loading chunk [\w-]+ failed|Loading CSS chunk|is not a valid JavaScript MIME type|Failed to load module script|disallowed MIME type/i.test(
     String((e as { message?: string })?.message ?? e),
   );
 
@@ -21,6 +21,15 @@ export function reloadForNewVersion(): boolean {
   }
   window.location.reload();
   return true;
+}
+
+/** True if we reloaded for a new version in the last 30 seconds. */
+export function reloadTried(): boolean {
+  try {
+    return Date.now() - Number(sessionStorage.getItem(KEY) || 0) < 30_000;
+  } catch {
+    return true;
+  }
 }
 
 /** Drop-in for `() => import(...)` used with React.lazy. */

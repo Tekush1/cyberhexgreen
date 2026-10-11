@@ -16,7 +16,7 @@
       "destination": "/api/prerender?slug=:slug"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }
   ],
