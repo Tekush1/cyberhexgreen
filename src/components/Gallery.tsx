@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
+import { useState, type ReactNode } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Instagram, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { events } from '../data/events';
@@ -7,9 +7,9 @@ import { stats } from '../data/stats';
 import { builderPricing } from '../data/hosting';
 import { Mascot } from './shared/Mascot';
 import { CountUp } from './shared/CountUp';
-import { EventCard } from './gallery/EventCard';
+import { EventArchive } from './gallery/EventArchive';
 import { EventDialog } from './gallery/EventDialog';
-import { allCategories, dateParts, pad2 } from './gallery/eventStyle';
+import { allCategories } from './gallery/eventStyle';
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -31,10 +31,6 @@ export const Gallery = () => {
   const reduce = !!useReducedMotion();
   const [open, setOpen] = useState<number | null>(null);
   const categories = allCategories(events);
-
-  const listRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: listRef, offset: ['start 70%', 'end 70%'] });
-  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.4 });
 
   return (
     <div className="min-h-screen bg-white text-ink">
@@ -125,77 +121,11 @@ export const Gallery = () => {
         </div>
       </header>
 
-      {/* ═══ Archive ══════════════════════════════════════════ */}
-      <section className="relative mx-auto max-w-6xl px-5 pt-20 sm:px-6 sm:pt-28 lg:px-8" aria-labelledby="archive-title">
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.8, ease }}
-          className="flex items-end justify-between gap-6"
-        >
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#7a9a00]">The archive</p>
-            <h2 id="archive-title" className="font-display mt-3 text-4xl leading-[1] text-ink sm:text-5xl">
-              Newest first.
-            </h2>
-          </div>
-          <p className="pb-1 font-mono text-sm text-ink/45">
-            <span className="text-ink">{pad2(events.length)}</span> events
-          </p>
-        </motion.div>
-
-        <div ref={listRef} className="relative mt-12 sm:mt-16">
-          {/* rail + scroll progress */}
-          <div aria-hidden="true" className="absolute bottom-0 left-[7px] top-2 w-px bg-black/10 md:left-[9rem]" />
-          <motion.div
-            aria-hidden="true"
-            style={{ scaleY: reduce ? 1 : progress }}
-            className="absolute bottom-0 left-[7px] top-2 w-px origin-top bg-lime md:left-[9rem]"
-          />
-
-          <ol className="space-y-14 sm:space-y-20">
-            {events.map((e, i) => {
-              const dp = dateParts(e.date);
-              return (
-                <li key={e.id} className="relative grid pl-9 md:grid-cols-[9rem_1fr] md:pl-0">
-                  <motion.span
-                    aria-hidden="true"
-                    initial={reduce ? false : { scale: 0 }}
-                    whileInView={{ scale: 1 }}
-                    viewport={{ once: true, margin: '-120px' }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-                    className="absolute left-0 top-1.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-white ring-2 ring-lime md:left-[calc(9rem-7px)]"
-                  >
-                    <span className="h-[7px] w-[7px] rounded-full bg-lime" />
-                  </motion.span>
-
-                  <motion.div
-                    initial={reduce ? false : { opacity: 0, x: -16 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: '-100px' }}
-                    transition={{ duration: 0.8, ease }}
-                    className="mb-4 flex items-baseline gap-2 md:sticky md:top-28 md:mb-0 md:block md:self-start md:pr-9 md:text-right"
-                  >
-                    <p className="font-display text-2xl leading-none text-ink md:text-[2.1rem]">{dp.month}</p>
-                    <p className="font-mono text-xs text-ink/45 md:mt-2">
-                      {dp.days && <span className="md:block">{dp.days} · </span>}
-                      {dp.year}
-                    </p>
-                  </motion.div>
-
-                  <div className="md:pl-10">
-                    <EventCard event={e} index={i} onOpen={() => setOpen(i)} />
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </section>
+      {/* ═══ Archive: scoreboard + glowing timeline (dark band) ═══ */}
+      <EventArchive events={events} onOpen={setOpen} />
 
       {/* ═══ What's next ══════════════════════════════════════ */}
-      <section className="mx-auto max-w-6xl px-5 pt-24 sm:px-6 sm:pt-32 lg:px-8">
+      <section className="mx-auto max-w-6xl px-5 pt-20 sm:px-6 sm:pt-28 lg:px-8">
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -254,7 +184,7 @@ export const Gallery = () => {
           <div className="grid items-end gap-6 lg:grid-cols-[1fr_auto] lg:gap-10">
             <div className="pb-2 lg:pb-16">
               <h2 className="font-display max-w-[16ch] text-4xl leading-[1.02] text-white sm:text-5xl">
-                Want one of these for your college?
+                Want one of these for your organization?
               </h2>
               <p className="mt-5 max-w-xl text-lg leading-8 text-white/60">
                 Build your own CTF challenge by challenge. Hosting and the live scoreboard start at ${builderPricing.hosting.usd}.
@@ -263,8 +193,8 @@ export const Gallery = () => {
                 <Link to="/host-your-ctf#packages" className="btn btn-lime group">
                   Build your CTF <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
-                <Link to="/host-your-ctf#prebuilt" className="btn btn-ghost">
-                  See prebuilt CTFs
+                <Link to="/host-your-ctf#compare" className="btn btn-ghost">
+                  Compare packages
                 </Link>
               </div>
             </div>
