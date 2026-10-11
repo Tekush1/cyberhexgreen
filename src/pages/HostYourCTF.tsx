@@ -6,7 +6,8 @@ import { ShopMascot, type ShopFrame } from "../components/shared/ShopMascot";
 import { initShopSound, playShopSound, setSoundScope, type ShopSound } from "../lib/shopSound";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
-import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
+import { plans, builderCategories, builderPricing, booking, type Tier } from "../data/hosting";
+import { DatePicker, addDays, fromISO, prettyDate } from "../components/shared/DatePicker";
 import { Seo } from "../features/seo/Seo";
 import { submitForm } from "../lib/forms";
 
@@ -116,7 +117,21 @@ const presets: { id: string; name: string; who: string; build: () => Build }[] =
 ];
 
 type Line = { label: string; usd: number | null; icon?: IconName };
-type Order = { title: string; lines: Line[]; total: number; quoted: boolean };
+type Order = {
+  title: string;
+  lines: Line[];
+  total: number;
+  quoted: boolean;
+  /** What is being bought; decides the earliest bookable date. */
+  kind: "hosting" | "prebuilt" | "build";
+  leadDays: number;
+  split: boolean;
+  /** Length of the (first) round and of the finale, in hours. */
+  hours: number;
+  finaleHours: number;
+  /** Players already chosen in the builder (0 = ask in the form). */
+  players: number;
+};
 
 const SOUND_FOR: Partial<Record<ShopFrame, ShopSound>> = {
   enter: "enter",
@@ -178,6 +193,13 @@ const loadBuild = (): Build => {
 const money = (n: number) => `$${n.toLocaleString("en-US")}`;
 const players = (n: number) => n.toLocaleString("en-US");
 
+const localZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+};
 const emptyForm = {
   name: "",
   email: "",
@@ -185,11 +207,82 @@ const emptyForm = {
   organization: "",
   eventName: "",
   eventDate: "",
+  finaleDate: "",
+  startTime: "10:00",
+  timeZone: localZone(),
   eventFormat: "",
+  location: "",
   participants: "",
   eventTheme: "",
   message: "",
 };
+type FormState = typeof emptyForm;
+type FieldErrors = Partial<Record<keyof FormState, string>>;
+
+const ZONES: string[] = (() => {
+  const all = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.("timeZone");
+  const base = all?.length ? all : ["UTC", "Europe/London", "Europe/Berlin", "Asia/Dubai", "Asia/Kolkata", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Sao_Paulo", "Africa/Lagos"];
+  return [...new Set([localZone(), "UTC", ...base])];
+})();
+
+const PLAYER_RANGES = ["Up to 100", "100 to 500", "500 to 1,000", "1,000 to 5,000", "5,000 to 20,000", "20,000+"];
+const overIncluded = (range: string) => /^(1,000 to|5,000 to|20,000)/.test(range);
+
+const startOfToday = () => {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+};
+
+/** "10:00" + hours -> readable end time, e.g. "18:00" or "Wed 10:00" when it rolls past midnight. */
+const endOf = (dateISO: string, time: string, hours: number) => {
+  const d = fromISO(dateISO);
+  const [h, m] = time.split(":").map(Number);
+  if (!d || Number.isNaN(h)) return "";
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m || 0);
+  const end = new Date(start.getTime() + hours * 3600_000);
+  const t = end.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const days = Math.round((new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime() - d.getTime()) / 86400_000);
+  return days === 0 ? t : `${end.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${t}`;
+};
+
+function validate(f: FormState, o: Order, minDate: Date): FieldErrors {
+  const e: FieldErrors = {};
+  if (f.name.trim().length < 2) e.name = "Please enter your name.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim())) e.email = "Please enter a valid email address.";
+  const digits = f.phone.replace(/\D/g, "");
+  if (digits.length < 7 || digits.length > 15) e.phone = "Include the country code, e.g. +1 555 010 0100.";
+  if (!f.organization.trim()) e.organization = "Which university, company or community is this for?";
+  if (!f.eventName.trim()) e.eventName = "Give your event a name (you can change it later).";
+  const start = fromISO(f.eventDate);
+  if (!start) e.eventDate = "Pick a date for your event.";
+  else if (start < minDate) e.eventDate = `The earliest date we can build this for is ${prettyDate(toISODate(minDate))}.`;
+  if (o.split) {
+    const fin = fromISO(f.finaleDate);
+    if (!fin) e.finaleDate = "Pick a date for the grand finale.";
+    else if (start && fin < addDays(start, booking.finaleGapDays)) e.finaleDate = "The finale needs to be at least a day after the qualifier.";
+  }
+  if (!/^\d{2}:\d{2}$/.test(f.startTime)) e.startTime = "Pick a start time.";
+  if (!f.timeZone) e.timeZone = "Pick a time zone.";
+  if (!f.eventFormat) e.eventFormat = "Choose online, offline or hybrid.";
+  if ((f.eventFormat === "Offline" || f.eventFormat === "Hybrid") && f.location.trim().length < 2) e.location = "Where will it take place? City and country is enough.";
+  if (!o.players && !f.participants) e.participants = "Roughly how many players do you expect?";
+  if (o.quoted && f.message.trim().length < 10) e.message = "Tell us a little about the custom challenges you want.";
+  return e;
+}
+/** Label + control + error/hint, two columns on wider screens. */
+function Field({ k, label, children, span = true, hint, error }: { k: string; label: string; children: React.ReactNode; span?: boolean; hint?: string; error?: string }) {
+  return (
+    <div className={span ? "col-span-2" : "col-span-2 sm:col-span-1"}>
+      <label htmlFor={`co-${k}`} className={labelCls}>
+        {label}
+      </label>
+      {children}
+      {error ? <p className="mt-1.5 text-xs text-red-300">{error}</p> : hint ? <p className="mt-1.5 text-xs text-muted">{hint}</p> : null}
+    </div>
+  );
+}
+const toISODate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const FIELD_ORDER: (keyof FormState)[] = ["name", "email", "phone", "organization", "eventName", "eventDate", "finaleDate", "startTime", "timeZone", "eventFormat", "location", "participants", "message"];
 
 const dashboardFeatures: { icon: IconName; title: string; description: string }[] = [
   { icon: "gauge", title: "Live scoreboard", description: "Rankings update in real time as teams solve." },
@@ -224,6 +317,15 @@ const compareRows: { label: string; cells: Cell[] }[] = [
   { label: "3D event website", cells: [false, false, false, true] },
   { label: "Custom challenges for your theme", cells: [false, false, false, true] },
   { label: "Longer events", cells: Array(4).fill(`+$${P.extraHourUsd} per hour, up to ${P.maxHours}h`) },
+  {
+    label: "Earliest event date",
+    cells: [
+      `${booking.leadDays.hosting} days after ordering`,
+      `${booking.leadDays.prebuilt} days`,
+      `${booking.leadDays.prebuilt} days`,
+      `${booking.leadDays.custom} days`,
+    ],
+  },
 ];
 
 /* ---------- why CyberHx (facts from our own offer, no made-up stats) ---------- */
@@ -264,8 +366,9 @@ const Mark = ({ v }: { v: Cell }) =>
     <span className="text-white/85">{v}</span>
   );
 
+// 16px text on phones so iOS does not zoom in when a field is tapped.
 const inputCls =
-  "w-full rounded-lg border border-line bg-ink px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-lime";
+  "w-full rounded-lg border border-line bg-ink px-3.5 py-3 text-base text-white outline-none transition placeholder:text-white/25 focus:border-lime aria-[invalid=true]:border-red-400/60 sm:text-sm";
 const labelCls = "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted";
 
 function Stepper({
@@ -362,6 +465,7 @@ export default function HostYourCTF() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState(false);
   const [orderId, setOrderId] = React.useState("");
+  const [placed, setPlaced] = React.useState<{ date: string; time: string; zone: string; email: string } | null>(null);
   const currency = useLocalCurrency();
   /* ---------- shop mascot: one character that acts out the purchase ---------- */
   const [frame, setFrame] = React.useState<ShopFrame>("idle");
@@ -463,6 +567,14 @@ export default function HostYourCTF() {
       /* storage unavailable; the build still works for this visit */
     }
   }, [build]);
+
+  // Esc closes the checkout (not while an order is being sent).
+  React.useEffect(() => {
+    if (drawer === "closed") return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !submitting && setDrawer("closed");
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawer, submitting]);
 
   React.useEffect(() => {
     document.body.style.overflow = drawer === "closed" ? "" : "hidden";
@@ -656,6 +768,12 @@ export default function HostYourCTF() {
       ],
       total,
       quoted: build.custom,
+      kind: "build",
+      leadDays: build.custom || build.website3d ? booking.leadDays.custom : booking.leadDays.prebuilt,
+      split: build.format === "split",
+      hours: build.rounds[roundIds[0]].hours,
+      finaleHours: build.rounds.finale.hours,
+      players: Math.max(...roundIds.map((id) => build.rounds[id].players)),
     });
     setError(false);
     setDrawer("checkout");
@@ -668,6 +786,13 @@ export default function HostYourCTF() {
       lines: [{ label: `${p.name} prebuilt CTF`, usd: p.usd, icon: p.icon }],
       total: p.usd,
       quoted: false,
+      kind: "prebuilt",
+      // Max includes custom challenges and a 3D site, which take longer to build.
+      leadDays: p.id === "max" ? booking.leadDays.custom : booking.leadDays.prebuilt,
+      split: false,
+      hours: P.hosting.hours,
+      finaleHours: 0,
+      players: 0,
     });
     setError(false);
     setDrawer("checkout");
@@ -679,17 +804,40 @@ export default function HostYourCTF() {
       lines: [{ label: `Hosting + scoreboard (${P.hosting.hours}h, ${players(P.hosting.players)} players included)`, usd: P.hosting.usd, icon: "cloud" }],
       total: P.hosting.usd,
       quoted: false,
+      kind: "hosting",
+      leadDays: booking.leadDays.hosting,
+      split: false,
+      hours: P.hosting.hours,
+      finaleHours: 0,
+      players: 0,
     });
     setError(false);
     setDrawer("checkout");
   };
 
+  const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
+  const setField = (k: keyof FormState, v: string) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (fieldErrors[k]) setFieldErrors((e) => ({ ...e, [k]: undefined }));
+  };
   const onField = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    setField(e.target.name as keyof FormState, e.target.value);
+  const minDate = order ? addDays(startOfToday(), order.leadDays) : startOfToday();
 
   const placeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!order) return;
+    if (!order || submitting) return;
+    const problems = validate(form, order, minDate);
+    setFieldErrors(problems);
+    const firstBad = FIELD_ORDER.find((k) => problems[k]);
+    if (firstBad) {
+      const n = Object.keys(problems).length;
+      act("bill", `Almost there: ${n} field${n === 1 ? "" : "s"} need${n === 1 ? "s" : ""} a look.`, 3200);
+      const el = document.querySelector<HTMLElement>(`[aria-label="Checkout"] [name="${firstBad}"]`);
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.focus({ preventScroll: true });
+      return;
+    }
     setSubmitting(true);
     setError(false);
     const id = `CHX-${Date.now().toString(36).toUpperCase().slice(-6)}`;
@@ -697,6 +845,13 @@ export default function HostYourCTF() {
     const local = currency.fmt(order.total);
     const totalText =
       money(order.total) + (order.quoted ? " plus quoted custom challenges" : "") + (local ? ` (≈ ${local})` : "");
+    const playersText = order.players ? `${players(order.players)} (from the build)` : form.participants;
+    const schedule = [
+      `${order.split ? "Qualifier" : "Event"}: ${prettyDate(form.eventDate)}, ${form.startTime} to ${endOf(form.eventDate, form.startTime, order.hours)} (${form.timeZone})`,
+      order.split && `Grand finale: ${prettyDate(form.finaleDate)}, ${form.startTime} to ${endOf(form.finaleDate, form.startTime, order.finaleHours)} (${form.timeZone})`,
+      `Format: ${form.eventFormat}${form.location ? ` · ${form.location}` : ""}`,
+      `Players: ${playersText}`,
+    ].filter(Boolean).join("\n");
     try {
       // Emails the team AND saves the order to Supabase (Admin → CTF Requests).
       const result = await submitForm({
@@ -711,8 +866,8 @@ export default function HostYourCTF() {
           event_name: form.eventName,
           event_format: form.eventFormat,
           event_date: form.eventDate,
-          participants: form.participants,
-          requirements: `${order.title}\n${lines}`,
+          participants: playersText,
+          requirements: `${order.title}\n${lines}\n\n${schedule}`,
           message: [form.eventTheme && `Theme: ${form.eventTheme}`, form.message].filter(Boolean).join("\n\n"),
           order_id: id,
           order_total: totalText,
@@ -724,12 +879,16 @@ export default function HostYourCTF() {
           order_items: lines,
           order_total_usd: totalText,
           visitor_currency: currency.code,
+          schedule,
           ...form,
+          participants: playersText,
         },
       });
       if (!result.ok) throw new Error("failed");
       setOrderId(id);
+      setPlaced({ date: form.eventDate, time: form.startTime, zone: form.timeZone, email: form.email.trim() });
       setForm(emptyForm);
+      setFieldErrors({});
       if (order.title.startsWith("Custom CTF build")) reset(true);
       setDrawer("done");
     } catch {
@@ -1005,7 +1164,7 @@ export default function HostYourCTF() {
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-white/[0.08]">
-                  <th scope="col" className="w-[28%] px-5 py-4 text-left font-normal text-muted">Package</th>
+                  <th scope="col" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent w-[28%] px-4 py-4 text-left font-normal text-muted sm:px-5">Package</th>
                   {compareCols.map((c) => (
                     <th key={c.id} scope="col" className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
                       <span className="block font-display text-lg text-white">{c.name}</span>
@@ -1017,7 +1176,7 @@ export default function HostYourCTF() {
               <tbody>
                 {compareRows.map((r) => (
                   <tr key={r.label} className="border-b border-white/[0.05] last:border-0">
-                    <th scope="row" className="px-5 py-3.5 text-left font-normal text-white/70">{r.label}</th>
+                    <th scope="row" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent max-w-[9.5rem] px-4 py-3.5 text-left font-normal text-white/70 sm:max-w-none sm:px-5">{r.label}</th>
                     {r.cells.map((v, i) => (
                       <td key={i} className={`px-4 py-3.5 text-center ${compareCols[i].id === "pro" ? "bg-lime/[0.06]" : ""}`}>
                         <Mark v={v} />
@@ -1026,7 +1185,7 @@ export default function HostYourCTF() {
                   </tr>
                 ))}
                 <tr>
-                  <td className="px-5 py-4" />
+                  <td className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent px-4 py-4 sm:px-5" />
                   {compareCols.map((c) => (
                     <td key={c.id} className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
                       <button
@@ -1074,7 +1233,7 @@ export default function HostYourCTF() {
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-white/[0.08]">
-                <th scope="col" className="w-[30%] px-5 py-4 text-left font-normal text-muted" />
+                <th scope="col" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent w-[30%] px-4 py-4 text-left font-normal text-muted sm:px-5" />
                 {altCols.map((c, i) => (
                   <th key={c} scope="col" className={`px-4 py-4 text-center font-semibold ${i === 0 ? "bg-lime/[0.06] text-lime" : "text-white/80"}`}>
                     {c}
@@ -1085,7 +1244,7 @@ export default function HostYourCTF() {
             <tbody>
               {altRows.map((r) => (
                 <tr key={r.label} className="border-b border-white/[0.05] last:border-0">
-                  <th scope="row" className="px-5 py-3.5 text-left font-normal text-white/70">{r.label}</th>
+                  <th scope="row" className="sticky left-0 z-10 bg-[#0a0f1d] max-sm:shadow-[6px_0_12px_-8px_rgba(0,0,0,0.9)] sm:static sm:bg-transparent max-w-[9.5rem] px-4 py-3.5 text-left font-normal text-white/70 sm:max-w-none sm:px-5">{r.label}</th>
                   {r.cells.map((v, i) => (
                     <td key={i} className={`px-4 py-3.5 text-center ${i === 0 ? "bg-lime/[0.06]" : ""}`}>
                       <Mark v={v} />
@@ -1488,7 +1647,7 @@ export default function HostYourCTF() {
             </header>
 
             {drawer === "checkout" && (
-              <form onSubmit={placeOrder} className="flex flex-1 flex-col overflow-hidden">
+              <form onSubmit={placeOrder} noValidate className="flex flex-1 flex-col overflow-hidden">
                 <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
                   <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">{order.title}</p>
@@ -1509,67 +1668,120 @@ export default function HostYourCTF() {
                     <Local usd={order.total} className="mt-1 block text-right text-xs text-muted" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className={labelCls}>Your name *</label>
-                      <input name="name" required value={form.name} onChange={onField} className={inputCls} />
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelCls}>Email *</label>
-                      <input type="email" name="email" required value={form.email} onChange={onField} placeholder="you@organization.com" className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Phone *</label>
-                      <input type="tel" name="phone" required value={form.phone} onChange={onField} placeholder="With country code" className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Organization *</label>
-                      <input name="organization" required value={form.organization} onChange={onField} className={inputCls} />
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelCls}>Event name *</label>
-                      <input name="eventName" required value={form.eventName} onChange={onField} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Event date</label>
-                      <input type="date" name="eventDate" value={form.eventDate} onChange={onField} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Format *</label>
-                      <select name="eventFormat" required value={form.eventFormat} onChange={onField} className={inputCls}>
-                        <option value="">Select</option>
-                        <option>Online</option>
-                        <option>Offline</option>
-                        <option>Hybrid</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelCls}>Expected players</label>
-                      <select name="participants" value={form.participants} onChange={onField} className={inputCls}>
-                        <option value="">Select</option>
-                        <option>Under 100</option>
-                        <option>100 to 1,000</option>
-                        <option>1,000 to 5,000</option>
-                        <option>5,000 to 20,000</option>
-                        <option>20,000+</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelCls}>Theme or look</label>
-                      <input name="eventTheme" value={form.eventTheme} onChange={onField} placeholder="Space heist, cyberpunk, retro terminal" className={inputCls} />
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelCls}>{order.quoted ? "Describe your custom challenges *" : "Notes"}</label>
-                      <textarea
-                        name="message"
-                        rows={3}
-                        required={order.quoted}
-                        value={form.message}
-                        onChange={onField}
-                        className={`${inputCls} resize-none`}
-                      />
-                    </div>
-                  </div>
+                  {(() => {
+                    const err = fieldErrors;
+                    const inv = (k: keyof FormState) => (err[k] ? true : undefined);
+                    const ends = form.eventDate && /^\d{2}:\d{2}$/.test(form.startTime) ? endOf(form.eventDate, form.startTime, order.hours) : "";
+                    return (
+                      <>
+                        <p className="pt-1 text-xs font-semibold uppercase tracking-[0.16em] text-lime">About you</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field k="name" error={err.name} label="Your name *">
+                            <input id="co-name" name="name" autoComplete="name" value={form.name} onChange={onField} aria-invalid={inv("name")} className={inputCls} />
+                          </Field>
+                          <Field k="email" error={err.email} label="Email *">
+                            <input id="co-email" type="email" name="email" autoComplete="email" inputMode="email" value={form.email} onChange={onField} aria-invalid={inv("email")} placeholder="you@organization.com" className={inputCls} />
+                          </Field>
+                          <Field k="phone" error={err.phone} label="Phone *" span={false}>
+                            <input id="co-phone" type="tel" name="phone" autoComplete="tel" inputMode="tel" value={form.phone} onChange={onField} aria-invalid={inv("phone")} placeholder="+1 555 010 0100" className={inputCls} />
+                          </Field>
+                          <Field k="organization" error={err.organization} label="Organization *" span={false}>
+                            <input id="co-organization" name="organization" autoComplete="organization" value={form.organization} onChange={onField} aria-invalid={inv("organization")} className={inputCls} />
+                          </Field>
+                        </div>
+
+                        <p className="pt-3 text-xs font-semibold uppercase tracking-[0.16em] text-lime">Your event</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field k="eventName" error={err.eventName} label="Event name *">
+                            <input id="co-eventName" name="eventName" value={form.eventName} onChange={onField} aria-invalid={inv("eventName")} placeholder="e.g. Spring Security CTF 2027" className={inputCls} />
+                          </Field>
+                          <div className="col-span-2">
+                            <DatePicker
+                              name="eventDate"
+                              label={order.split ? "Qualifier date *" : "Event date *"}
+                              value={form.eventDate}
+                              min={minDate}
+                              onChange={(v) => {
+                                setField("eventDate", v);
+                                const fin = fromISO(form.finaleDate);
+                                const st = fromISO(v);
+                                if (order.split && fin && st && fin < addDays(st, booking.finaleGapDays)) setField("finaleDate", "");
+                              }}
+                              error={err.eventDate}
+                              hint={`We need at least ${order.leadDays} days to prepare ${order.kind === "hosting" ? "the platform" : "your challenges"}.`}
+                            />
+                          </div>
+                          {order.split && (
+                            <div className="col-span-2">
+                              <DatePicker
+                                name="finaleDate"
+                                label="Grand finale date *"
+                                value={form.finaleDate}
+                                min={form.eventDate && fromISO(form.eventDate) ? addDays(fromISO(form.eventDate)!, booking.finaleGapDays) : addDays(minDate, booking.finaleGapDays)}
+                                onChange={(v) => setField("finaleDate", v)}
+                                error={err.finaleDate}
+                                hint="At least a day after the qualifier, so you can announce the finalists."
+                              />
+                            </div>
+                          )}
+                          <Field k="startTime" error={err.startTime} label="Start time *" span={false} hint={ends ? `Runs ${order.hours}h, ends ${ends}.` : undefined}>
+                            <input id="co-startTime" type="time" name="startTime" value={form.startTime} onChange={onField} aria-invalid={inv("startTime")} className={inputCls} />
+                          </Field>
+                          <Field k="timeZone" error={err.timeZone} label="Time zone *" span={false}>
+                            <select id="co-timeZone" name="timeZone" value={form.timeZone} onChange={onField} aria-invalid={inv("timeZone")} className={inputCls}>
+                              {ZONES.map((z) => (
+                                <option key={z} value={z}>
+                                  {z.replace(/_/g, " ")}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field k="eventFormat" error={err.eventFormat} label="Format *" span={false}>
+                            <select id="co-eventFormat" name="eventFormat" value={form.eventFormat} onChange={onField} aria-invalid={inv("eventFormat")} className={inputCls}>
+                              <option value="">Select</option>
+                              <option>Online</option>
+                              <option>Offline</option>
+                              <option>Hybrid</option>
+                            </select>
+                          </Field>
+                          {order.players ? (
+                            <div className="col-span-2 sm:col-span-1">
+                              <span className={labelCls}>Players</span>
+                              <p className="rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white/85">
+                                {players(order.players)} <span className="text-muted">from your build</span>
+                              </p>
+                            </div>
+                          ) : (
+                            <Field
+                              k="participants"
+                              error={err.participants}
+                              label="Expected players *"
+                              span={false}
+                              hint={overIncluded(form.participants) ? `${players(P.hosting.players)} are included. More are ${money(P.extraPlayersUsd)} per 1,000; we'll confirm the amount with your date.` : undefined}
+                            >
+                              <select id="co-participants" name="participants" value={form.participants} onChange={onField} aria-invalid={inv("participants")} className={inputCls}>
+                                <option value="">Select</option>
+                                {PLAYER_RANGES.map((r) => (
+                                  <option key={r}>{r}</option>
+                                ))}
+                              </select>
+                            </Field>
+                          )}
+                          {(form.eventFormat === "Offline" || form.eventFormat === "Hybrid") && (
+                            <Field k="location" error={err.location} label="Venue city and country *">
+                              <input id="co-location" name="location" autoComplete="address-level2" value={form.location} onChange={onField} aria-invalid={inv("location")} placeholder="e.g. Berlin, Germany" className={inputCls} />
+                            </Field>
+                          )}
+                          <Field k="eventTheme" error={err.eventTheme} label="Theme or look">
+                            <input id="co-eventTheme" name="eventTheme" value={form.eventTheme} onChange={onField} placeholder="Space heist, cyberpunk, retro terminal" className={inputCls} />
+                          </Field>
+                          <Field k="message" error={err.message} label={order.quoted ? "Describe your custom challenges *" : "Notes"}>
+                            <textarea id="co-message" name="message" rows={3} value={form.message} onChange={onField} aria-invalid={inv("message")} className={`${inputCls} resize-none`} />
+                          </Field>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
                 <footer className="border-t border-line px-5 py-5">
                   {error && <p className="mb-3 text-sm text-red-300">Could not place the order. Try again or email us.</p>}
@@ -1584,13 +1796,30 @@ export default function HostYourCTF() {
             )}
 
             {drawer === "done" && (
-              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-                <img src="/mascots/shop/success.webp" width={480} height={476} alt="" className="w-44" />
+              <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 text-center">
+                <img src="/mascots/shop/success.webp" width={480} height={480} alt="" className="w-36 sm:w-44" />
                 <h3 className="font-display mt-5 text-2xl">Your CTF is in the queue.</h3>
                 <p className="mt-2 text-sm text-muted">
-                  Order <span className="font-mono text-lime">{orderId}</span> is in. Check your email: we'll send the
-                  payment link and confirm your event date within a day.
+                  Order <span className="font-mono text-lime">{orderId}</span>
+                  {placed && (
+                    <>
+                      {" "}for <span className="text-white">{prettyDate(placed.date)}, {placed.time}</span> ({placed.zone.replace(/_/g, " ")})
+                    </>
+                  )}
+                  .
                 </p>
+                <ol className="mt-6 w-full max-w-xs space-y-3 text-left text-sm">
+                  {[
+                    ["01", `We confirm your date${placed ? ` by email to ${placed.email}` : ""} within one business day.`],
+                    ["02", "You get a secure payment link in USD. Nothing is charged until then."],
+                    ["03", "We build and test your challenges and send your host dashboard login."],
+                  ].map(([n, t]) => (
+                    <li key={n} className="flex gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                      <span className="font-mono text-xs text-lime">{n}</span>
+                      <span className="text-white/80">{t}</span>
+                    </li>
+                  ))}
+                </ol>
                 <button type="button" onClick={() => setDrawer("closed")} className="btn btn-ghost mt-6">
                   Close
                 </button>

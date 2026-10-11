@@ -93,3 +93,17 @@ export const builderPricing = {
   maxPerTier: 50,
   website3dUsd: 40,
 };
+
+/* =============================================================
+   BOOKING RULES — used by the checkout calendar.
+============================================================= */
+export const booking = {
+  /** Minimum days between placing the order and the event date. */
+  leadDays: {
+    hosting: 3, // hosting only: platform setup
+    prebuilt: 7, // ready-made challenge packs
+    custom: 14, // custom challenges or a 3D event website (also the Max package)
+  },
+  /** Minimum days between a qualifier and its grand finale. */
+  finaleGapDays: 1,
+};

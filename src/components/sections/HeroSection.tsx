@@ -126,7 +126,7 @@ export const HeroSection = () => {
               Build your CTF <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link to="/gallery" className="btn btn-ghost">
-              Play our CTFs
+              View our CTFs
             </Link>
           </motion.div>
 

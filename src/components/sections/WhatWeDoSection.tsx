@@ -98,7 +98,7 @@ export const WhatWeDoSection = () => {
 
           </Link>
 
-          {/* Play our CTFs */}
+          {/* View our CTFs */}
           <Link to="/gallery" className="sticker lift group relative flex flex-col overflow-hidden p-6 sm:p-8">
             <SiteIcon
               name="ctf-green"
@@ -106,7 +106,7 @@ export const WhatWeDoSection = () => {
               alt=""
               className="pointer-events-none absolute -right-6 -top-6 origin-top-right rotate-12 scale-[0.62] opacity-90 transition-transform duration-500 group-hover:rotate-[4deg] sm:-right-5 sm:-top-4 sm:scale-100 sm:opacity-100"
             />
-            <h3 className="font-display max-w-[11ch] text-3xl text-white sm:text-4xl">Play our CTFs</h3>
+            <h3 className="font-display max-w-[11ch] text-3xl text-white sm:text-4xl">View our CTFs</h3>
             <p className="mt-3 max-w-[24ch] leading-7 text-muted">Open to everyone. Here's what we've run so far.</p>
 
             <ul className="mt-7 space-y-3">

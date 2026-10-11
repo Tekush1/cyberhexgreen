@@ -734,3 +734,14 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .ev-ticket-art.is-cyan { box-shadow: 0 0 0 1px rgba(59,211,255,.4), 0 0 18px -4px rgba(59,211,255,.6); }
 .ev-ticket-art img { width: 100%; height: 100%; object-fit: cover; }
 @media (prefers-reduced-motion: reduce) { .ev-scan, .ev-ticket { animation: none; } }
+
+/* ===== Booking calendar (src/components/shared/DatePicker.tsx) ===== */
+.dp-pop { background: linear-gradient(180deg, rgba(16,24,44,.98), rgba(7,10,20,.98)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 30px 60px -20px rgba(0,0,0,.95), 0 0 0 1px rgba(198,241,53,.06);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: dp-in .18s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes dp-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dp-pop { animation: none; } }
+
+/* Phones: 16px form text everywhere so iOS Safari never zooms into a field. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
+}
