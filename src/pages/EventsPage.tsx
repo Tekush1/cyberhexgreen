@@ -116,7 +116,7 @@ export default function EventsPage() {
           </motion.div>
 
           <motion.p {...fadeUp(0.3)} className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            India's premier cybersecurity Capture The Flag event. Hack, exploit, and conquer. Only the best make it out.
+            A premier international cybersecurity Capture The Flag event. Hack, exploit, and conquer. Only the best make it out.
           </motion.p>
 
           {/* Stats row */}

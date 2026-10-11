@@ -122,7 +122,7 @@ export const RegistrationPage = () => {
             transition={{ delay: 0.2 }}
             className="text-xl text-gray-400"
           >
-            Register now to be part of India's largest student hackathon
+            Register now to take part in our international student hackathon
           </motion.p>
         </div>
 
@@ -183,7 +183,7 @@ export const RegistrationPage = () => {
                     onChange={handleInputChange}
                     required
                     className="w-full bg-dark-100 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-primary"
-                    placeholder="+91 1234567890"
+                    placeholder="Phone with country code"
                   />
                 </div>
               </div>

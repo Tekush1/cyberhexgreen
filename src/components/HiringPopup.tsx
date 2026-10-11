@@ -336,7 +336,7 @@ export const HiringPopup: React.FC<HiringPopupProps> = ({ isOpen, onClose }) => 
                           onChange={handleInputChange}
                           required
                           className="w-full bg-dark-100 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
-                          placeholder="+91 1234567890"
+                          placeholder="Phone with country code"
                         />
                       </div>
 

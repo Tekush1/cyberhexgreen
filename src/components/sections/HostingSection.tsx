@@ -4,6 +4,7 @@ import { Mascot } from '../shared/Mascot';
 import { SiteIcon, type IconName } from '../shared/SiteIcon';
 import { Reveal } from '../shared/Reveal';
 import { plans, builderCategories, builderPricing } from '../../data/hosting';
+import { Local } from '../shared/Local';
 
 const cheapestChallenge = Math.min(...builderCategories.flatMap((c) => c.tiers.map((t) => t.usd)));
 
@@ -14,10 +15,10 @@ export const HostingSection = () => (
         <div className="flex flex-col items-start gap-5 sm:flex-row">
           <img src="/mascots/store.webp" alt="" className="float-y mt-1 h-20 w-auto sm:h-24" loading="lazy" />
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-lime">For colleges and companies</p>
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-lime">For universities and companies worldwide</p>
             <h2 className="font-display mt-2 text-4xl text-white sm:text-5xl">We host CTFs too.</h2>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-              Running a CTF for your fest or team? Grab a prebuilt event, or build your own challenge by challenge.
+              Running a CTF for your conference, university or team? Choose a ready-made event, or build your own challenge by challenge.
               We write the challenges, run the platform and the live scoreboard.
             </p>
           </div>
@@ -80,7 +81,7 @@ export const HostingSection = () => (
                   <span className={`font-display text-5xl ${top ? 'text-ink' : plan.accent === 'cyan' ? 'text-glow' : 'text-white'}`}>
                     ${plan.usd}
                   </span>
-                  <span className={`text-sm ${top ? 'text-ink/60' : 'text-muted'}`}>about {plan.inr}</span>
+                  <Local usd={plan.usd} className={`text-sm ${top ? 'text-ink/60' : 'text-muted'}`} />
                 </div>
                 <ul className={`mt-6 space-y-3 border-t border-dashed pt-6 ${top ? 'border-ink/20' : 'border-white/10'}`}>
                   {plan.features.slice(0, 3).map((f) => (

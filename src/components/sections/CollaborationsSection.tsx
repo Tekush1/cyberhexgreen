@@ -18,7 +18,7 @@ const collaborations: {
   {
     org: 'E-Cell IIT Indore',
     type: 'Outreach Partner',
-    location: 'Indore, India',
+    location: 'Indore',
     date: 'June 2026',
     description:
       'Officially partnered with the Entrepreneurship Cell of IIT Indore as an outreach partner, with an MOU signed between both organisations.',

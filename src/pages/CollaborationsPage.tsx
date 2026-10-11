@@ -21,7 +21,7 @@ const collaborations: {
   {
     org: 'E-Cell IIT Indore',
     type: 'Outreach Partner',
-    location: 'Indore, India',
+    location: 'Indore',
     status: 'signed',
     date: 'June 2026',
     description:
@@ -133,7 +133,7 @@ const CollaborationsPage = () => {
             transition={{ delay: 0.2 }}
             className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed"
           >
-            We're building cybersecurity outreach through partnerships with colleges, communities, and organisations across India — and this list keeps growing.
+            We're building cybersecurity outreach through partnerships with universities, communities and organisations around the world, and the list keeps growing.
           </motion.p>
         </div>
       </section>

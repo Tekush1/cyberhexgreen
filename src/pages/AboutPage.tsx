@@ -7,8 +7,8 @@ export const AboutPage = () => {
   return (
     <>
       <Seo
-        title="About CyberHx — India's Cybersecurity Community"
-        description="Who we are: the team behind Null Origin and ZeroDay Heist. CyberHx runs CTFs, a pentest lab and security research for India's security community, from Bhopal."
+        title="About CyberHx — Global Cybersecurity Community"
+        description="Who we are: the team behind Null Origin and ZeroDay Heist. CyberHx runs CTFs, a pentest lab and security research for the global security community."
         path="/about"
       />
       <About />

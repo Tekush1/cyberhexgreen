@@ -8,8 +8,8 @@ import { Seo } from '../features/seo/Seo';
 export const HomePage = () => (
   <>
     <Seo
-      title="CyberHx — India's Cybersecurity Community | CTF, Pentest Lab, Scam Alerts"
-      description="CyberHx runs capture-the-flag events for India's security crowd, builds custom CTFs for colleges and companies from $49, and trains you on the Pentest Lab with the CPPT certification."
+      title="CyberHx — Global Cybersecurity Community | CTF, Pentest Lab, Scam Alerts"
+      description="CyberHx runs capture-the-flag events for the global security community, builds custom CTFs for universities and companies worldwide from $49, and trains you on the Pentest Lab with the CPPT certification."
       path="/"
     />
     <HeroSection />

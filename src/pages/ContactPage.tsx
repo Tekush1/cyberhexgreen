@@ -287,7 +287,7 @@ export const ContactPage = () => {
                     </Field>
                   </div>
                   <Field id="c-phone" label="Phone" hint="(optional)">
-                    <input id="c-phone" name="phone" type="tel" value={msg.phone} onChange={onMsg} autoComplete="tel" placeholder="+91" className={field} />
+                    <input id="c-phone" name="phone" type="tel" value={msg.phone} onChange={onMsg} autoComplete="tel" placeholder="With country code" className={field} />
                   </Field>
                   <Field id="c-message" label="Message" error={errors.message}>
                     <textarea id="c-message" name="message" rows={6} value={msg.message} onChange={onMsg} className={`${field} resize-y leading-7`} placeholder="A few lines about what you need." aria-invalid={!!errors.message} aria-describedby={errors.message ? 'c-message-err' : undefined} />
@@ -318,7 +318,7 @@ export const ContactPage = () => {
                       <input id="a-email" name="email" type="email" value={app.email} onChange={onApp} autoComplete="email" className={field} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'a-email-err' : undefined} />
                     </Field>
                     <Field id="a-phone" label="Phone" error={errors.phone}>
-                      <input id="a-phone" name="phone" type="tel" value={app.phone} onChange={onApp} autoComplete="tel" placeholder="+91" className={field} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'a-phone-err' : undefined} />
+                      <input id="a-phone" name="phone" type="tel" value={app.phone} onChange={onApp} autoComplete="tel" placeholder="With country code" className={field} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'a-phone-err' : undefined} />
                     </Field>
                     <Field id="a-college" label="College or company" hint="(optional)">
                       <input id="a-college" name="college" value={app.college} onChange={onApp} autoComplete="organization" className={field} />
@@ -402,8 +402,8 @@ export const ContactPage = () => {
               <li className="flex items-center gap-3 px-1 py-1">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-glow"><MapPin size={16} /></span>
                 <span>
-                  <span className="block text-xs text-muted">Based in</span>
-                  <span className="block text-sm font-medium">Bhopal, India</span>
+                  <span className="block text-xs text-muted">Where we work</span>
+                  <span className="block text-sm font-medium">Worldwide, fully remote</span>
                 </span>
               </li>
             </ul>

@@ -703,8 +703,8 @@ export const About = () => {
               <span className="block text-white/45">the scoreboard.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-muted">
-              CyberHx started in Bhopal as a group of CTF players. Today we run open CTFs for India's security crowd, build
-              events for colleges and companies, and train people on our Pentest Lab.
+              CyberHx started as a group of CTF players. Today we run open CTFs for the global security community, build
+              events for universities and companies worldwide, and train people on our Pentest Lab.
             </p>
           </motion.div>
 

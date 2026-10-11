@@ -117,7 +117,7 @@ export const HeroSection = () => {
           </h1>
 
           <motion.p {...rise(0.4)} className="mt-6 max-w-[34rem] text-lg leading-8 text-muted">
-            CyberHx runs capture-the-flag events for India's security crowd, and builds them for colleges and companies
+            CyberHx runs capture-the-flag events for the global security community, and builds them for universities and companies worldwide
             from ${builderPricing.hosting.usd} a round.
           </motion.p>
 

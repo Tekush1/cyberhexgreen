@@ -94,10 +94,10 @@ export const events: Event[] = [
   {
     id: 1,
     title: 'ZeroDay Heist',
-    subtitle: "India's Largest Community-Driven Cybersecurity CTF",
+    subtitle: "A Large-Scale Community-Driven Cybersecurity CTF",
 
     description:
-      'ZeroDay Heist brought together 1.4K+ cybersecurity enthusiasts from across India for an intense 6-hour Capture The Flag competition. Participants tackled challenges across Web Exploitation, Reverse Engineering, Cryptography, OSINT, Forensics and Pwn while competing for a ₹250K+ prize pool.',
+      'ZeroDay Heist brought together 1.4K+ cybersecurity enthusiasts for an intense 6-hour Capture The Flag competition. Participants tackled challenges across Web Exploitation, Reverse Engineering, Cryptography, OSINT, Forensics and Pwn while competing for a ₹250K+ prize pool.',
 
     date: 'June 2026',
     duration: '6 Hours',

@@ -87,9 +87,9 @@ export default function BlogListPage() {
     <div className="min-h-screen bg-white pb-24 pt-28 text-ink">
       <Seo
         title={category ? `${category} — CyberHx Blog` : tag ? `#${tag} — CyberHx Blog` : 'CyberHx Blog — CTF Write-ups, Scam Alerts & Security Tutorials'}
-        description="CTF write-ups, scam breakdowns and cybersecurity tutorials from the CyberHx community in India. Learn, practice and stay safe."
+        description="CTF write-ups, scam breakdowns and cybersecurity tutorials from the global CyberHx community. Learn, practice and stay safe."
         path={category ? `/blog?category=${encodeURIComponent(category)}` : '/blog'}
-        keywords="cybersecurity blog india, ctf writeups, scam alert, ethical hacking tutorials, malware analysis, bug bounty"
+        keywords="cybersecurity blog, ctf writeups, scam alert, ethical hacking tutorials, malware analysis, bug bounty"
         jsonLd={
           posts.length
             ? {

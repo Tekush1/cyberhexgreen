@@ -3,7 +3,7 @@ import type { IconName } from '../components/shared/SiteIcon';
 /* =============================================================
    HOSTING STORE DATA — edit prices / copy here.
    Used by the home page pricing strip and the Host Your CTF page.
-   Prices are in USD with an approximate INR value.
+   Prices are in USD. The site shows an estimate in the visitor's own currency.
 ============================================================= */
 
 export type Plan = {
@@ -11,7 +11,6 @@ export type Plan = {
   name: string;
   icon: IconName;
   usd: number;
-  inr: string;
   blurb: string;
   features: string[];
   featured?: boolean;
@@ -24,8 +23,7 @@ export const plans: Plan[] = [
     name: 'Beginner',
     icon: 'ctf-green',
     usd: 89,
-    inr: '₹8,850',
-    blurb: 'Hosting plus the 25-challenge starter pack. A good first event for a college club or a class.',
+    blurb: 'Hosting plus the 25-challenge starter pack. An ideal first event for a university club, class or internal team.',
     features: ['Hosting for 8 hours', '25 challenges, easy to medium', 'Web, Steg, Forensics, OSINT and Crypto'],
     accent: 'white',
   },
@@ -34,7 +32,6 @@ export const plans: Plan[] = [
     name: 'Pro',
     icon: 'trophy',
     usd: 148,
-    inr: '₹14,800',
     blurb: 'Hosting plus the 40-challenge advanced pack, including our chained challenge experience.',
     features: [
       'Hosting for 8 hours',
@@ -50,7 +47,6 @@ export const plans: Plan[] = [
     name: 'Max',
     icon: 'hexagon',
     usd: 199,
-    inr: '₹19,900',
     blurb: 'Everything in Pro, with an event website designed in 3D to match your theme.',
     features: [
       'Hosting for 8 hours',
@@ -59,41 +55,6 @@ export const plans: Plan[] = [
       'Custom challenges built around what you ask for',
     ],
     accent: 'cyan',
-  },
-];
-
-export const pickAndChoose: {
-  id: string;
-  icon: IconName;
-  title: string;
-  description: string;
-  usd: string;
-  inr: string;
-}[] = [
-  {
-    id: 'hosting-only',
-    icon: 'cloud',
-    title: 'Hosting only',
-    description: 'You bring the challenges. We host the platform and scoreboard for an 8-hour event.',
-    usd: '$49',
-    inr: '₹4,900',
-  },
-  {
-    id: 'starter-pack',
-    icon: 'code',
-    title: 'Starter pack: 25 challenges',
-    description: 'Easy to medium. Web, Steg, Forensics, OSINT and Crypto, custom built for your event.',
-    usd: '$40',
-    inr: '₹3,950, charges included',
-  },
-  {
-    id: 'advanced-pack',
-    icon: 'target',
-    title: 'Advanced pack: 40 challenges',
-    description:
-      'Medium to hard. Pwn, Web and Boot2Root, plus the CyberHX chained challenge that links OSINT, Forensics and Crypto.',
-    usd: '$99',
-    inr: 'about ₹9,900',
   },
 ];
 
@@ -127,9 +88,8 @@ export const builderPricing = {
   hosting: { usd: 49, hours: 8, players: 1000 }, // always in every build (per round)
   extraHourUsd: 2,
   maxHours: 72,
-  extraPlayersUsd: 19, // per extra block of 1,000 players
+  extraPlayersUsd: 19, // per extra block of 1,000 players; there is no upper limit
   playerBlock: 1000,
-  maxPlayers: 50000,
   maxPerTier: 50,
   website3dUsd: 40,
 };

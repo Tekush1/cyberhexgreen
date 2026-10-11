@@ -74,14 +74,14 @@ const preset = (qty: Record<string, number>, hours = P.hosting.hours, players = 
 const presets: { id: string; name: string; who: string; build: () => Build }[] = [
   {
     id: "campus",
-    name: "Campus starter",
-    who: "First CTF for a college club",
+    name: "Starter",
+    who: "A first CTF for a university club or team",
     build: () => preset({ "web:medium": 5, "osint:medium": 3, "crypto:medium": 3, "steg:easy": 3, "mobile:easy": 2 }),
   },
   {
     id: "competitive",
     name: "Competitive",
-    who: "Fest CTF with a real leaderboard fight",
+    who: "A conference or festival CTF with a serious leaderboard",
     build: () =>
       preset(
         {
@@ -95,7 +95,7 @@ const presets: { id: string; name: string; who: string; build: () => Build }[] =
   {
     id: "national",
     name: "Qualifier + finale",
-    who: "Open qualifier, top teams in the final",
+    who: "An open qualifier, then the top teams in a final",
     build: () => {
       const b = emptyBuild();
       b.format = "split";
@@ -133,7 +133,7 @@ const clampRound = (r: Partial<Round> | undefined): Round => {
   return {
     hours: Number.isFinite(hours) ? Math.min(P.maxHours, Math.max(P.hosting.hours, hours)) : base.hours,
     players: Number.isFinite(players)
-      ? Math.min(P.maxPlayers, Math.max(P.playerBlock, Math.ceil(players / P.playerBlock) * P.playerBlock))
+      ? Math.max(P.playerBlock, Math.ceil(players / P.playerBlock) * P.playerBlock)
       : base.players,
     qty,
   };
@@ -198,7 +198,8 @@ const compareCols = [
 ];
 const compareRows: { label: string; cells: Cell[] }[] = [
   { label: "Event length", cells: [`${P.hosting.hours}h`, `${P.hosting.hours}h`, `${P.hosting.hours}h`, `${P.hosting.hours}h`] },
-  { label: "Players included", cells: Array(4).fill(`Up to ${P.hosting.players.toLocaleString("en-US")}`) },
+  { label: "Players included", cells: Array(4).fill(P.hosting.players.toLocaleString("en-US")) },
+  { label: "More players", cells: Array(4).fill(`Unlimited · +$${P.extraPlayersUsd} per 1,000`) },
   { label: "Live scoreboard + host dashboard", cells: [true, true, true, true] },
   { label: "Certificates for players", cells: [true, true, true, true] },
   { label: "Ready-made challenges", cells: ["Bring your own", "25", "40", "40"] },
@@ -207,7 +208,7 @@ const compareRows: { label: string; cells: Cell[] }[] = [
   { label: "CyberHx chained challenge", cells: [false, false, true, true] },
   { label: "3D event website", cells: [false, false, false, true] },
   { label: "Custom challenges for your theme", cells: [false, false, false, true] },
-  { label: "Extra hours / players", cells: Array(4).fill(`+$${P.extraHourUsd}/h · +$${P.extraPlayersUsd} per 1k`) },
+  { label: "Longer events", cells: Array(4).fill(`+$${P.extraHourUsd} per hour, up to ${P.maxHours}h`) },
 ];
 
 /* ---------- why CyberHx (facts from our own offer, no made-up stats) ---------- */
@@ -216,7 +217,7 @@ const whyPoints: { icon: IconName; title: string; text: string }[] = [
   { icon: "trophy", title: "Our own chained challenge", text: "Pro and Max include the CyberHx chained challenge: OSINT, Forensics and Crypto linked into one run." },
   { icon: "gauge", title: "Clear prices up front", text: `Packages from $${plans[0].usd}. Hosting from $${P.hosting.usd}. Every add-on is priced on this page.` },
   { icon: "lock-key", title: "No payment to order", text: "Place the order, we confirm your date, then email a secure payment link. Nothing is charged at checkout." },
-  { icon: "hacker-team" as IconName, title: "Scales with your event", text: `Up to ${P.hosting.players.toLocaleString("en-US")} players included, and up to ${P.maxPlayers.toLocaleString("en-US")} if you need more.` },
+  { icon: "hacker-team" as IconName, title: "Scales with your event", text: `${P.hosting.players.toLocaleString("en-US")} players included. Need more? There is no upper limit: add players in blocks of 1,000 for $${P.extraPlayersUsd} each.` },
   { icon: "podium", title: "Run it yourself on the day", text: "Live scoreboard, team management, challenge control and certificates from one dashboard." },
 ];
 
@@ -231,10 +232,12 @@ const altRows: { label: string; cells: Cell[] }[] = [
 ];
 
 const faqs = [
-  { q: "Do I pay when I place the order?", a: "No. We confirm your event date first, then email a secure payment link. Prices are charged in USD." },
-  { q: "Which package should I pick?", a: "First CTF for a club or class: Beginner. A fest with a real leaderboard fight: Pro. You want your own look and custom challenges: Max." },
-  { q: "Can I bring my own challenges?", a: `Yes. Pick Hosting only for $${P.hosting.usd} and we run the platform and scoreboard.` },
-  { q: "Need more hours, more players or two rounds?", a: "Use the custom builder below. It lets you set hours, players, a qualifier plus finale, and every challenge type." },
+  { q: "Do I pay when I place the order?", a: "No. We confirm your event date first, then email a secure payment link. All prices are charged in USD; the amount shown in your currency is an estimate." },
+  { q: "Is there a limit on players?", a: `No. Every package includes ${P.hosting.players.toLocaleString("en-US")} players, and you can add as many more as you need at $${P.extraPlayersUsd} per additional 1,000.` },
+  { q: "Do you work with teams outside our country?", a: "Yes. We host CTFs for universities, companies and communities worldwide, fully online, in any time zone." },
+  { q: "Which package should I pick?", a: "A first event for a club or class: Beginner. A competitive event with a serious leaderboard: Pro. Your own theme, website and custom challenges: Max." },
+  { q: "Can I bring my own challenges?", a: `Yes. Choose Hosting only for $${P.hosting.usd} and we run the platform, scoreboard and host dashboard.` },
+  { q: "Need more hours or two rounds?", a: "Use the custom builder below. It lets you set event length, player count, a qualifier plus grand finale, and every challenge type." },
 ];
 
 const Mark = ({ v }: { v: Cell }) =>
@@ -292,6 +295,49 @@ function Stepper({
   );
 }
 
+/* Players: no upper limit. Type any number (rounded up to the next block of
+   1,000) or step by 1,000. */
+function PlayersControl({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [text, setText] = React.useState(String(value));
+  React.useEffect(() => setText(String(value)), [value]);
+  const commit = (raw: string) => {
+    const n = Math.floor(Number(raw.replace(/[^0-9]/g, "")));
+    const next = Number.isFinite(n) && n > 0 ? Math.max(P.playerBlock, Math.ceil(n / P.playerBlock) * P.playerBlock) : value;
+    onChange(next);
+    setText(String(next));
+  };
+  return (
+    <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(P.playerBlock, value - P.playerBlock))}
+        disabled={value <= P.playerBlock}
+        aria-label="Fewer players"
+        className="flex h-9 w-9 items-center justify-center text-white/70 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-25"
+      >
+        <Minus size={15} />
+      </button>
+      <input
+        inputMode="numeric"
+        aria-label="Expected players"
+        value={text}
+        onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ""))}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && commit((e.target as HTMLInputElement).value)}
+        className="h-9 w-24 bg-transparent text-center font-mono text-sm tabular-nums text-white outline-none"
+      />
+      <button
+        type="button"
+        onClick={() => onChange(value + P.playerBlock)}
+        aria-label="More players"
+        className="flex h-9 w-9 items-center justify-center text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+      >
+        <Plus size={15} />
+      </button>
+    </div>
+  );
+}
+
 export default function HostYourCTF() {
   const [build, setBuild] = React.useState<Build>(loadBuild);
   const [active, setActive] = React.useState<RoundId>(() => (loadBuild().format === "split" ? "qualifier" : "main"));
@@ -322,7 +368,7 @@ export default function HostYourCTF() {
 
   // Hello after the walk-in, then "arrive" with the trolley at the packages.
   React.useEffect(() => {
-    const hi = window.setTimeout(() => setBubble("Hi! Hosting a CTF? Let's go shopping."), 1900);
+    const hi = window.setTimeout(() => setBubble("Welcome! Planning a CTF? I'll help you pick."), 1900);
     const el = document.getElementById("packages");
     const io = el
       ? new IntersectionObserver(
@@ -330,7 +376,7 @@ export default function HostYourCTF() {
             if (e.isIntersecting && !seenPackages.current) {
               seenPackages.current = true;
               if (restFrame.current === "idle") restFrame.current = "arrive";
-              act("arrive", "Pick a package. I'll carry it.");
+              act("arrive", "Choose a package and I'll add it to your cart.");
             }
           },
           { threshold: 0.25 }
@@ -350,7 +396,7 @@ export default function HostYourCTF() {
   /* Buy: the pack goes into the trolley, then checkout opens. */
   const withAdd = (label: string, open: () => void) => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    act("add-1", `${label} added!`);
+    act("add-1", label);
     window.clearTimeout(openTimer.current);
     if (reduce) open();
     else openTimer.current = window.setTimeout(open, 800);
@@ -409,14 +455,14 @@ export default function HostYourCTF() {
     const was = lastDrawer.current;
     lastDrawer.current = drawer;
     if (drawer === "checkout" && order) {
-      act("bill", `Total ${money(order.total)}${order.quoted ? " + quote" : ""}. Nothing to pay right now.`);
+      act("bill", `Total ${money(order.total)}${order.quoted ? " + quote" : ""}. No payment now: we confirm your date first.`);
     } else if (drawer === "done") {
-      act("success", "Order placed! Check your email.");
+      act("success", "Order received. Check your email for next steps.");
       setCelebrate((n) => n + 1);
     } else if (drawer === "closed" && was === "checkout") {
-      act("sad", "No worries, come back anytime.", 3200);
+      act("sad", "No problem. Come back whenever you're ready.", 3200);
     } else if (drawer === "closed" && was === "done") {
-      act("success", "See you on the scoreboard!", 3000);
+      act("success", "Thank you! See you on the scoreboard.", 3000);
     }
   }, [drawer, order, act]);
 
@@ -430,7 +476,7 @@ export default function HostYourCTF() {
       t = window.setTimeout(() => {
         if (lastDrawer.current !== "closed") return arm();
         hints += 1;
-        act("idle", "Not sure which one? Pro is the most picked.", 4200);
+        act("idle", "Not sure where to start? Pro is our most popular package.", 4200);
         arm();
       }, 30000);
     };
@@ -455,7 +501,7 @@ export default function HostYourCTF() {
         /* storage blocked: still show it once for this page view */
       }
       document.removeEventListener("mouseout", onOut);
-      act("sad", "Leaving? It's pay later, no charge right now.", 4200);
+      act("sad", "Before you go: ordering is free. You pay only after we confirm.", 4200);
     };
     if (window.matchMedia("(pointer: fine)").matches) document.addEventListener("mouseout", onOut);
     return () => document.removeEventListener("mouseout", onOut);
@@ -473,16 +519,24 @@ export default function HostYourCTF() {
       else qty[key(catId, tier)] = n;
       return { ...r, qty };
     });
+  const catName = (catId: string) => builderCategories.find((c) => c.id === catId)?.name ?? "Challenge";
   const inc = (catId: string, tier: Tier) => {
     const cur = round.qty[key(catId, tier)] ?? 0;
+    if (cur >= P.maxPerTier) return;
+    const next = cur === 0 ? minFor(catId) : cur + 1;
     addFlip.current = !addFlip.current;
-    const cat = builderCategories.find((c) => c.id === catId);
-    act(addFlip.current ? "add-1" : "add-2", `${cat?.name ?? "Challenge"} (${tier}) in the trolley`, 1300);
-    setQty(catId, tier, cur === 0 ? minFor(catId) : cur + 1);
+    act(addFlip.current ? "add-1" : "add-2", `Added ${next - cur} × ${catName(catId)} (${tier}).`, 1300);
+    setQty(catId, tier, next);
   };
   const dec = (catId: string, tier: Tier) => {
     const cur = round.qty[key(catId, tier)] ?? 0;
-    setQty(catId, tier, cur <= minFor(catId) ? 0 : cur - 1);
+    if (cur === 0) return;
+    const next = cur <= minFor(catId) ? 0 : cur - 1;
+    // Is anything left in the whole build after this removal?
+    const leftAfter = challengeCount - (cur - next);
+    if (leftAfter <= 0) act("arrive", "Your cart is empty. Add a category to start.", 2400);
+    else act("idle", `Removed ${cur - next} × ${catName(catId)} (${tier}).`, 1300);
+    setQty(catId, tier, next);
   };
 
   const setFormat = (format: Build["format"]) => {
@@ -511,7 +565,7 @@ export default function HostYourCTF() {
   };
 
   const reset = () => {
-    act("idle", "Fresh start. Pick again.", 2600);
+    act("arrive", "Build cleared. Start fresh anytime.", 2600);
     setBuild(emptyBuild());
     setActive("main");
   };
@@ -523,7 +577,7 @@ export default function HostYourCTF() {
     const xh = extraHoursOf(r);
     const xb = extraBlocksOf(r);
     return [
-      { label: `${pre}Hosting + scoreboard (${P.hosting.hours}h, up to ${players(P.hosting.players)} players)`, usd: P.hosting.usd, icon: "cloud" },
+      { label: `${pre}Hosting + scoreboard (${P.hosting.hours}h, ${players(P.hosting.players)} players included)`, usd: P.hosting.usd, icon: "cloud" },
       ...(xh > 0 ? [{ label: `${pre}Extra hours × ${xh} (${r.hours}h total)`, usd: xh * P.extraHourUsd, icon: "gauge" as IconName }] : []),
       ...(xb > 0
         ? [{ label: `${pre}Extra players: ${players(xb * P.playerBlock)} (${players(r.players)} total)`, usd: xb * P.extraPlayersUsd, icon: "hacker-team" as IconName }]
@@ -562,7 +616,7 @@ export default function HostYourCTF() {
   const checkoutHosting = () => {
     setOrder({
       title: "Hosting only",
-      lines: [{ label: `Hosting + scoreboard (${P.hosting.hours}h, up to ${players(P.hosting.players)} players)`, usd: P.hosting.usd, icon: "cloud" }],
+      lines: [{ label: `Hosting + scoreboard (${P.hosting.hours}h, ${players(P.hosting.players)} players included)`, usd: P.hosting.usd, icon: "cloud" }],
       total: P.hosting.usd,
       quoted: false,
     });
@@ -740,7 +794,7 @@ export default function HostYourCTF() {
           </label>
           <Local usd={total} className="font-semibold text-white/85" />
         </div>
-        <button type="button" data-buy onClick={() => withAdd("Your custom build", checkoutBuild)} className="btn btn-lime mt-4 w-full">
+        <button type="button" data-buy onClick={() => withAdd(challengeCount > 0 ? `Custom build packed: ${challengeCount} challenge${challengeCount === 1 ? "" : "s"}.` : "Hosting added to your cart.", checkoutBuild)} className="btn btn-lime mt-4 w-full">
           Check out this build <ArrowRight size={16} />
         </button>
         <p className="mt-2.5 text-center text-[11px] text-muted">
@@ -757,9 +811,9 @@ export default function HostYourCTF() {
     <div className="min-h-screen overflow-x-clip bg-ink pb-24 pt-16 text-white sm:pt-[72px] lg:pb-0">
       <Seo
         title="Host Your CTF — Ready-made CTF Packages from $89 | CyberHx"
-        description="Buy a ready-made CTF for your college or company: hosting, live scoreboard and 25 to 40 tested challenges from $89. Compare packages or build your own."
+        description="Ready-made CTF packages for universities, companies and communities worldwide: hosting, live scoreboard and 25 to 40 tested challenges from $89, with unlimited players."
         path="/host-your-ctf"
-        keywords="host a ctf, buy ctf challenges, ctf hosting india, college ctf event, capture the flag platform"
+        keywords="host a ctf, buy ctf challenges, ctf hosting, ctf platform for universities and companies, capture the flag event, international ctf"
       />
       {/* Store bar */}
       <div className="sticky top-16 z-40 border-b border-line bg-ink/90 backdrop-blur sm:top-[72px]">
@@ -798,7 +852,7 @@ export default function HostYourCTF() {
               only after we confirm it.
             </p>
             <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
-              {["No payment to order", "Challenges included", `Up to ${players(P.hosting.players)} players`].map((t) => (
+              {["No payment to order", "Challenges included", "Unlimited players", "Worldwide"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Check size={15} className="text-lime" /> {t}
                 </li>
@@ -857,7 +911,7 @@ export default function HostYourCTF() {
                   </li>
                 ))}
               </ul>
-              <button type="button" data-buy onClick={() => withAdd(`${plan.name} pack`, () => checkoutPlan(plan.id))} className={`btn mt-6 w-full ${plan.featured ? "btn-dark" : "btn-ghost"}`}>
+              <button type="button" data-buy onClick={() => withAdd(`${plan.name} package added to your cart.`, () => checkoutPlan(plan.id))} className={`btn mt-6 w-full ${plan.featured ? "btn-dark" : "btn-ghost"}`}>
                 Buy {plan.name} <ArrowRight size={16} />
               </button>
             </article>
@@ -873,7 +927,7 @@ export default function HostYourCTF() {
               </p>
             </div>
           </div>
-          <button type="button" data-buy onClick={() => withAdd("Hosting", checkoutHosting)} className="btn btn-ghost shrink-0">
+          <button type="button" data-buy onClick={() => withAdd("Hosting only added to your cart.", checkoutHosting)} className="btn btn-ghost shrink-0">
             Buy hosting only
           </button>
         </div>
@@ -918,8 +972,8 @@ export default function HostYourCTF() {
                         data-buy
                         onClick={() =>
                           c.id === "hosting"
-                            ? withAdd("Hosting", checkoutHosting)
-                            : withAdd(`${c.name} pack`, () => checkoutPlan(c.id))
+                            ? withAdd("Hosting only added to your cart.", checkoutHosting)
+                            : withAdd(`${c.name} package added to your cart.`, () => checkoutPlan(c.id))
                         }
                         className={`btn w-full !min-h-[40px] !text-sm ${c.id === "pro" ? "btn-lime" : "btn-ghost"}`}
                       >
@@ -1104,7 +1158,7 @@ export default function HostYourCTF() {
                       <span className="rounded bg-lime px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink">Included</span>
                     </div>
                     <p className="mt-1 text-sm text-muted">
-                      Platform, scoreboard and host dashboard for {P.hosting.hours} hours and up to {players(P.hosting.players)} players.
+                      Platform, live scoreboard and host dashboard for {P.hosting.hours} hours, with {players(P.hosting.players)} players included.
                     </p>
                   </div>
                   <div className="text-right">
@@ -1137,20 +1191,12 @@ export default function HostYourCTF() {
                     <div>
                       <p className="text-sm font-semibold">Expected players</p>
                       <p className="text-xs text-muted">
-                        Up to {players(P.hosting.players)} included, then {money(P.extraPlayersUsd)} per extra {players(P.playerBlock)}
+                        {players(P.hosting.players)} included, then {money(P.extraPlayersUsd)} per additional {players(P.playerBlock)}. No upper limit.
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
                       {extraBlocks > 0 && <span className="font-mono text-sm text-sun">+{money(extraBlocks * P.extraPlayersUsd)}</span>}
-                      <Stepper
-                        wide
-                        value={round.players >= 1000 ? `${round.players / 1000}k` : round.players}
-                        label="players"
-                        onDec={() => patchRound((r) => ({ ...r, players: Math.max(P.playerBlock, r.players - P.playerBlock) }))}
-                        onInc={() => patchRound((r) => ({ ...r, players: Math.min(P.maxPlayers, r.players + P.playerBlock) }))}
-                        decDisabled={round.players <= P.playerBlock}
-                        incDisabled={round.players >= P.maxPlayers}
-                      />
+                      <PlayersControl value={round.players} onChange={(n) => patchRound((r) => ({ ...r, players: n }))} />
                     </div>
                   </div>
                 </div>
@@ -1339,7 +1385,7 @@ export default function HostYourCTF() {
                 {challengeCount} challenges · {build.format === "split" ? "2 rounds" : `${totalHours}h`}
               </div>
             </div>
-            <button type="button" data-buy onClick={() => withAdd("Your custom build", checkoutBuild)} className="btn btn-lime">
+            <button type="button" data-buy onClick={() => withAdd(challengeCount > 0 ? `Custom build packed: ${challengeCount} challenge${challengeCount === 1 ? "" : "s"}.` : "Hosting added to your cart.", checkoutBuild)} className="btn btn-lime">
               Check out <ArrowRight size={16} />
             </button>
           </div>
@@ -1408,11 +1454,11 @@ export default function HostYourCTF() {
                     </div>
                     <div className="col-span-2">
                       <label className={labelCls}>Email *</label>
-                      <input type="email" name="email" required value={form.email} onChange={onField} placeholder="you@college.edu" className={inputCls} />
+                      <input type="email" name="email" required value={form.email} onChange={onField} placeholder="you@organization.com" className={inputCls} />
                     </div>
                     <div>
                       <label className={labelCls}>Phone *</label>
-                      <input type="tel" name="phone" required value={form.phone} onChange={onField} placeholder="+91" className={inputCls} />
+                      <input type="tel" name="phone" required value={form.phone} onChange={onField} placeholder="With country code" className={inputCls} />
                     </div>
                     <div>
                       <label className={labelCls}>Organization *</label>
@@ -1440,9 +1486,10 @@ export default function HostYourCTF() {
                       <select name="participants" value={form.participants} onChange={onField} className={inputCls}>
                         <option value="">Select</option>
                         <option>Under 100</option>
-                        <option>100 to 500</option>
-                        <option>500 to 1,000</option>
-                        <option>1,000+</option>
+                        <option>100 to 1,000</option>
+                        <option>1,000 to 5,000</option>
+                        <option>5,000 to 20,000</option>
+                        <option>20,000+</option>
                       </select>
                     </div>
                     <div className="col-span-2">

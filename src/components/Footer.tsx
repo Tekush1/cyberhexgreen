@@ -48,7 +48,7 @@ export const Footer = () => {
               <img src="/cyberhx-logo.png" alt="CyberHx" className="h-12 w-auto object-contain" />
             </Link>
             <p className="mt-5 max-w-xs leading-7 text-muted">
-              CTFs for India's security crowd, and hosted CTFs for colleges, clubs and companies.
+              Open CTFs for the global security community, and hosted CTFs for universities, companies and communities worldwide.
             </p>
             <div className="mt-6 flex gap-2">
               {socials.map(({ label, href, Icon }) => (
@@ -94,7 +94,7 @@ export const Footer = () => {
               ))}
               <li className="flex items-center gap-2 text-muted">
                 <MapPin size={15} className="shrink-0 text-glow" />
-                Bhopal, India
+                Serving teams worldwide
               </li>
             </ul>
           </div>
