@@ -1,6 +1,6 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
-import { ArrowRight, Instagram } from 'lucide-react';
+import { ArrowRight, Instagram, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { events } from '../data/events';
 import { stats } from '../data/stats';
@@ -13,40 +13,19 @@ import { allCategories, dateParts, pad2 } from './gallery/eventStyle';
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
-const SPARKS = [
-  { x: '16%', d: '0s', dur: '5s', drift: '-12px' },
-  { x: '34%', d: '1.6s', dur: '4.6s', drift: '10px', lime: true },
-  { x: '58%', d: '0.8s', dur: '5.4s', drift: '-8px' },
-  { x: '76%', d: '2.6s', dur: '4.8s', drift: '12px', lime: true },
-  { x: '88%', d: '3.8s', dur: '5.6s', drift: '-6px' },
-];
-
 /** A headline line that slides up from behind a mask. */
 const Line = ({ children, delay, reduce }: { children: ReactNode; delay: number; reduce: boolean }) => (
-  <span className="block overflow-hidden pb-[0.1em]">
+  <span className="block overflow-hidden pb-[0.08em]">
     <motion.span
       className="block"
       initial={reduce ? false : { y: '110%' }}
       animate={{ y: '0%' }}
-      transition={{ duration: 1.05, delay, ease }}
+      transition={{ duration: 1, delay, ease }}
     >
       {children}
     </motion.span>
   </span>
 );
-
-/** Honest "no date yet" badge — not a countdown, because nothing is scheduled. */
-function UnknownDate() {
-  return (
-    <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.04] px-4 py-2">
-      <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-60 motion-reduce:hidden" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
-      </span>
-      <span className="font-mono text-xs uppercase tracking-[0.16em] text-white/70">Date — to be announced</span>
-    </div>
-  );
-}
 
 export const Gallery = () => {
   const reduce = !!useReducedMotion();
@@ -54,52 +33,48 @@ export const Gallery = () => {
   const categories = allCategories(events);
 
   const listRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: listRef, offset: ['start 75%', 'end 60%'] });
+  const { scrollYProgress } = useScroll({ target: listRef, offset: ['start 70%', 'end 70%'] });
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.4 });
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#04060d] text-white">
+    <div className="min-h-screen bg-white text-ink">
       {/* ═══ Header ═══════════════════════════════════════════ */}
-      <header className="relative isolate pt-28 sm:pt-32">
+      <header className="relative isolate overflow-hidden bg-[#f4f6f1] pt-28 sm:pt-32">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="ev-beam left-[6%]" />
-          <div className="ev-beam ev-beam-alt right-[0%]" />
-          <div className="ev-drift absolute -left-40 top-0 h-[30rem] w-[30rem] rounded-full bg-[#3bd3ff]/[0.13] blur-[120px]" />
-          <div className="ev-drift absolute -right-40 top-24 h-[32rem] w-[32rem] rounded-full bg-[#8b5cf6]/[0.14] blur-[120px] [animation-delay:-6s]" />
-          <div className="ev-drift absolute bottom-[-10rem] left-1/3 h-[22rem] w-[40rem] rounded-full bg-[#ff3d6e]/[0.08] blur-[120px] [animation-delay:-3s]" />
-          <div className="ev-dots absolute inset-0" />
-          <div className="ev-noise absolute inset-0" />
+          <div className="absolute -left-32 -top-24 h-[28rem] w-[28rem] rounded-full bg-lime/25 blur-[120px]" />
+          <div className="absolute -right-24 top-10 h-[26rem] w-[26rem] rounded-full bg-lime/15 blur-[120px]" />
+          <div className="ev-dots-light absolute inset-0" />
         </div>
 
-        <div className="mx-auto grid max-w-6xl items-center gap-6 px-5 sm:px-6 lg:grid-cols-[1.3fr_0.7fr] lg:gap-10 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:gap-10 lg:px-8">
           <div>
             <motion.p
               initial={reduce ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease }}
-              className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur"
+              className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink/70 shadow-sm"
             >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-60 motion-reduce:hidden" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
-              </span>
+              <Sparkles size={13} className="text-[#7a9a00]" />
               Events archive
             </motion.p>
 
-            <h1 className="font-display mt-6 text-[3.2rem] leading-[0.92] text-white sm:text-7xl lg:text-[5.6rem]">
+            <h1 className="font-display mt-6 text-[3rem] leading-[0.95] text-ink sm:text-7xl lg:text-[5.2rem]">
               <Line delay={0.1} reduce={reduce}>
                 Every CTF
               </Line>
               <Line delay={0.22} reduce={reduce}>
-                <span className="ev-aurora">we've run.</span>
+                <span className="relative inline-block">
+                  we've run.
+                  <span aria-hidden="true" className="absolute -bottom-1 left-0 -z-10 h-[0.42em] w-full -rotate-1 rounded-sm bg-lime/70" />
+                </span>
               </Line>
             </h1>
 
             <motion.p
               initial={reduce ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.45, ease }}
-              className="mt-6 max-w-lg text-lg leading-8 text-muted"
+              transition={{ duration: 0.8, delay: 0.42, ease }}
+              className="mt-6 max-w-lg text-lg leading-8 text-ink/55"
             >
               Leaderboards, certificates and photos from each event. Tap any one to open it.
             </motion.p>
@@ -107,62 +82,42 @@ export const Gallery = () => {
             <motion.dl
               initial={reduce ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6, ease }}
+              transition={{ duration: 0.8, delay: 0.56, ease }}
               className="mt-9 grid max-w-xl grid-cols-3 gap-2.5 sm:gap-3"
             >
-              {stats.map((st, i) => (
-                <div key={st.label} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-3.5 backdrop-blur sm:px-4 sm:py-4">
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-x-0 top-0 h-px"
-                    style={{ background: `linear-gradient(90deg, transparent, ${['#3bd3ff', '#8b5cf6', '#c6f135'][i % 3]}, transparent)` }}
-                  />
-                  <dt className="font-display text-[1.45rem] leading-none text-white sm:text-3xl">
+              {stats.map((st) => (
+                <div key={st.label} className="rounded-2xl border border-black/[0.07] bg-white px-3.5 py-3.5 shadow-sm sm:px-4 sm:py-4">
+                  <dt className="font-display text-[1.5rem] leading-none text-ink sm:text-3xl">
                     <CountUp to={st.to} prefix={st.prefix} suffix={st.suffix} decimals={st.decimals} />
                   </dt>
-                  <dd className="mt-2 text-[11.5px] leading-4 text-muted sm:text-xs">{st.label}</dd>
+                  <dd className="mt-2 text-[11.5px] leading-4 text-ink/50 sm:text-xs">{st.label}</dd>
                 </div>
               ))}
             </motion.dl>
           </div>
 
-          {/* mascot on a lit pedestal */}
+          {/* mascot on a soft lime glow */}
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, delay: 0.3, ease }}
-            className="relative mx-auto flex h-[17rem] w-full max-w-xs items-end justify-center sm:h-[22rem] lg:h-[27rem]"
+            transition={{ duration: 1.1, delay: 0.3, ease }}
+            className="relative mx-auto flex h-[15rem] w-full max-w-xs items-end justify-center sm:h-[20rem] lg:h-[25rem]"
           >
-            <div className="relative">
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-                <span className="hero-aura" />
-                <span className="hero-portal-anchor">
-                  <span className="hero-portal" />
-                  <span className="hero-portal hero-portal-wave" />
-                  <span className="hero-portal hero-portal-wave [animation-delay:1.6s]" />
-                </span>
-                {SPARKS.map((s, i) => (
-                  <span
-                    key={i}
-                    className={`hero-spark ${s.lime ? 'is-lime' : ''}`}
-                    style={{ '--x': s.x, '--d': s.d, '--dur': s.dur, '--drift': s.drift } as CSSProperties}
-                  />
-                ))}
-              </div>
-              <div className={reduce ? 'relative' : 'hero-breathe relative'}>
-                <Mascot pose="cheer" still eager alt="CyberHx mascot cheering" className="h-[15rem] w-auto sm:h-[20rem] lg:h-[24rem]" />
-              </div>
+            <div aria-hidden="true" className="absolute bottom-6 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-lime/40 blur-[70px] sm:h-64 sm:w-64" />
+            <div aria-hidden="true" className="absolute bottom-7 left-1/2 h-3 w-40 -translate-x-1/2 rounded-[50%] bg-black/10 blur-md" />
+            <div className={reduce ? 'relative' : 'hero-breathe relative'}>
+              <Mascot pose="cheer" still eager alt="CyberHx mascot cheering" className="h-[14rem] w-auto sm:h-[19rem] lg:h-[23rem]" />
             </div>
           </motion.div>
         </div>
 
         {/* category ribbon */}
-        <div className="relative mt-14 border-y border-white/[0.07] bg-white/[0.015] py-4 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)] sm:mt-20 sm:py-5">
+        <div className="relative mt-14 border-y border-black/[0.07] bg-white/60 py-4 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)] sm:mt-20 sm:py-5">
           <div className="marquee" aria-hidden="true">
             {[...categories, ...categories].map((c, i) => (
-              <span key={i} className="flex items-center gap-6 whitespace-nowrap px-6 font-display text-2xl sm:text-[2rem]">
-                <span className={i % 2 ? 'ev-outline-strong' : 'text-white/85'}>{c}</span>
-                <span className="text-base text-[#3bd3ff]">✦</span>
+              <span key={i} className="flex items-center gap-6 whitespace-nowrap px-6 font-display text-2xl text-ink/80 sm:text-[2rem]">
+                {c}
+                <span className="text-base text-[#7a9a00]">✦</span>
               </span>
             ))}
           </div>
@@ -170,7 +125,7 @@ export const Gallery = () => {
         </div>
       </header>
 
-      {/* ═══ Archive timeline ═════════════════════════════════ */}
+      {/* ═══ Archive ══════════════════════════════════════════ */}
       <section className="relative mx-auto max-w-6xl px-5 pt-20 sm:px-6 sm:pt-28 lg:px-8" aria-labelledby="archive-title">
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 24 }}
@@ -180,23 +135,23 @@ export const Gallery = () => {
           className="flex items-end justify-between gap-6"
         >
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#3bd3ff]">The archive</p>
-            <h2 id="archive-title" className="font-display mt-3 text-4xl leading-[1] text-white sm:text-5xl">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#7a9a00]">The archive</p>
+            <h2 id="archive-title" className="font-display mt-3 text-4xl leading-[1] text-ink sm:text-5xl">
               Newest first.
             </h2>
           </div>
-          <p className="hidden pb-1 font-mono text-sm text-white/45 sm:block">
-            <span className="text-white">{pad2(events.length)}</span> events
+          <p className="pb-1 font-mono text-sm text-ink/45">
+            <span className="text-ink">{pad2(events.length)}</span> events
           </p>
         </motion.div>
 
         <div ref={listRef} className="relative mt-12 sm:mt-16">
           {/* rail + scroll progress */}
-          <div aria-hidden="true" className="absolute bottom-0 left-[7px] top-2 w-px bg-white/10 md:left-[9rem]" />
+          <div aria-hidden="true" className="absolute bottom-0 left-[7px] top-2 w-px bg-black/10 md:left-[9rem]" />
           <motion.div
             aria-hidden="true"
             style={{ scaleY: reduce ? 1 : progress }}
-            className="absolute bottom-0 left-[7px] top-2 w-px origin-top bg-gradient-to-b from-[#ff3d6e] via-[#8b5cf6] to-[#3bd3ff] shadow-[0_0_12px_rgba(139,92,246,0.8)] md:left-[9rem]"
+            className="absolute bottom-0 left-[7px] top-2 w-px origin-top bg-lime md:left-[9rem]"
           />
 
           <ol className="space-y-14 sm:space-y-20">
@@ -204,19 +159,17 @@ export const Gallery = () => {
               const dp = dateParts(e.date);
               return (
                 <li key={e.id} className="relative grid pl-9 md:grid-cols-[9rem_1fr] md:pl-0">
-                  {/* node */}
                   <motion.span
                     aria-hidden="true"
                     initial={reduce ? false : { scale: 0 }}
                     whileInView={{ scale: 1 }}
                     viewport={{ once: true, margin: '-120px' }}
                     transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-                    className="absolute left-0 top-1.5 flex h-[15px] w-[15px] items-center justify-center rounded-full border border-white/30 bg-[#04060d] md:left-[calc(9rem-7px)]"
+                    className="absolute left-0 top-1.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-white ring-2 ring-lime md:left-[calc(9rem-7px)]"
                   >
-                    <span className="h-[7px] w-[7px] rounded-full bg-white shadow-[0_0_10px_3px_rgba(139,92,246,0.9)]" />
+                    <span className="h-[7px] w-[7px] rounded-full bg-lime" />
                   </motion.span>
 
-                  {/* date */}
                   <motion.div
                     initial={reduce ? false : { opacity: 0, x: -16 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -224,8 +177,8 @@ export const Gallery = () => {
                     transition={{ duration: 0.8, ease }}
                     className="mb-4 flex items-baseline gap-2 md:sticky md:top-28 md:mb-0 md:block md:self-start md:pr-9 md:text-right"
                   >
-                    <p className="font-display text-2xl leading-none text-white md:text-[2.1rem]">{dp.month}</p>
-                    <p className="font-mono text-xs text-white/45 md:mt-2">
+                    <p className="font-display text-2xl leading-none text-ink md:text-[2.1rem]">{dp.month}</p>
+                    <p className="font-mono text-xs text-ink/45 md:mt-2">
                       {dp.days && <span className="md:block">{dp.days} · </span>}
                       {dp.year}
                     </p>
@@ -248,41 +201,39 @@ export const Gallery = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.9, ease }}
-          className="relative overflow-hidden rounded-[28px] p-px"
+          className="relative grid items-center gap-8 overflow-hidden rounded-[28px] border border-black/[0.07] bg-[#f4f6f1] p-6 shadow-sm sm:p-10 md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto] lg:gap-12"
         >
-          {/* light running around the border */}
-          <div
-            aria-hidden="true"
-            className="absolute left-1/2 top-1/2 aspect-square w-[160%] -translate-x-1/2 -translate-y-1/2 animate-[spin_7s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0deg,transparent_250deg,#3bd3ff_300deg,#c6f135_335deg,transparent_360deg)] motion-reduce:animate-none"
-          />
-          <div className="relative grid items-center gap-8 overflow-hidden rounded-[27px] bg-[#070b16] p-6 sm:p-10 md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto] lg:gap-12">
-            <div aria-hidden="true" className="ev-dots pointer-events-none absolute inset-0 opacity-60" />
-            <div className="relative mx-auto w-36 sm:w-44">
-              <span aria-hidden="true" className="hero-aura" />
-              <Mascot pose="confused" alt="" className="relative w-full" />
+          <div aria-hidden="true" className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-lime/25 blur-[90px]" />
+          <div className="relative mx-auto w-36 sm:w-44">
+            <Mascot pose="confused" alt="" className="relative w-full" />
+          </div>
+          <div className="relative">
+            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[#7a9a00]">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-70 motion-reduce:hidden" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
+              </span>
+              Next drop
+            </p>
+            <h2 className="font-display mt-3 text-4xl leading-none text-ink sm:text-5xl">What's next?</h2>
+            <p className="mt-4 max-w-md leading-7 text-ink/55">
+              We're picking the date for our next open CTF. Follow along to hear the moment registrations open.
+            </p>
+            <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-2 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-70 motion-reduce:hidden" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
+              </span>
+              <span className="font-mono text-xs uppercase tracking-[0.16em] text-ink/70">Date — to be announced</span>
             </div>
-            <div className="relative">
-              <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-lime">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-60 motion-reduce:hidden" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
-                </span>
-                Next drop
-              </p>
-              <h2 className="font-display mt-3 text-4xl leading-none text-white sm:text-5xl">What's next?</h2>
-              <p className="mt-4 max-w-md leading-7 text-muted">
-                We're picking the date for our next open CTF. Follow along to hear the moment registrations open.
-              </p>
-              <UnknownDate />
-            </div>
-            <div className="relative flex flex-col gap-3 sm:flex-row md:col-span-2 lg:col-span-1 lg:flex-col">
-              <a href="https://instagram.com/nulloriginctf" target="_blank" rel="noopener noreferrer" className="btn btn-lime">
-                <Instagram size={17} /> Follow on Instagram
-              </a>
-              <a href="https://ctf.cyberhx.com" target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-                Practice challenges
-              </a>
-            </div>
+          </div>
+          <div className="relative flex flex-col gap-3 sm:flex-row md:col-span-2 lg:col-span-1 lg:flex-col">
+            <a href="https://instagram.com/nulloriginctf" target="_blank" rel="noopener noreferrer" className="btn-light-lime">
+              <Instagram size={17} /> Follow on Instagram
+            </a>
+            <a href="https://ctf.cyberhx.com" target="_blank" rel="noopener noreferrer" className="btn-light-ghost">
+              Practice challenges
+            </a>
           </div>
         </motion.div>
       </section>
@@ -294,17 +245,18 @@ export const Gallery = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.9, ease }}
-          className="relative isolate overflow-hidden rounded-[32px] border border-white/10 bg-[#081022] px-6 pt-12 sm:px-12 sm:pt-16 lg:px-16"
+          className="relative isolate overflow-hidden rounded-[32px] bg-ink px-6 pt-12 sm:px-12 sm:pt-16 lg:px-16"
         >
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-            <div className="ev-drift absolute -right-24 -top-24 h-96 w-96 rounded-full bg-lime/[0.16] blur-[110px]" />
-            <div className="ev-drift absolute -bottom-32 left-10 h-96 w-[30rem] rounded-full bg-[#3bd3ff]/[0.14] blur-[110px] [animation-delay:-5s]" />
-            <div className="ev-grid absolute inset-0" />
+            <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-lime/20 blur-[110px]" />
+            <div className="absolute -bottom-32 left-10 h-96 w-[30rem] rounded-full bg-glow/15 blur-[110px]" />
           </div>
           <div className="grid items-end gap-6 lg:grid-cols-[1fr_auto] lg:gap-10">
             <div className="pb-2 lg:pb-16">
-              <h2 className="font-display max-w-[16ch] text-4xl leading-[1.02] text-white sm:text-5xl">Want one of these for your college?</h2>
-              <p className="mt-5 max-w-xl text-lg leading-8 text-muted">
+              <h2 className="font-display max-w-[16ch] text-4xl leading-[1.02] text-white sm:text-5xl">
+                Want one of these for your college?
+              </h2>
+              <p className="mt-5 max-w-xl text-lg leading-8 text-white/60">
                 Build your own CTF challenge by challenge. Hosting and the live scoreboard start at ${builderPricing.hosting.usd}.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:gap-4">

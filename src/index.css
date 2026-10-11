@@ -442,3 +442,49 @@ img[loading="lazy"] { transition: filter 0.3s; }
 }
 @keyframes ev-floor { to { background-position: 0 46px, 0 46px; } }
 @media (prefers-reduced-motion: reduce) { .ev-floor { animation: none; } }
+
+/* ---------- Events / Blog light theme helpers ---------- */
+.ev-floor-light {
+  background-image:
+    linear-gradient(rgba(16, 24, 40, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 40, 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  transform: perspective(500px) rotateX(62deg);
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 85%);
+  mask-image: linear-gradient(to top, #000 10%, transparent 85%);
+  animation: ev-floor 6s linear infinite;
+}
+.ev-dots-light {
+  background-image: radial-gradient(rgba(16, 24, 40, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 25%, #000 25%, transparent 80%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 25%, #000 25%, transparent 80%);
+}
+@media (prefers-reduced-motion: reduce) { .ev-floor-light { animation: none; } }
+
+/* Light outlined link pill */
+.ev-chip-light {
+  display: inline-flex; align-items: center; gap: 0.45rem; min-height: 44px; padding: 0 1rem;
+  border-radius: 9999px; border: 1px solid rgba(16, 24, 40, 0.12); background: #fff;
+  font-size: 0.875rem; font-weight: 600; color: #39414f;
+  transition: border-color .25s, background-color .25s, color .25s, transform .25s, box-shadow .25s;
+}
+.ev-chip-light:hover { border-color: rgba(16, 24, 40, 0.22); color: #0e1424; transform: translateY(-1px); box-shadow: 0 8px 20px -12px rgba(16,24,40,0.3); }
+
+/* Light-theme buttons (solid lime + ghost) */
+.btn-light-lime {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem;
+  min-height: 50px; padding: 0 1.5rem; border-radius: 9999px;
+  background: var(--lime); color: #0e1424; font-weight: 750; font-size: 0.95rem;
+  box-shadow: 0 14px 30px -14px rgba(198, 241, 53, 0.9);
+  transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+.btn-light-lime:hover { transform: translateY(-2px); background: #d6ff4f; box-shadow: 0 18px 34px -14px rgba(198, 241, 53, 1); }
+.btn-light-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem;
+  min-height: 50px; padding: 0 1.5rem; border-radius: 9999px;
+  border: 1px solid rgba(16, 24, 40, 0.15); background: #fff; color: #0e1424; font-weight: 700; font-size: 0.95rem;
+  transition: border-color .2s ease, background-color .2s ease, transform .2s ease;
+}
+.btn-light-ghost:hover { transform: translateY(-2px); border-color: rgba(16, 24, 40, 0.3); background: #fafbf8; }

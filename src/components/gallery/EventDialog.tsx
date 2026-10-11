@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'framer-motion';
 import {
   ArrowUpRight,
@@ -21,19 +21,18 @@ import {
 } from 'lucide-react';
 import type { Event } from '../../data/events';
 import { SiteIcon } from '../shared/SiteIcon';
-import { STATUS, accentFor, prizeShort, tagTone } from './eventStyle';
+import { STATUS, prizeShort } from './eventStyle';
 
 const ease = [0.16, 1, 0.3, 1] as const;
-const list = { hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.18 } } };
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease } } };
+const list = { hidden: {}, show: { transition: { staggerChildren: 0.055, delayChildren: 0.15 } } };
+const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.45, ease } } };
 
 const FOCUSABLE = 'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** Full details for one event. A bottom sheet on phones (drag the handle
-    down to close), a centred panel on larger screens. */
-export function EventDialog({ event, index, onClose }: { event: Event; index: number; onClose: () => void }) {
+/** Full details for one event, light theme. Bottom sheet on phones (drag the
+    handle down to close), a centred panel on larger screens. */
+export function EventDialog({ event, onClose }: { event: Event; index: number; onClose: () => void }) {
   const reduce = !!useReducedMotion();
-  const a = accentFor(index);
   const s = STATUS[event.status];
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -41,7 +40,6 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
   const photos = event.gallery ?? [];
   const [shot, setShot] = useState<number | null>(null);
 
-  // lock page scroll, move focus in, restore it on close
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
@@ -53,7 +51,6 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
     };
   }, []);
 
-  // keyboard: Esc closes, Tab stays inside, arrows page through photos
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (shot !== null) {
@@ -87,7 +84,6 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
     { href: event.social?.instagram, label: 'Instagram', icon: <Instagram size={15} /> },
     { href: event.social?.x, label: 'X', icon: <Twitter size={15} /> },
     { href: event.social?.linkedin, label: 'LinkedIn', icon: <Linkedin size={15} /> },
-    // completed events show these two as the main buttons at the bottom instead
     ...(event.status === 'completed'
       ? []
       : [
@@ -104,11 +100,7 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
   ];
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 1 }}
-    >
+    <motion.div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6">
       <motion.div
         aria-hidden="true"
         onClick={onClose}
@@ -116,7 +108,7 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.35 }}
-        className="absolute inset-0 bg-[#02040a]/80 backdrop-blur-md"
+        className="absolute inset-0 bg-ink/50 backdrop-blur-md"
       />
 
       <motion.div
@@ -136,17 +128,14 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={reduce ? { opacity: 0 } : { opacity: 0, y: 70, scale: 0.98 }}
         transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-        style={{ '--a1': a.from, '--a2': a.to } as CSSProperties}
-        className="relative flex max-h-[92svh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#070b16] shadow-[0_-30px_90px_rgba(0,0,0,0.7)] sm:max-h-[88vh] sm:rounded-[28px]"
+        className="relative flex max-h-[92svh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-30px_90px_rgba(16,24,40,0.3)] sm:max-h-[88vh] sm:rounded-[28px]"
       >
-        <span aria-hidden="true" className="absolute inset-x-0 top-0 z-30 h-px" style={{ background: `linear-gradient(90deg, transparent, ${a.from}, ${a.to}, transparent)` }} />
-
         {/* drag handle (phones) */}
         <div
           onPointerDown={(e) => drag.start(e)}
           className="absolute inset-x-0 top-0 z-20 flex cursor-grab touch-none justify-center pb-3 pt-2.5 active:cursor-grabbing sm:hidden"
         >
-          <span className="h-1.5 w-11 rounded-full bg-white/35" />
+          <span className="h-1.5 w-11 rounded-full bg-black/20" />
         </div>
 
         <button
@@ -154,77 +143,69 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#04060d]/70 text-white/80 backdrop-blur-md transition hover:rotate-90 hover:text-white sm:right-4 sm:top-4"
+          className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink/70 ring-1 ring-black/[0.08] backdrop-blur-md transition hover:rotate-90 hover:text-ink sm:right-4 sm:top-4"
         >
           <X size={18} />
         </button>
 
         <div className="overflow-y-auto overscroll-contain">
-          {/* cover: the poster on a lit stage */}
-          <div className="relative overflow-hidden px-5 pb-6 pt-12 sm:px-10 sm:pb-8 sm:pt-14">
-            <div aria-hidden="true" className="absolute inset-0 bg-[#060914]">
-              <div className="absolute inset-0" style={{ background: `radial-gradient(60% 80% at 50% 60%, ${a.from}40, transparent 70%), radial-gradient(40% 60% at 90% 0%, ${a.to}30, transparent 70%)` }} />
-              <div className="ev-floor absolute inset-x-[-50%] bottom-0 h-[70%]" />
-              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#070b16] to-transparent" />
-            </div>
+          {/* cover: poster on a light stage */}
+          <div className="relative overflow-hidden bg-[#f1f3ee] px-5 pb-6 pt-12 sm:px-10 sm:pb-8 sm:pt-14">
+            <div aria-hidden="true" className="ev-floor-light absolute inset-x-[-30%] bottom-0 h-[70%]" />
             <motion.div
               initial={reduce ? false : { scale: 0.94, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ duration: 0.9, delay: 0.1, ease }}
-              className="relative mx-auto aspect-[2/1] w-full max-w-[34rem] overflow-hidden rounded-2xl bg-black ring-1 ring-white/15"
-              style={{ boxShadow: `0 30px 70px -25px rgba(0,0,0,0.95), 0 0 70px -20px ${a.from}99` }}
+              className="relative mx-auto aspect-[2/1] w-full max-w-[34rem] overflow-hidden rounded-2xl bg-[#0b0f1a] shadow-[0_26px_60px_-24px_rgba(16,24,40,0.55)] ring-1 ring-black/[0.08]"
             >
-              <img src={event.image} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-80 blur-2xl" />
+              <img src={event.image} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-70 blur-2xl" />
               <img src={event.image} alt={event.title} className="relative h-full w-full object-contain" />
             </motion.div>
           </div>
 
-          <div className="px-5 pt-2 sm:px-8">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em]">
+          <div className="px-5 pt-5 sm:px-8">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] ${s.chip}`}>
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
-              <span style={{ color: s.text }}>{s.label}</span>
+              {s.label}
             </span>
-            <h2 id="event-dialog-title" className="font-display mt-3 text-3xl leading-none text-white sm:text-[2.6rem]">
+            <h2 id="event-dialog-title" className="font-display mt-3 text-3xl leading-none text-ink sm:text-[2.6rem]">
               {event.title}
             </h2>
-            <p className="mt-2.5 text-sm text-white/65 sm:text-[15px]">{event.subtitle}</p>
+            <p className="mt-2.5 text-ink/55 sm:text-[15px]">{event.subtitle}</p>
           </div>
 
           <motion.div variants={list} initial={reduce ? false : 'hidden'} animate="show" className="space-y-7 px-5 pb-8 pt-6 sm:px-8">
-            <motion.p variants={item} className="text-[15px] leading-7 text-white/70">
+            <motion.p variants={item} className="leading-7 text-ink/65">
               {event.description}
             </motion.p>
 
             <motion.dl variants={item} className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {facts.map((f) => (
-                <div key={f.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-                  <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-white/45">
-                    <span style={{ color: a.from }}>{f.icon}</span>
+                <div key={f.label} className="rounded-2xl border border-black/[0.07] bg-[#fafbf8] p-3.5">
+                  <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-ink/40">
+                    <span className="text-[#7a9a00]">{f.icon}</span>
                     {f.label}
                   </dt>
-                  <dd className="mt-1.5 text-sm font-semibold leading-5 text-white">{f.value}</dd>
+                  <dd className="mt-1.5 text-sm font-semibold leading-5 text-ink">{f.value}</dd>
                 </div>
               ))}
             </motion.dl>
 
-            <motion.div
-              variants={item}
-              className="relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-[#ffcf6b]/25 bg-gradient-to-r from-[#ffcf6b]/[0.12] via-[#ffcf6b]/[0.04] to-transparent px-5 py-4"
-            >
+            <motion.div variants={item} className="flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-lime/40 bg-lime/10 px-5 py-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#ffd98a]/70">Prize pool</p>
-                <p className="ev-gold font-display mt-1 text-3xl leading-none sm:text-4xl">{prizeShort(event.prize)}</p>
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8a00]">Prize pool</p>
+                <p className="font-display mt-1 text-3xl leading-none text-ink sm:text-4xl">{prizeShort(event.prize)}</p>
               </div>
               <SiteIcon name="trophy" size={64} alt="" />
             </motion.div>
 
             {event.highlights && event.highlights.length > 0 && (
               <motion.div variants={item}>
-                <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/45">Highlights</h3>
+                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Highlights</h3>
                 <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                   {event.highlights.map((h) => (
-                    <li key={h} className="flex items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 text-sm text-white/85">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: `${a.from}22`, color: a.from }}>
+                    <li key={h} className="flex items-center gap-2.5 rounded-xl border border-black/[0.06] bg-[#fafbf8] px-3 py-2.5 text-sm text-ink/80">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lime/25 text-[#5f7700]">
                         <Check size={12} strokeWidth={3} />
                       </span>
                       {h}
@@ -235,15 +216,10 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
             )}
 
             <motion.div variants={item}>
-              <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/45">Categories</h3>
+              <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Categories</h3>
               <ul className="mt-3 flex flex-wrap gap-1.5">
                 {event.tags.map((t) => (
-                  <li
-                    key={t}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium"
-                    style={{ color: tagTone(t), borderColor: `${tagTone(t)}33`, background: `${tagTone(t)}0d` }}
-                  >
-                    <span className="h-1 w-1 rounded-full" style={{ background: tagTone(t) }} />
+                  <li key={t} className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[12px] font-medium text-ink/65">
                     {t}
                   </li>
                 ))}
@@ -252,7 +228,7 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
 
             {photos.length > 0 && (
               <motion.div variants={item}>
-                <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/45">Photos</h3>
+                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Photos</h3>
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   {photos.map((src, i) => (
                     <button
@@ -260,10 +236,10 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
                       type="button"
                       onClick={() => setShot(i)}
                       aria-label={`Open photo ${i + 1} of ${photos.length}`}
-                      className="group/ph relative aspect-square overflow-hidden rounded-xl border border-white/10"
+                      className="group/ph relative aspect-square overflow-hidden rounded-xl ring-1 ring-black/[0.07]"
                     >
                       <img src={src} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover/ph:scale-110" />
-                      <span className="absolute inset-0 bg-black/0 transition-colors group-hover/ph:bg-black/25" />
+                      <span className="absolute inset-0 bg-ink/0 transition-colors group-hover/ph:bg-ink/10" />
                     </button>
                   ))}
                 </div>
@@ -272,10 +248,10 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
 
             {links.length > 0 && (
               <motion.div variants={item}>
-                <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/45">Links</h3>
+                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Links</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {links.map((l) => (
-                    <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className="ev-chip">
+                    <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className="ev-chip-light">
                       {l.icon}
                       {l.label}
                     </a>
@@ -287,13 +263,13 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
         </div>
 
         {/* actions */}
-        <div className="border-t border-white/10 bg-[#070b16]/95 px-5 py-4 backdrop-blur sm:px-8">
+        <div className="border-t border-black/[0.07] bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
           {event.status === 'live' && event.link ? (
             <a
               href={event.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="ev-sheen relative flex min-h-[50px] items-center justify-center gap-2 overflow-hidden rounded-full bg-[#ff4d4d] font-bold text-white"
+              className="flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-red-500 font-bold text-white transition hover:bg-red-600"
             >
               Register now <ArrowUpRight size={17} />
             </a>
@@ -304,8 +280,7 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
                   href={event.social.leaderboard}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ev-sheen relative flex min-h-[50px] items-center justify-center gap-2 overflow-hidden rounded-full font-bold text-[#04060d]"
-                  style={{ background: `linear-gradient(120deg, ${a.from}, ${a.to})` }}
+                  className="flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-ink font-bold text-white transition hover:-translate-y-0.5"
                 >
                   <ListOrdered size={17} /> Leaderboard
                 </a>
@@ -317,14 +292,14 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
                   href={event.social.certificates}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-white/15 font-bold text-white transition hover:border-white/35 hover:bg-white/[0.04]"
+                  className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-black/15 font-bold text-ink transition hover:border-black/30 hover:bg-black/[0.03]"
                 >
                   <BadgeCheck size={17} /> Certificates
                 </a>
               )}
             </div>
           ) : (
-            <p className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-[#ffc93c]/25 bg-[#ffc93c]/10 font-semibold text-[#ffd978]">
+            <p className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-amber-500/30 bg-amber-50 font-semibold text-amber-700">
               <Radio size={16} /> Coming soon
             </p>
           )}
@@ -339,7 +314,7 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShot(null)}
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
             aria-label={`Photo ${shot + 1} of ${photos.length}`}
@@ -366,7 +341,7 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
                     e.stopPropagation();
                     setShot((shot - 1 + photos.length) % photos.length);
                   }}
-                  className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white sm:left-6"
+                  className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink ring-1 ring-black/10 sm:left-6"
                 >
                   <ChevronLeft size={20} />
                 </button>
@@ -377,7 +352,7 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
                     e.stopPropagation();
                     setShot((shot + 1) % photos.length);
                   }}
-                  className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white sm:right-6"
+                  className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink ring-1 ring-black/10 sm:right-6"
                 >
                   <ChevronRight size={20} />
                 </button>
@@ -387,11 +362,11 @@ export function EventDialog({ event, index, onClose }: { event: Event; index: nu
               type="button"
               aria-label="Close photo"
               onClick={() => setShot(null)}
-              className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white"
+              className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-ink ring-1 ring-black/10"
             >
               <X size={20} />
             </button>
-            <p className="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 font-mono text-xs text-white/60">
+            <p className="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 font-mono text-xs text-white/80">
               {shot + 1} / {photos.length}
             </p>
           </motion.div>

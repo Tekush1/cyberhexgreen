@@ -84,7 +84,7 @@ export default function BlogListPage() {
   }, [posts, filtering]);
 
   return (
-    <div className="min-h-screen bg-ink pb-24 pt-28 text-white">
+    <div className="min-h-screen bg-white pb-24 pt-28 text-ink">
       <Seo
         title={category ? `${category} — CyberHx Blog` : tag ? `#${tag} — CyberHx Blog` : 'CyberHx Blog — CTF Write-ups, Scam Alerts & Security Tutorials'}
         description="CTF write-ups, scam breakdowns and cybersecurity tutorials from the CyberHx community in India. Learn, practice and stay safe."
@@ -113,12 +113,22 @@ export default function BlogListPage() {
         {/* Header */}
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="font-display text-5xl sm:text-6xl">The blog</h1>
-            <p className="mt-4 max-w-xl text-lg leading-8 text-muted">
+            <span className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-[#f4f6f1] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-lime" />
+              The CyberHx blog
+            </span>
+            <h1 className="font-display mt-5 text-5xl text-ink sm:text-6xl">
+              Read, learn,{' '}
+              <span className="relative inline-block">
+                hack.
+                <span aria-hidden="true" className="absolute -bottom-1 left-0 -z-10 h-[0.4em] w-full -rotate-1 rounded-sm bg-lime/70" />
+              </span>
+            </h1>
+            <p className="mt-4 max-w-xl text-lg leading-8 text-ink/55">
               CTF write-ups, scam breakdowns and tutorials from the CyberHx community.
             </p>
           </div>
-          <Link to="/blog/write" className="btn btn-lime self-start md:self-auto">
+          <Link to="/blog/write" className="btn-light-lime self-start md:self-auto">
             <PenLine size={17} /> Write a post
           </Link>
         </header>
@@ -127,15 +137,15 @@ export default function BlogListPage() {
         <div className="mt-10 flex flex-col gap-4 lg:flex-row lg:items-center">
           <label className="relative block lg:w-80">
             <span className="sr-only">Search posts</span>
-            <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+            <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search posts"
-              className="w-full rounded-xl border-2 border-line bg-panel py-2.5 pl-10 pr-9 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-glow"
+              className="w-full rounded-full border border-black/10 bg-white py-2.5 pl-10 pr-9 text-sm text-ink shadow-sm outline-none transition placeholder:text-ink/35 focus:border-lime focus:ring-2 focus:ring-lime/30"
             />
             {search && (
-              <button type="button" aria-label="Clear search" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white">
+              <button type="button" aria-label="Clear search" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/40 hover:text-ink">
                 <X size={16} />
               </button>
             )}
@@ -149,8 +159,8 @@ export default function BlogListPage() {
                   type="button"
                   onClick={() => setFilter('category', c.name === 'All' ? '' : c.name)}
                   aria-pressed={on}
-                  className={`whitespace-nowrap rounded-lg border-2 px-3.5 py-1.5 text-sm font-semibold transition ${
-                    on ? 'border-lime bg-lime text-ink' : 'border-line text-white/70 hover:border-white/30 hover:text-white'
+                  className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${
+                    on ? 'border-lime bg-lime text-ink' : 'border-black/10 bg-white text-ink/60 hover:border-black/25 hover:text-ink'
                   }`}
                 >
                   {c.name}
@@ -161,9 +171,9 @@ export default function BlogListPage() {
         </div>
 
         {tag && (
-          <p className="mt-5 flex items-center gap-2 text-sm text-muted">
+          <p className="mt-5 flex items-center gap-2 text-sm text-ink/55">
             Tagged
-            <span className="flex items-center gap-1 rounded-md bg-glow/10 px-2 py-0.5 font-semibold text-glow">
+            <span className="flex items-center gap-1 rounded-md bg-lime/20 px-2 py-0.5 font-semibold text-[#5f7700]">
               {tag}
               <button type="button" aria-label="Remove tag filter" onClick={() => setFilter('tag', '')}><X size={13} /></button>
             </span>
@@ -179,30 +189,30 @@ export default function BlogListPage() {
           )}
 
           {state === 'error' && (
-            <div className="rounded-2xl border-2 border-line bg-panel p-10 text-center">
+            <div className="rounded-3xl border border-black/[0.07] bg-[#f4f6f1] p-10 text-center">
               <Mascot pose="crying" alt="" className="mx-auto w-32" />
-              <h2 className="font-display mt-4 text-2xl">The blog couldn't load</h2>
-              <p className="mx-auto mt-2 max-w-md text-muted">{error}</p>
+              <h2 className="font-display mt-4 text-2xl text-ink">The blog couldn't load</h2>
+              <p className="mx-auto mt-2 max-w-md text-ink/55">{error}</p>
               {isConfigured() && (
-                <button type="button" onClick={() => load(1)} className="btn btn-ghost mt-6">Try again</button>
+                <button type="button" onClick={() => load(1)} className="btn-light-ghost mt-6">Try again</button>
               )}
             </div>
           )}
 
           {(state === 'ready' || state === 'more') && posts.length === 0 && (
-            <div className="rounded-2xl border-2 border-dashed border-line p-12 text-center">
+            <div className="rounded-3xl border border-dashed border-black/15 p-12 text-center">
               <Mascot pose={filtering ? 'confused' : 'point'} alt="" className="mx-auto w-32" />
               {filtering ? (
                 <>
-                  <h2 className="font-display mt-4 text-2xl">No posts match that</h2>
-                  <p className="mt-2 text-muted">Try another word or category.</p>
-                  <button type="button" onClick={clearAll} className="btn btn-ghost mt-6">Clear filters</button>
+                  <h2 className="font-display mt-4 text-2xl text-ink">No posts match that</h2>
+                  <p className="mt-2 text-ink/55">Try another word or category.</p>
+                  <button type="button" onClick={clearAll} className="btn-light-ghost mt-6">Clear filters</button>
                 </>
               ) : (
                 <>
-                  <h2 className="font-display mt-4 text-2xl">No posts yet</h2>
-                  <p className="mt-2 text-muted">Be the first to write for the CyberHx blog.</p>
-                  <Link to="/blog/write" className="btn btn-lime mt-6">Write the first post</Link>
+                  <h2 className="font-display mt-4 text-2xl text-ink">No posts yet</h2>
+                  <p className="mt-2 text-ink/55">Be the first to write for the CyberHx blog.</p>
+                  <Link to="/blog/write" className="btn-light-lime mt-6">Write the first post</Link>
                 </>
               )}
             </div>
@@ -211,19 +221,19 @@ export default function BlogListPage() {
           {featured && (
             <Link
               to={`/blog/${featured.slug}`}
-              className="group mb-10 grid overflow-hidden rounded-3xl border-2 border-line bg-panel transition hover:border-white/20 lg:grid-cols-[1.2fr_1fr]"
+              className="group mb-10 grid overflow-hidden rounded-[28px] border border-black/[0.07] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_30px_70px_-34px_rgba(16,24,40,0.3)] lg:grid-cols-[1.2fr_1fr]"
             >
-              <div className="aspect-[16/9] overflow-hidden border-b-2 border-line lg:aspect-[16/11] lg:border-b-0 lg:border-r-2">
+              <div className="aspect-[16/9] overflow-hidden lg:aspect-[16/11]">
                 <Cover src={featured.cover_image} alt="" seed={featured.slug} label={featured.category} className="transition-transform duration-700 group-hover:scale-105" />
               </div>
               <div className="flex flex-col justify-center p-7 sm:p-10">
-                <p className="text-sm font-semibold text-glow">
+                <p className="text-sm font-semibold uppercase tracking-wide text-[#7a9a00]">
                   {featured.featured ? 'Featured · ' : 'Latest · '}
                   {featured.category}
                 </p>
-                <h2 className="font-display mt-3 text-3xl leading-tight group-hover:text-lime sm:text-4xl">{featured.title}</h2>
-                <p className="mt-4 line-clamp-3 leading-7 text-muted">{featured.excerpt}</p>
-                <div className="mt-7">
+                <h2 className="font-display mt-3 text-3xl leading-tight text-ink sm:text-4xl">{featured.title}</h2>
+                <p className="mt-4 line-clamp-3 leading-7 text-ink/55">{featured.excerpt}</p>
+                <div className="mt-7 border-t border-black/[0.06] pt-6">
                   <Byline post={featured} />
                 </div>
               </div>
@@ -238,13 +248,13 @@ export default function BlogListPage() {
 
           {posts.length > 0 && posts.length < total && (
             <div className="mt-12 text-center">
-              <button type="button" onClick={() => load(page + 1)} disabled={state === 'more'} className="btn btn-ghost disabled:opacity-60">
+              <button type="button" onClick={() => load(page + 1)} disabled={state === 'more'} className="btn-light-ghost disabled:opacity-60">
                 {state === 'more' ? 'Loading…' : `Show more (${total - posts.length} left)`}
               </button>
             </div>
           )}
           {posts.length > PAGE_SIZE && posts.length >= total && (
-            <p className="mt-12 text-center text-sm text-muted">You've reached the end.</p>
+            <p className="mt-12 text-center text-sm text-ink/45">You've reached the end.</p>
           )}
         </div>
       </div>

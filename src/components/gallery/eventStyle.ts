@@ -1,23 +1,16 @@
 import type { Event } from '../../data/events';
 
 /* Presentation helpers for the events page. They only format what is
-   already in src/data/events.ts; nothing here adds or changes data. */
+   already in src/data/events.ts; nothing here adds or changes data.
+   The page uses a single light palette: white / grey / lime. */
 
-export type Accent = { from: string; to: string };
+export const LIME = '#c6f135';
 
-// Each event card gets its own light. Cycles for future events.
-const ACCENTS: Accent[] = [
-  { from: '#ff3d6e', to: '#ffb35c' }, // ember
-  { from: '#3bd3ff', to: '#8b5cf6' }, // electric
-  { from: '#c6f135', to: '#3bd3ff' }, // acid
-  { from: '#a78bfa', to: '#ff5ca8' }, // ultraviolet
-];
-export const accentFor = (index: number) => ACCENTS[index % ACCENTS.length];
-
+// Status pill styles for the light theme (soft tint + ring + dot).
 export const STATUS = {
-  live: { label: 'Live now', dot: '#ff4d4d', text: '#ff8a8a' },
-  completed: { label: 'Completed', dot: '#34d399', text: '#6ee7b7' },
-  upcoming: { label: 'Upcoming', dot: '#ffc93c', text: '#ffd978' },
+  live: { label: 'Live now', dot: '#ef4444', chip: 'bg-red-50 text-red-600 ring-1 ring-red-600/15' },
+  completed: { label: 'Completed', dot: '#10b981', chip: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15' },
+  upcoming: { label: 'Upcoming', dot: '#f59e0b', chip: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/15' },
 } as const;
 
 export const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -38,29 +31,15 @@ export const prizeShort = (s: string) => s.replace(/\s*(rewards?|prize pool)\s*$
 /** "24 Hours" -> "24h" */
 export const durationShort = (s: string) => s.replace(/\s*hours?\s*$/i, 'h').replace(/\s*minutes?\s*$/i, 'm').trim();
 
-const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** "18–25 September 2026" -> {days: "18–25", month: "Sep", year: "2026"} */
 export function dateParts(s: string) {
   const m = s.match(/^\s*([\d–-]+)?\s*([A-Za-z]+)\s+(\d{4})/);
   if (!m) return { days: '', month: s, year: '' };
   const mon = m[2].slice(0, 3).toLowerCase();
-  return {
-    days: m[1] ?? '',
-    month: MONTHS.includes(mon) ? mon[0].toUpperCase() + mon.slice(1) : m[2],
-    year: m[3],
-  };
+  const idx = MONTHS.findIndex((x) => x.toLowerCase() === mon);
+  return { days: m[1] ?? '', month: idx >= 0 ? MONTHS[idx] : m[2], year: m[3] };
 }
-
-// Colour per challenge category, used on the tag chips.
-const TONES: [RegExp, string][] = [
-  [/web/i, '#3bd3ff'],
-  [/crypt/i, '#a78bfa'],
-  [/revers/i, '#ffb35c'],
-  [/osint/i, '#c6f135'],
-  [/forens/i, '#ff6b9a'],
-  [/pwn/i, '#ff5d5d'],
-];
-export const tagTone = (tag: string) => TONES.find(([re]) => re.test(tag))?.[1] ?? '#9fb0d0';
 
 /** Every distinct challenge category across all events, for the marquee. */
 export const allCategories = (list: Event[]) => {

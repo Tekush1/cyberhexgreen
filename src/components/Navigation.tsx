@@ -61,16 +61,30 @@ export const Navigation = () => {
     };
   }, []);
 
+  // Pages that use the light (white/grey/lime) theme need a readable navbar.
+  const p = location.pathname;
+  const light = /^\/gallery(\/|$)/.test(p) || (/^\/blog(\/|$)/.test(p) && !/^\/blog\/(write|edit)/.test(p));
+
   const linkCls = ({ isActive }: { isActive: boolean }) =>
     `rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold transition-colors ${
-      isActive ? 'text-lime' : 'text-white/75 hover:text-white'
+      isActive
+        ? light
+          ? 'text-ink underline decoration-lime decoration-2 underline-offset-[10px]'
+          : 'text-lime'
+        : light
+          ? 'text-ink/60 hover:text-ink'
+          : 'text-white/75 hover:text-white'
     }`;
 
   return (
     <>
     <nav
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-200 ${
-        isScrolled || isOpen ? 'border-b-2 border-line bg-ink/95 backdrop-blur-md' : 'border-b-2 border-transparent'
+        isScrolled || isOpen
+          ? light
+            ? 'border-b border-black/[0.08] bg-white/90 backdrop-blur-md'
+            : 'border-b-2 border-line bg-ink/95 backdrop-blur-md'
+          : 'border-b-2 border-transparent'
       }`}
       aria-label="Main navigation"
     >
@@ -79,7 +93,7 @@ export const Navigation = () => {
           <img
             src="https://i.ibb.co/pBpxn1Sj/Cyberhx-Neon-Swoosh-Logo.png"
             alt="CyberHx"
-            className="h-10 w-auto object-contain sm:h-11"
+            className={`h-10 w-auto object-contain sm:h-11 ${light ? 'brightness-0' : ''}`}
           />
         </Link>
 
@@ -96,7 +110,9 @@ export const Navigation = () => {
               type="button"
               onClick={() => setPlatformsOpen((v) => !v)}
               aria-expanded={platformsOpen}
-              className="flex items-center gap-1 rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold text-white/75 transition-colors hover:text-white"
+              className={`flex items-center gap-1 rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold transition-colors ${
+                light ? 'text-ink/60 hover:text-ink' : 'text-white/75 hover:text-white'
+              }`}
             >
               Platforms
               <ChevronDown size={16} className={`transition-transform ${platformsOpen ? 'rotate-180' : ''}`} />
@@ -133,7 +149,9 @@ export const Navigation = () => {
         <button
           type="button"
           onClick={() => setIsOpen((v) => !v)}
-          className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-line text-white lg:hidden"
+          className={`flex h-11 w-11 items-center justify-center rounded-xl border-2 lg:hidden ${
+            light ? 'border-black/15 text-ink' : 'border-line text-white'
+          }`}
           aria-label={isOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={isOpen}
         >
@@ -145,13 +163,15 @@ export const Navigation = () => {
 
       {/* Mobile sheet */}
     {isOpen && (
-      <div className="fixed inset-x-0 bottom-0 top-16 z-50 overflow-y-auto bg-ink sm:top-[72px] lg:hidden">
+      <div className={`fixed inset-x-0 bottom-0 top-16 z-50 overflow-y-auto sm:top-[72px] lg:hidden ${light ? 'bg-white' : 'bg-ink'}`}>
         <div className="flex min-h-full flex-col px-5 pb-10 pt-4">
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
-              `font-display border-b-2 border-line py-4 text-3xl ${isActive ? 'text-lime' : 'text-white'}`
+              `font-display border-b-2 py-4 text-3xl ${light ? 'border-black/10' : 'border-line'} ${
+                isActive ? (light ? 'text-ink underline decoration-lime decoration-2 underline-offset-8' : 'text-lime') : light ? 'text-ink' : 'text-white'
+              }`
             }
           >
             Home
@@ -161,14 +181,16 @@ export const Navigation = () => {
               key={l.to}
               to={l.to}
               className={({ isActive }) =>
-                `font-display border-b-2 border-line py-4 text-3xl ${isActive ? 'text-lime' : 'text-white'}`
+                `font-display border-b-2 py-4 text-3xl ${light ? 'border-black/10' : 'border-line'} ${
+                  isActive ? (light ? 'text-ink underline decoration-lime decoration-2 underline-offset-8' : 'text-lime') : light ? 'text-ink' : 'text-white'
+                }`
               }
             >
               {l.name}
             </NavLink>
           ))}
 
-          <p className="mt-8 text-sm font-semibold text-muted">Our platforms</p>
+          <p className={`mt-8 text-sm font-semibold ${light ? 'text-ink/50' : 'text-muted'}`}>Our platforms</p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             {platforms.map((p) => (
               <a
