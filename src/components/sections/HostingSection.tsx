@@ -34,7 +34,7 @@ export const HostingSection = () => (
             {(['code', 'lock-key', 'bug', 'linux'] as IconName[]).map((ic, i) => (
               <span
                 key={ic}
-                className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-line bg-ink transition-transform duration-300 group-hover:-translate-y-2"
+                className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] transition-transform duration-300 group-hover:-translate-y-2"
                 style={{ transitionDelay: `${i * 60}ms` }}
               >
                 <SiteIcon name={ic} size={40} alt="" />
@@ -62,35 +62,41 @@ export const HostingSection = () => (
           return (
             <Reveal key={plan.id} delay={i * 0.12} className={top ? 'mt-28 lg:mt-0 lg:-translate-y-6' : ''}>
               <div
-                className={`sticker lift relative flex flex-col p-7 ${
-                  top ? 'sticker-lime lg:pb-10' : plan.accent === 'cyan' ? 'sticker-glow' : ''
+                className={`lift relative flex flex-col p-7 ${
+                  top ? 'card-luxe !overflow-visible lg:pb-10' : plan.accent === 'cyan' ? 'sticker sticker-glow' : 'sticker'
                 }`}
               >
                 {top && (
                   <>
                     <Mascot pose="thumbs" alt="" className="absolute -top-40 right-4 w-32 sm:w-36 lg:-top-44 lg:w-40" />
-                    <span className="absolute -top-4 left-6 rounded-full border-2 border-ink bg-lime px-3 py-1 text-xs font-bold text-ink">
+                    <span className="absolute -top-3 left-6 rounded-full bg-ink px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-lime">
                       Most picked
                     </span>
                   </>
                 )}
                 <SiteIcon name={plan.icon} size={72} alt="" className="-ml-1" />
-                <h3 className="font-display mt-4 text-2xl text-white">{plan.name}</h3>
+                <h3 className={`font-display mt-4 text-2xl ${top ? 'text-ink' : 'text-white'}`}>{plan.name}</h3>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className={`font-display text-5xl ${top ? 'text-lime' : plan.accent === 'cyan' ? 'text-glow' : 'text-white'}`}>
+                  <span className={`font-display text-5xl ${top ? 'text-ink' : plan.accent === 'cyan' ? 'text-glow' : 'text-white'}`}>
                     ${plan.usd}
                   </span>
-                  <span className="text-sm text-muted">about {plan.inr}</span>
+                  <span className={`text-sm ${top ? 'text-ink/60' : 'text-muted'}`}>about {plan.inr}</span>
                 </div>
-                <ul className="mt-6 space-y-3">
+                <ul className={`mt-6 space-y-3 border-t border-dashed pt-6 ${top ? 'border-ink/20' : 'border-white/10'}`}>
                   {plan.features.slice(0, 3).map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-white/85">
-                      <Check size={18} className={`mt-0.5 shrink-0 ${top ? 'text-lime' : 'text-glow'}`} />
+                    <li key={f} className={`flex items-start gap-3 ${top ? 'text-ink/85' : 'text-white/85'}`}>
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          top ? 'bg-ink text-lime' : 'bg-white/[0.07] text-glow'
+                        }`}
+                      >
+                        <Check size={12} strokeWidth={3} />
+                      </span>
                       {f}
                     </li>
                   ))}
                 </ul>
-                <Link to="/host-your-ctf#prebuilt" className={`btn mt-8 w-full ${top ? 'btn-lime' : 'btn-ghost'}`}>
+                <Link to="/host-your-ctf#packages" className={`btn mt-8 w-full ${top ? 'btn-dark' : 'btn-ghost'}`}>
                   Get {plan.name}
                 </Link>
               </div>

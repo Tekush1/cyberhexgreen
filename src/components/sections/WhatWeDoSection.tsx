@@ -111,7 +111,7 @@ export const WhatWeDoSection = () => {
 
             <ul className="mt-7 space-y-3">
               {events.slice(0, 2).map((e) => (
-                <li key={e.id} className="flex items-stretch rounded-xl border-2 border-line bg-ink transition-colors group-hover:border-white/15">
+                <li key={e.id} className="flex items-stretch rounded-xl border border-white/[0.08] bg-white/[0.025] transition-colors group-hover:border-white/15">
                   <div className="min-w-0 flex-1 px-4 py-3">
                     <p className="truncate font-semibold text-white">{e.title}</p>
                     <p className="mt-0.5 truncate text-xs text-muted">
@@ -119,9 +119,9 @@ export const WhatWeDoSection = () => {
                     </p>
                   </div>
                   {/* Ticket perforation */}
-                  <div className="relative w-0 border-l-2 border-dashed border-line" aria-hidden="true">
-                    <span className="absolute -left-[9px] -top-[9px] h-4 w-4 rounded-full border-2 border-line bg-panel [clip-path:inset(50%_0_0_0)]" />
-                    <span className="absolute -bottom-[9px] -left-[9px] h-4 w-4 rounded-full border-2 border-line bg-panel [clip-path:inset(0_0_50%_0)]" />
+                  <div className="relative w-0 border-l border-dashed border-white/15" aria-hidden="true">
+                    <span className="absolute -left-[9px] -top-[9px] h-4 w-4 rounded-full border border-white/[0.08] bg-[#0a0f1d] [clip-path:inset(50%_0_0_0)]" />
+                    <span className="absolute -bottom-[9px] -left-[9px] h-4 w-4 rounded-full border border-white/[0.08] bg-[#0a0f1d] [clip-path:inset(0_0_50%_0)]" />
                   </div>
                   <div className="w-24 shrink-0 px-4 py-3 text-right">
                     <p className="font-display text-lg leading-6 text-lime">{compact(e.participants)}</p>

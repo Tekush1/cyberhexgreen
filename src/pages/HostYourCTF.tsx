@@ -268,7 +268,7 @@ function Stepper({
   wide?: boolean;
 }) {
   return (
-    <div className="flex items-center overflow-hidden rounded-lg border-2 border-line">
+    <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
       <button
         type="button"
         onClick={onDec}
@@ -630,14 +630,14 @@ export default function HostYourCTF() {
   /* ---------- summary ---------- */
   const summary = (
     <div className="sticker overflow-hidden">
-      <div className="flex items-center justify-between border-b-2 border-line px-5 py-4">
+      <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4">
         <h3 className="font-display text-lg">Your build</h3>
         <button type="button" onClick={reset} className="flex items-center gap-1.5 text-xs text-muted transition hover:text-white">
           <RotateCcw size={13} /> Reset
         </button>
       </div>
 
-      <div className="grid grid-cols-3 divide-x-2 divide-line border-b-2 border-line text-center">
+      <div className="grid grid-cols-3 divide-x divide-white/[0.08] border-b border-white/[0.08] text-center">
         {[
           [challengeCount, "challenges"],
           [categoriesUsed, "categories"],
@@ -650,7 +650,7 @@ export default function HostYourCTF() {
         ))}
       </div>
 
-      <div className="border-b-2 border-line px-5 py-4">
+      <div className="border-b border-white/[0.08] px-5 py-4">
         <div className="mb-2 text-[11px] uppercase tracking-wider text-muted">Difficulty mix</div>
         <div className="flex h-2.5 overflow-hidden rounded-full bg-line">
           {challengeCount > 0 &&
@@ -691,7 +691,7 @@ export default function HostYourCTF() {
                 ))}
               </ul>
               {n === 0 && (
-                <p className="mt-2 rounded-lg border-2 border-dashed border-line p-2.5 text-center text-xs text-muted">
+                <p className="mt-2 rounded-lg border border-dashed border-white/15 p-2.5 text-center text-xs text-muted">
                   No challenges yet. Add some, or keep it hosting only if you bring your own.
                 </p>
               )}
@@ -716,7 +716,7 @@ export default function HostYourCTF() {
         )}
       </div>
 
-      <div className="border-t-2 border-line px-5 py-5">
+      <div className="border-t border-white/[0.08] px-5 py-5">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-muted">Total</span>
           <span className="font-display text-3xl text-lime">
@@ -814,7 +814,7 @@ export default function HostYourCTF() {
             </div>
           </div>
           <div className="relative mx-auto hidden w-full max-w-xs sm:block">
-            <div className="absolute inset-x-4 bottom-0 top-14 rounded-3xl border-2 border-line bg-panel" />
+            <div className="absolute inset-x-4 bottom-0 top-14 card-ob rounded-3xl" />
             <Mascot pose="thumbs" alt="CyberHx mascot giving a thumbs up" eager className="mascot-pop relative mx-auto w-60 lg:w-64" />
           </div>
         </div>
@@ -826,34 +826,45 @@ export default function HostYourCTF() {
         <p className="mt-2 text-sm text-muted">Single-round CTFs with hosting included. Prices in USD.</p>
         <div className="mt-10 grid gap-5 lg:grid-cols-3">
           {plans.map((plan) => (
-            <article key={plan.id} className={`sticker relative flex flex-col p-6 ${plan.featured ? "sticker-lime" : ""}`}>
-              {plan.featured && (
-                <span className="absolute -top-3 left-6 rounded-md bg-lime px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-ink">Most picked</span>
-              )}
+            <article
+              key={plan.id}
+              className={`relative flex flex-col p-6 ${plan.featured ? "card-luxe lg:-translate-y-3" : "sticker"}`}
+            >
               <div className="flex items-start justify-between">
                 <SiteIcon name={plan.icon} size={60} alt="" />
                 <div className="text-right">
-                  <div className={`font-display text-4xl ${plan.featured ? "text-lime" : "text-white"}`}>${plan.usd}</div>
-                  <Local usd={plan.usd} className="text-xs text-muted" />
+                  {plan.featured && (
+                    <span className="mb-2 inline-block rounded-full bg-ink px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-lime">
+                      Most picked
+                    </span>
+                  )}
+                  <div className={`font-display text-4xl ${plan.featured ? "text-ink" : "text-white"}`}>${plan.usd}</div>
+                  <Local usd={plan.usd} className={`text-xs ${plan.featured ? "text-ink/60" : "text-muted"}`} />
                 </div>
               </div>
-              <h3 className="font-display mt-4 text-xl">{plan.name}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">{plan.blurb}</p>
-              <ul className="mt-5 flex-1 space-y-2.5 border-t border-line pt-5">
+              <h3 className={`font-display mt-4 text-xl ${plan.featured ? "text-ink" : ""}`}>{plan.name}</h3>
+              <p className={`mt-2 text-sm leading-6 ${plan.featured ? "text-ink/70" : "text-muted"}`}>{plan.blurb}</p>
+              <ul className={`mt-5 flex-1 space-y-2.5 border-t border-dashed pt-5 ${plan.featured ? "border-ink/20" : "border-white/10"}`}>
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-white/85">
-                    <Check size={15} className="mt-0.5 shrink-0 text-lime" />
+                  <li key={f} className={`flex items-start gap-2.5 text-sm ${plan.featured ? "text-ink/85" : "text-white/85"}`}>
+                    <span
+                      className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full ${
+                        plan.featured ? "bg-ink text-lime" : "bg-white/[0.07] text-white"
+                      }`}
+                    >
+                      <Check size={11} strokeWidth={3} />
+                    </span>
                     {f}
                   </li>
                 ))}
               </ul>
-              <button type="button" data-buy onClick={() => withAdd(`${plan.name} pack`, () => checkoutPlan(plan.id))} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
+              <button type="button" data-buy onClick={() => withAdd(`${plan.name} pack`, () => checkoutPlan(plan.id))} className={`btn mt-6 w-full ${plan.featured ? "btn-dark" : "btn-ghost"}`}>
                 Buy {plan.name} <ArrowRight size={16} />
               </button>
             </article>
           ))}
         </div>
-        <div className="mt-5 flex flex-col items-start justify-between gap-4 rounded-2xl border-2 border-dashed border-line p-5 sm:flex-row sm:items-center">
+        <div className="mt-5 flex flex-col items-start justify-between gap-4 rounded-[1.25rem] border border-dashed border-white/15 bg-white/[0.02] p-5 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
             <SiteIcon name="cloud" size={44} alt="" />
             <div>
@@ -875,10 +886,10 @@ export default function HostYourCTF() {
         <div className="mx-auto max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
           <h2 className={h2}>What you get in each package</h2>
           <p className="mt-2 text-sm text-muted">The full breakdown, side by side.</p>
-          <div className="mt-10 overflow-x-auto rounded-2xl border-2 border-line bg-ink">
+          <div className="card-ob mt-10 overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
-                <tr className="border-b-2 border-line">
+                <tr className="border-b border-white/[0.08]">
                   <th scope="col" className="w-[28%] px-5 py-4 text-left font-normal text-muted">Package</th>
                   {compareCols.map((c) => (
                     <th key={c.id} scope="col" className={`px-4 py-4 text-center ${c.id === "pro" ? "bg-lime/[0.06]" : ""}`}>
@@ -890,7 +901,7 @@ export default function HostYourCTF() {
               </thead>
               <tbody>
                 {compareRows.map((r) => (
-                  <tr key={r.label} className="border-b border-line last:border-0">
+                  <tr key={r.label} className="border-b border-white/[0.05] last:border-0">
                     <th scope="row" className="px-5 py-3.5 text-left font-normal text-white/70">{r.label}</th>
                     {r.cells.map((v, i) => (
                       <td key={i} className={`px-4 py-3.5 text-center ${compareCols[i].id === "pro" ? "bg-lime/[0.06]" : ""}`}>
@@ -933,7 +944,7 @@ export default function HostYourCTF() {
         </p>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {whyPoints.map((w) => (
-            <div key={w.title} className="flex gap-4 rounded-2xl border-2 border-line bg-ink p-5">
+            <div key={w.title} className="card-ob flex gap-4 p-5">
               <SiteIcon name={w.icon} size={44} alt="" />
               <div>
                 <h3 className="font-semibold">{w.title}</h3>
@@ -944,10 +955,10 @@ export default function HostYourCTF() {
         </div>
 
         <h3 className="font-display mt-16 text-2xl">CyberHx vs the other ways to run a CTF</h3>
-        <div className="mt-6 overflow-x-auto rounded-2xl border-2 border-line bg-ink">
+        <div className="card-ob mt-6 overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b-2 border-line">
+              <tr className="border-b border-white/[0.08]">
                 <th scope="col" className="w-[30%] px-5 py-4 text-left font-normal text-muted" />
                 {altCols.map((c, i) => (
                   <th key={c} scope="col" className={`px-4 py-4 text-center font-semibold ${i === 0 ? "bg-lime/[0.06] text-lime" : "text-white/80"}`}>
@@ -958,7 +969,7 @@ export default function HostYourCTF() {
             </thead>
             <tbody>
               {altRows.map((r) => (
-                <tr key={r.label} className="border-b border-line last:border-0">
+                <tr key={r.label} className="border-b border-white/[0.05] last:border-0">
                   <th scope="row" className="px-5 py-3.5 text-left font-normal text-white/70">{r.label}</th>
                   {r.cells.map((v, i) => (
                     <td key={i} className={`px-4 py-3.5 text-center ${i === 0 ? "bg-lime/[0.06]" : ""}`}>
@@ -1003,7 +1014,7 @@ export default function HostYourCTF() {
                 key={p.id}
                 type="button"
                 onClick={() => loadPreset(p.build)}
-                className="group rounded-xl border-2 border-line bg-ink p-4 text-left transition hover:border-lime"
+                className="card-ob group rounded-xl p-4 text-left transition hover:border-lime/50"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">{p.name}</span>
@@ -1017,7 +1028,7 @@ export default function HostYourCTF() {
           <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
               {/* Format */}
-              <div className="rounded-2xl border-2 border-line bg-ink p-5">
+              <div className="card-ob p-5">
                 <h3 className="font-semibold">How many rounds?</h3>
                 <p className="mt-1 text-sm text-muted">
                   A qualifier and a grand finale are hosted separately, each with its own hours, players and challenges.
@@ -1058,7 +1069,7 @@ export default function HostYourCTF() {
                         role="tab"
                         aria-selected={on}
                         onClick={() => setActive(id)}
-                        className={`flex-1 rounded-xl border-2 px-4 py-3 text-left transition ${
+                        className={`flex-1 rounded-xl border px-4 py-3 text-left transition ${
                           on ? "border-glow bg-glow/10" : "border-line bg-ink hover:border-white/30"
                         }`}
                       >
@@ -1076,14 +1087,14 @@ export default function HostYourCTF() {
                 <button
                   type="button"
                   onClick={copyQualifierToFinale}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line p-3 text-sm text-muted transition hover:border-glow hover:text-white"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 p-3 text-sm text-muted transition hover:border-glow hover:text-white"
                 >
                   <Copy size={15} /> Copy the qualifier's challenge mix into the finale
                 </button>
               )}
 
               {/* Hosting for this round */}
-              <div className="rounded-2xl border-2 border-lime/50 bg-ink p-5">
+              <div className="card-ob border-lime/30 p-5">
                 <div className="flex items-start gap-4">
                   <SiteIcon name="cloud" size={52} alt="" />
                   <div className="flex-1">
@@ -1150,7 +1161,7 @@ export default function HostYourCTF() {
               {builderCategories.map((c) => {
                 const catCount = c.tiers.reduce((s, t) => s + (round.qty[key(c.id, t.tier)] ?? 0), 0);
                 return (
-                  <div key={c.id} className={`rounded-2xl border-2 bg-ink p-5 transition ${catCount > 0 ? "border-glow/50" : "border-line"}`}>
+                  <div key={c.id} className={`card-ob p-5 transition ${catCount > 0 ? "border-glow/40" : ""}`}>
                     <div className="flex items-start gap-4">
                       <SiteIcon name={c.icon} size={52} alt="" />
                       <div className="flex-1">
@@ -1225,8 +1236,8 @@ export default function HostYourCTF() {
                     type="button"
                     onClick={x.flip}
                     aria-pressed={x.on}
-                    className={`flex items-start gap-4 rounded-2xl border-2 bg-ink p-5 text-left transition ${
-                      x.on ? "border-lime bg-lime/[0.05]" : "border-line hover:border-white/30"
+                    className={`card-ob flex items-start gap-4 p-5 text-left transition ${
+                      x.on ? "border-lime/60 bg-lime/[0.05]" : "hover:border-white/20"
                     }`}
                   >
                     <SiteIcon name={x.icon} size={48} alt="" />
@@ -1238,7 +1249,7 @@ export default function HostYourCTF() {
                         {x.usd !== null && <Local usd={x.usd} className="font-sans text-xs font-normal text-muted" />}
                       </p>
                     </div>
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 ${x.on ? "border-lime bg-lime text-ink" : "border-line text-white/50"}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${x.on ? "border-lime bg-lime text-ink" : "border-white/15 text-white/50"}`}>
                       {x.on ? <Check size={14} /> : <Plus size={14} />}
                     </span>
                   </button>
@@ -1268,7 +1279,7 @@ export default function HostYourCTF() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {dashboardFeatures.map((f) => (
-              <div key={f.title} className="flex gap-4 rounded-2xl border-2 border-line bg-ink p-5">
+              <div key={f.title} className="card-ob flex gap-4 p-5">
                 <SiteIcon name={f.icon} size={44} alt="" />
                 <div>
                   <h3 className="font-semibold">{f.title}</h3>
@@ -1283,9 +1294,9 @@ export default function HostYourCTF() {
       {/* How it works */}
       <section id="how-it-works" className="mx-auto max-w-7xl scroll-mt-32 px-5 py-20 sm:px-6 lg:px-8">
         <h2 className={h2}>How buying works</h2>
-        <ol className="mt-10 grid gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-10 grid gap-px overflow-hidden rounded-[1.25rem] border border-white/[0.075] bg-white/[0.06] sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s) => (
-            <li key={s.n} className="bg-ink p-6">
+            <li key={s.n} className="bg-[#080c18] p-6">
               <span className="font-mono text-sm text-lime">{s.n}</span>
               <h3 className="mt-3 font-semibold">{s.title}</h3>
               <p className="mt-1.5 text-sm leading-6 text-muted">{s.text}</p>
@@ -1294,7 +1305,7 @@ export default function HostYourCTF() {
         </ol>
         <div className="mt-16 grid gap-10 lg:grid-cols-[0.6fr_1.4fr]">
           <h2 className={h2}>Questions</h2>
-          <div className="divide-y-2 divide-line rounded-2xl border-2 border-line bg-ink">
+          <div className="card-ob divide-y divide-white/[0.06]">
             {faqs.map((f) => (
               <details key={f.q} className="group px-5 py-4">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
@@ -1317,7 +1328,7 @@ export default function HostYourCTF() {
 
       {/* Mobile build bar */}
       {drawer === "closed" && showBuilder && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-ink/95 p-3 backdrop-blur lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.08] bg-ink/95 p-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <div className="font-display text-xl text-lime">
@@ -1372,7 +1383,7 @@ export default function HostYourCTF() {
             {drawer === "checkout" && (
               <form onSubmit={placeOrder} className="flex flex-1 flex-col overflow-hidden">
                 <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-                  <div className="rounded-xl border-2 border-line p-4">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">{order.title}</p>
                     {order.lines.map((l) => (
                       <div key={l.label} className="flex items-center gap-2.5 py-1 text-sm">

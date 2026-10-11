@@ -58,7 +58,7 @@ export const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-line text-white/70 transition-colors hover:border-glow hover:text-white"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white/70 transition-colors hover:border-glow hover:text-white"
                 >
                   <Icon size={18} />
                 </a>

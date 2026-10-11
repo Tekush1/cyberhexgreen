@@ -3,6 +3,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .card-ob {
+    position: relative;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255,255,255,.075);
+    background:
+      radial-gradient(120% 55% at 50% -12%, rgba(255,255,255,.06), transparent 62%),
+      linear-gradient(180deg, #0b1020, #070a14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 30px 60px -38px rgba(0,0,0,.95);
+  }
+}
+
 :root {
   /* CyberHx palette, taken from the mascot: navy hoodie, cyan rim light, lime H> mark, yellow sparks */
   --ink: #060a16;
@@ -134,31 +146,67 @@ img[loading="lazy"] { transition: filter 0.3s; }
   line-height: 0.95;
 }
 
-/* Sticker panel: thick outline + hard offset shadow, like the mascot artwork */
+/* Obsidian panel (old class name kept so existing markup picks it up):
+   near-black surface, soft light falling from the top edge, a fine bright rim. */
 .sticker {
-  background: var(--panel);
-  border: 2px solid var(--line);
   border-radius: 22px;
-  box-shadow: 6px 6px 0 0 #02040a;
+  border: 1px solid rgba(255,255,255,.075);
+  background:
+    radial-gradient(120% 55% at 50% -12%, rgba(255,255,255,.075), transparent 62%),
+    linear-gradient(180deg, #0b1020, #070a14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 34px 70px -40px rgba(0,0,0,.95);
 }
-.sticker-lime { border-color: var(--lime); box-shadow: 6px 6px 0 0 #3a4a07; }
-.sticker-glow { border-color: var(--glow); box-shadow: 6px 6px 0 0 #0b3a4a; }
-.sticker-sun  { border-color: var(--sun);  box-shadow: 6px 6px 0 0 #4a3608; }
+.sticker-lime {
+  border-color: rgba(198,241,53,.28);
+  background:
+    radial-gradient(120% 55% at 50% -12%, rgba(198,241,53,.13), transparent 62%),
+    linear-gradient(180deg, #0c1220, #070a14);
+  box-shadow: inset 0 1px 0 rgba(198,241,53,.18), 0 34px 70px -40px rgba(0,0,0,.95);
+}
+.sticker-glow {
+  border-color: rgba(59,211,255,.24);
+  background:
+    radial-gradient(120% 55% at 50% -12%, rgba(59,211,255,.12), transparent 62%),
+    linear-gradient(180deg, #0a1121, #070a14);
+  box-shadow: inset 0 1px 0 rgba(59,211,255,.16), 0 34px 70px -40px rgba(0,0,0,.95);
+}
+.sticker-sun {
+  border-color: rgba(255,201,60,.24);
+  background:
+    radial-gradient(120% 55% at 50% -12%, rgba(255,201,60,.11), transparent 62%),
+    linear-gradient(180deg, #0f1120, #070a14);
+  box-shadow: inset 0 1px 0 rgba(255,201,60,.16), 0 34px 70px -40px rgba(0,0,0,.95);
+}
+
+/* Lime luxe: the featured pricing card, solid lime with grain, raised. */
+.card-luxe {
+  position: relative; isolation: isolate; overflow: hidden;
+  border-radius: 26px; border: 0; color: #071003;
+  background: radial-gradient(120% 90% at 100% 0, #e6ff86, #c6f135 45%, #9cc414);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 44px 90px -34px rgba(198,241,53,.55);
+}
+.card-luxe::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .16; mix-blend-mode: multiply; border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.card-luxe .btn-dark { background: #071003; color: #eaf2ff; border-color: #071003; box-shadow: 0 14px 28px -14px rgba(7,16,3,.8); }
+.card-luxe .btn-dark:hover { background: #12200a; }
+.card-luxe.lift:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 54px 100px -34px rgba(198,241,53,.7); }
 
 /* Chunky buttons with a press-down feel */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
   min-height: 52px; padding: 0 1.6rem; border-radius: 14px;
   font-weight: 750; font-stretch: 112%; font-size: 0.98rem;
-  border: 2px solid #02040a; box-shadow: 4px 4px 0 0 #02040a;
-  transition: transform .12s ease, box-shadow .12s ease, background-color .15s ease;
+  border: 1px solid transparent;
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
 }
-.btn:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 0 #02040a; }
-.btn:active { transform: translate(3px,3px); box-shadow: 1px 1px 0 0 #02040a; }
-.btn-lime { background: var(--lime); color: #071003; }
-.btn-lime:hover { background: #d6ff4f; }
-.btn-ghost { background: transparent; color: var(--text); border-color: var(--line); box-shadow: 4px 4px 0 0 #02040a; }
-.btn-ghost:hover { border-color: var(--glow); }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(1px); }
+.btn-lime { background: var(--lime); color: #071003; box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 12px 30px -14px rgba(198,241,53,.75); }
+.btn-lime:hover { background: #d6ff4f; box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 16px 36px -14px rgba(198,241,53,.9); }
+.btn-ghost { background: rgba(255,255,255,.05); color: var(--text); border-color: rgba(255,255,255,.11); box-shadow: inset 0 1px 0 rgba(255,255,255,.07); }
+.btn-ghost:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.2); }
 
 /* Mascot reveal: a single soft rise the first time a mascot scrolls into view.
    Uses the individual translate/scale properties so it composes with any
@@ -224,7 +272,7 @@ img[loading="lazy"] { transition: filter 0.3s; }
 
 /* Cards that lift on hover */
 .lift { transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s, border-color 0.25s; }
-.lift:hover { transform: translate(-3px, -5px); box-shadow: 10px 12px 0 0 #02040a; }
+.lift:hover { transform: translateY(-5px); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 40px 80px -36px rgba(0,0,0,1); }
 
 /* Light sweep across a card on hover */
 .shine { position: relative; overflow: hidden; }
