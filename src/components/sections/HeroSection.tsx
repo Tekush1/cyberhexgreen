@@ -14,9 +14,6 @@ import { events } from '../../data/events';
    floating cards show our real events, pulled from the events data.
    ───────────────────────────────────────────────────────────── */
 
-// "6000+ Hackers" -> "6000+", "1.4K+" stays as is.
-const compactPlayers = (s: string) => s.replace(/\s*(hackers?|players?|participants?)\s*/i, '').trim();
-
 // Sparks that drift up around the mascot. x = start position, d = delay, drift = sideways sway.
 const SPARKS = [
   { x: '14%', d: '0s', dur: '5.2s', drift: '-14px' },
@@ -33,7 +30,6 @@ const ease = [0.16, 1, 0.3, 1] as const;
 export const HeroSection = () => {
   const reduce = !!useReducedMotion();
   const latest = events[0];
-  const second = events[1];
 
   /* pointer parallax */
   const mx = useMotionValue(0);
@@ -43,8 +39,6 @@ export const HeroSection = () => {
   const mascotX = useTransform(sx, (v) => v * -14);
   const mascotY = useTransform(sy, (v) => v * -8);
   const nearX = useTransform(sx, (v) => v * 22);
-  const nearY = useTransform(sy, (v) => v * 14);
-  const farX = useTransform(sx, (v) => v * 9);
   const glowX = useTransform(sx, (v) => v * 30);
 
   const onMove = (e: PointerEvent<HTMLElement>) => {
@@ -189,57 +183,6 @@ export const HeroSection = () => {
               </div>
             </motion.div>
           </motion.div>
-
-          {/* latest event — real, from the events data */}
-          {latest && (
-            <motion.div
-              style={{ x: nearX, y: nearY }}
-              initial={reduce ? false : { opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 1.0, ease }}
-              className="absolute bottom-[9%] left-0 w-[12.5rem] sm:bottom-auto sm:top-[2%] sm:w-[16rem] lg:left-[1%] lg:top-[12%]"
-            >
-              <Link to="/gallery" className="glass-card group block p-4 transition hover:border-white/25">
-                <span className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/55">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  Latest event
-                </span>
-                <p className="font-display mt-2 text-lg leading-tight text-white">{latest.title}</p>
-                <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-white/60">
-                  <span className="text-lime">{compactPlayers(latest.participants)}</span>
-                  <span className="text-white/25">·</span>
-                  <span>{latest.duration}</span>
-                </div>
-                <span className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-white/70 transition group-hover:text-white">
-                  See all events
-                  <ArrowUpRight size={12} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </span>
-              </Link>
-            </motion.div>
-          )}
-
-          {/* second event — real */}
-          {second && (
-            <motion.div
-              style={{ x: farX }}
-              initial={reduce ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 1.3, ease }}
-              className="absolute bottom-[20%] right-0 hidden w-[14.5rem] sm:block lg:bottom-[22%] lg:right-[-3%]"
-            >
-              <Link to="/gallery" className="glass-card group flex items-center gap-3 p-3 transition hover:border-white/25">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-glow/15 font-display text-sm text-glow">
-                  {second.title.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate font-display text-[14px] text-white">{second.title}</span>
-                  <span className="block font-mono text-[11px] text-white/55">
-                    {compactPlayers(second.participants)} players · {second.duration}
-                  </span>
-                </span>
-              </Link>
-            </motion.div>
-          )}
 
           {/* build price chip */}
           <motion.div
