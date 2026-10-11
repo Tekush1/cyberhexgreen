@@ -159,7 +159,7 @@ export default function BlogPostPage() {
   if (state !== 'ready' || !post) {
     return (
       <div className="min-h-screen bg-ink px-5 pb-24 pt-32 text-center text-white">
-        <Mascot pose="confused" alt="" eager className="mx-auto w-40" />
+        <Mascot pose="crying" alt="" eager className="mx-auto w-40" />
         <h1 className="font-display mt-6 text-3xl">{state === 'missing' ? 'Post not found' : "This post couldn't load"}</h1>
         <p className="mx-auto mt-3 max-w-md text-muted">
           {state === 'missing' ? 'It may have been moved or unpublished.' : error}

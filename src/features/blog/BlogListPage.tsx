@@ -180,7 +180,7 @@ export default function BlogListPage() {
 
           {state === 'error' && (
             <div className="rounded-2xl border-2 border-line bg-panel p-10 text-center">
-              <Mascot pose="confused" alt="" className="mx-auto w-32" />
+              <Mascot pose="crying" alt="" className="mx-auto w-32" />
               <h2 className="font-display mt-4 text-2xl">The blog couldn't load</h2>
               <p className="mx-auto mt-2 max-w-md text-muted">{error}</p>
               {isConfigured() && (

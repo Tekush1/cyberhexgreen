@@ -453,7 +453,7 @@ export default function EditorPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-ink px-5 pb-24 pt-32 text-center">
-        <Mascot pose="trophy" alt="" eager className="mascot-pop mx-auto w-48" />
+        <Mascot pose="blogging" alt="" eager className="mascot-pop mx-auto w-48" />
         <h1 className="font-display mt-6 text-4xl text-white">Sent for review.</h1>
         <p className="mx-auto mt-4 max-w-md leading-7 text-muted">
           Thanks for writing for CyberHx. An editor reads every post before it goes live. We'll email you at{' '}
@@ -570,7 +570,8 @@ export default function EditorPage() {
       ) : chooseTemplate ? (
         <div className="mx-auto max-w-5xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="font-display text-4xl sm:text-5xl">What are you writing?</h1>
+            <Mascot pose="blogging" alt="" eager className="mascot-pop mx-auto w-40 sm:w-48" />
+            <h1 className="font-display mt-4 text-4xl sm:text-5xl">What are you writing?</h1>
             <p className="mt-3 text-muted">Pick a starting point. You can change anything after.</p>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">

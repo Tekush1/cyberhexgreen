@@ -6,7 +6,12 @@ export type MascotPose =
   | 'point'
   | 'jump'
   | 'trophy'
-  | 'confused';
+  | 'confused'
+  | 'sad404'
+  | 'detective'
+  | 'blogging'
+  | 'crying'
+  | 'love';
 
 interface MascotProps {
   pose: MascotPose;

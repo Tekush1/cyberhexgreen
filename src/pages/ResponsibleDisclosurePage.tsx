@@ -3,6 +3,7 @@ import { Mail, Clock, CheckCircle, ChevronDown, ChevronUp, ExternalLink, FileTex
 import { Shield, AlertTriangle, Eye, Lock, Award } from '../components/shared/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Mascot } from '../components/shared/Mascot';
 
 const faqs = [
   {
@@ -102,6 +103,7 @@ const ResponsibleDisclosurePage = () => {
           }}
         />
         <div className="relative z-10 max-w-4xl mx-auto px-6 lg:px-8 text-center">
+          <Mascot pose="detective" alt="CyberHx mascot inspecting a bug" eager className="mascot-pop mx-auto mb-6 w-44 sm:w-52" />
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
