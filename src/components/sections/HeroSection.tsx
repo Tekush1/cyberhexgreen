@@ -82,7 +82,7 @@ export const HeroSection = () => {
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink to-transparent" />
       </div>
 
-      <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-5 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-4 lg:px-8">
+      <div className="mx-auto grid w-full max-w-7xl items-center gap-4 px-5 sm:gap-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-4 lg:px-8">
         {/* ── Copy ─────────────────────────────────────────── */}
         <div className="relative z-10">
           {latest && (
@@ -100,7 +100,7 @@ export const HeroSection = () => {
             </motion.div>
           )}
 
-          <h1 className="font-display mt-7 text-[2.6rem] leading-[0.98] tracking-[-0.01em] text-white sm:text-6xl lg:text-[3.7rem] xl:text-[4.25rem] lg:[&>span]:whitespace-nowrap">
+          <h1 className="font-display mt-7 text-[clamp(2.1rem,10.6vw,2.6rem)] leading-[0.98] tracking-[-0.01em] text-white sm:text-6xl lg:text-[3.7rem] xl:text-[4.25rem] lg:[&>span]:whitespace-nowrap">
             <span className="block overflow-hidden pb-1">
               <motion.span className="block" {...rise(0.15, 60)}>
                 Hack our CTFs.
@@ -143,7 +143,7 @@ export const HeroSection = () => {
         </div>
 
         {/* ── Stage ────────────────────────────────────────── */}
-        <div className="relative mx-auto -mt-4 h-[18.5rem] w-full max-w-[30rem] sm:mt-0 sm:h-[30rem] sm:max-w-[34rem] lg:h-[38rem] lg:max-w-none">
+        <div className="relative order-first mx-auto -mt-6 h-[17rem] w-full max-w-[30rem] sm:order-none sm:mt-0 sm:h-[30rem] sm:max-w-[34rem] lg:h-[38rem] lg:max-w-none">
           {/* ground shadow */}
           <motion.div
             aria-hidden="true"
@@ -154,7 +154,7 @@ export const HeroSection = () => {
           />
 
           {/* mascot */}
-          <motion.div style={{ x: mascotX, y: mascotY }} className="absolute inset-x-0 bottom-[7%] flex justify-end pr-1 sm:justify-center sm:pr-0">
+          <motion.div style={{ x: mascotX, y: mascotY }} className="absolute inset-x-0 bottom-[7%] flex justify-center">
             <motion.div
               initial={reduce ? false : { opacity: 0, y: 70, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
