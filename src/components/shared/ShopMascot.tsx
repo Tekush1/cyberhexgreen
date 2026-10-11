@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
+import { isMuted, onMuteChange, setMuted } from '../../lib/shopSound';
 
 /* The shop mascot: one character in one spot that acts out the purchase.
    The page decides which frame to show; this component handles the 3D stage,
@@ -110,8 +112,9 @@ export const ShopMascot = ({
       }`}
       data-hot={hot || undefined}
       data-frame={shown.cur}
-      aria-hidden="true"
     >
+      <SoundToggle />
+      <div aria-hidden="true">
       {/* speech bubble */}
       {bubble && (
         <div key={`${bubble}|${shown.n}`} className={`shop-bubble ${bubbleOn ? 'is-on' : ''}`}>
@@ -174,8 +177,32 @@ export const ShopMascot = ({
         </span>
         Live · Orders open
       </span>
+      </div>
     </div>
   );
 };
+
+/** Small speaker button on the mascot; the choice is remembered. */
+function SoundToggle() {
+  const [off, setOff] = useState(isMuted);
+  useEffect(() => {
+    const stop = onMuteChange(setOff);
+    return () => {
+      stop();
+    };
+  }, []);
+  return (
+    <button
+      type="button"
+      onClick={() => setMuted(!off)}
+      aria-pressed={!off}
+      aria-label={off ? 'Turn shop sounds on' : 'Turn shop sounds off'}
+      title={off ? 'Sound off' : 'Sound on'}
+      className="shop-sound absolute bottom-7 left-0 z-10 flex h-8 w-8 items-center justify-center rounded-full text-white/75 transition hover:text-white"
+    >
+      {off ? <VolumeX size={15} /> : <Volume2 size={15} />}
+    </button>
+  );
+}
 
 export default ShopMascot;

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
 import { HeroCart } from "../components/shared/HeroCart";
 import { ShopMascot, type ShopFrame } from "../components/shared/ShopMascot";
+import { initShopSound, playShopSound, type ShopSound } from "../lib/shopSound";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
 import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
@@ -116,6 +117,20 @@ const presets: { id: string; name: string; who: string; build: () => Build }[] =
 
 type Line = { label: string; usd: number | null; icon?: IconName };
 type Order = { title: string; lines: Line[]; total: number; quoted: boolean };
+
+const SOUND_FOR: Partial<Record<ShopFrame, ShopSound>> = {
+  enter: "enter",
+  discover: "discover",
+  pick: "pick",
+  "add-1": "add",
+  "add-2": "add",
+  rush: "rush",
+  bill: "bill",
+  buy: "buy",
+  cheer: "cheer",
+  ready: "ready",
+  sad: "sad",
+};
 
 const BUILD_KEY = "cyberhx-ctf-build-v2";
 const clampRound = (r: Partial<Round> | undefined): Round => {
@@ -350,6 +365,7 @@ export default function HostYourCTF() {
   const currency = useLocalCurrency();
   /* ---------- shop mascot: one character that acts out the purchase ---------- */
   const [frame, setFrame] = React.useState<ShopFrame>("idle");
+  React.useEffect(() => initShopSound(), []);
   const [bubble, setBubble] = React.useState<string | undefined>();
   const [celebrate, setCelebrate] = React.useState(0);
   const seenPackages = React.useRef(false);
@@ -359,8 +375,11 @@ export default function HostYourCTF() {
   const restFrame = React.useRef<ShopFrame>("idle");
 
   /** Show a frame (and a line), then fall back to the resting frame after `ms`. */
-  const act = React.useCallback((f: ShopFrame, line?: string, ms?: number) => {
+  /* Each mascot moment has its own sound (none for resting poses). */
+  const act = React.useCallback((f: ShopFrame, line?: string, ms?: number, sound: ShopSound | null | undefined = undefined) => {
     window.clearTimeout(actTimer.current);
+    const s = sound === undefined ? SOUND_FOR[f] : sound;
+    if (s) playShopSound(s);
     setFrame(f);
     setBubble(line);
     if (ms) actTimer.current = window.setTimeout(() => setFrame(restFrame.current), ms);
@@ -404,7 +423,10 @@ export default function HostYourCTF() {
     window.clearTimeout(openTimer.current);
     window.clearTimeout(rushTimer.current);
     if (reduce) return open();
-    rushTimer.current = window.setTimeout(() => setFrame("rush"), 650);
+    rushTimer.current = window.setTimeout(() => {
+      playShopSound("rush");
+      setFrame("rush");
+    }, 650);
     openTimer.current = window.setTimeout(open, 1150);
   };
 
@@ -510,7 +532,7 @@ export default function HostYourCTF() {
       t = window.setTimeout(() => {
         if (lastDrawer.current !== "closed") return arm();
         hints += 1;
-        act("idle", "Not sure where to start? Pro is our most popular package.", 4200);
+        act("idle", "Not sure where to start? Pro is our most popular package.", 4200, null);
         arm();
       }, 30000);
     };
@@ -535,7 +557,7 @@ export default function HostYourCTF() {
         /* storage blocked: still show it once for this page view */
       }
       document.removeEventListener("mouseout", onOut);
-      act("sad", "Before you go: ordering is free. You pay only after we confirm.", 4200);
+      act("sad", "Before you go: ordering is free. You pay only after we confirm.", 4200, null);
     };
     if (window.matchMedia("(pointer: fine)").matches) document.addEventListener("mouseout", onOut);
     return () => document.removeEventListener("mouseout", onOut);
@@ -568,8 +590,8 @@ export default function HostYourCTF() {
     const next = cur <= minFor(catId) ? 0 : cur - 1;
     // Is anything left in the whole build after this removal?
     const leftAfter = challengeCount - (cur - next);
-    if (leftAfter <= 0) act("arrive", "Your cart is empty. Add a category to start.", 2400);
-    else act("arrive", `Removed ${cur - next} × ${catName(catId)} (${tier}).`, 1300);
+    if (leftAfter <= 0) act("arrive", "Your cart is empty. Add a category to start.", 2400, "remove");
+    else act("arrive", `Removed ${cur - next} × ${catName(catId)} (${tier}).`, 1300, "remove");
     setQty(catId, tier, next);
   };
 
@@ -598,8 +620,9 @@ export default function HostYourCTF() {
     setActive(b.format === "split" ? "qualifier" : "main");
   };
 
-  const reset = () => {
-    act("arrive", "Build cleared. Start fresh anytime.", 2600);
+  /** Clear the build. `quiet` skips the mascot reaction (used after an order). */
+  const reset = (quiet = false) => {
+    if (!quiet) act("arrive", "Build cleared. Start fresh anytime.", 2600, "remove");
     setBuild(emptyBuild());
     setActive("main");
   };
@@ -704,7 +727,7 @@ export default function HostYourCTF() {
       if (!result.ok) throw new Error("failed");
       setOrderId(id);
       setForm(emptyForm);
-      if (order.title.startsWith("Custom CTF build")) reset();
+      if (order.title.startsWith("Custom CTF build")) reset(true);
       setDrawer("done");
     } catch {
       setError(true);
@@ -720,7 +743,7 @@ export default function HostYourCTF() {
     <div className="sticker overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4">
         <h3 className="font-display text-lg">Your build</h3>
-        <button type="button" onClick={reset} className="flex items-center gap-1.5 text-xs text-muted transition hover:text-white">
+        <button type="button" onClick={() => reset()} className="flex items-center gap-1.5 text-xs text-muted transition hover:text-white">
           <RotateCcw size={13} /> Reset
         </button>
       </div>

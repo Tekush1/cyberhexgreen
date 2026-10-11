@@ -631,6 +631,11 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .shop-bubble.is-on { opacity: 1; transform: none; }
 @media (max-width: 639px) { .shop-bubble { max-width: 10.5rem; font-size: 12px; padding: 6px 10px; } }
 
+/* sound toggle */
+.shop-sound { background: rgba(11,18,34,.85); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 8px 20px -10px rgba(0,0,0,.9); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.shop-sound[aria-pressed="true"] { border-color: rgba(198,241,53,.45); color: #c6f135; box-shadow: 0 0 14px -4px rgba(198,241,53,.6); }
+.shop-mascot.is-hidden .shop-sound { pointer-events: none; }
+
 /* live tag under the platform */
 .shop-live { position: absolute; left: 50%; bottom: -1.35rem; transform: translateX(-50%); display: flex; align-items: center; gap: 6px;
   white-space: nowrap; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
