@@ -1,8 +1,7 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
-import { Mascot } from "../components/shared/Mascot";
-import { StoreMascot, type CartDrop } from "../components/shared/StoreMascot";
+import { ShopMascot, type ShopFrame } from "../components/shared/ShopMascot";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
 import { plans, builderCategories, builderPricing, type Tier } from "../data/hosting";
@@ -302,33 +301,58 @@ export default function HostYourCTF() {
   const [error, setError] = React.useState(false);
   const [orderId, setOrderId] = React.useState("");
   const currency = useLocalCurrency();
-  const [drop, setDrop] = React.useState<CartDrop>(null);
-  const [heroInView, setHeroInView] = React.useState(true);
-  const [isPhone, setIsPhone] = React.useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches);
-  const heroRef = React.useRef<HTMLDivElement>(null);
-  const dropTimer = React.useRef<number>();
+  /* ---------- shop mascot: one character that acts out the purchase ---------- */
+  const [frame, setFrame] = React.useState<ShopFrame>("idle");
+  const [bubble, setBubble] = React.useState<string | undefined>();
+  const [celebrate, setCelebrate] = React.useState(0);
+  const seenPackages = React.useRef(false);
+  const actTimer = React.useRef<number>();
+  const openTimer = React.useRef<number>();
+  const addFlip = React.useRef(false);
+  const restFrame = React.useRef<ShopFrame>("idle");
 
-  React.useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
-    const onMq = () => setIsPhone(mq.matches);
-    mq.addEventListener("change", onMq);
-    const el = heroRef.current;
-    const io = el ? new IntersectionObserver(([e]) => setHeroInView(e.isIntersecting), { threshold: 0.35 }) : null;
-    if (el && io) io.observe(el);
-    return () => {
-      mq.removeEventListener("change", onMq);
-      io?.disconnect();
-      window.clearTimeout(dropTimer.current);
-    };
+  /** Show a frame (and a line), then fall back to the resting frame after `ms`. */
+  const act = React.useCallback((f: ShopFrame, line?: string, ms?: number) => {
+    window.clearTimeout(actTimer.current);
+    setFrame(f);
+    setBubble(line);
+    if (ms) actTimer.current = window.setTimeout(() => setFrame(restFrame.current), ms);
   }, []);
 
-  /* Buy: drop the item into the mascot's cart, then open checkout. */
-  const withDrop = (icon: IconName, open: () => void) => {
+  // Hello after the walk-in, then "arrive" with the trolley at the packages.
+  React.useEffect(() => {
+    const hi = window.setTimeout(() => setBubble("Hi! Hosting a CTF? Let's go shopping."), 1900);
+    const el = document.getElementById("packages");
+    const io = el
+      ? new IntersectionObserver(
+          ([e]) => {
+            if (e.isIntersecting && !seenPackages.current) {
+              seenPackages.current = true;
+              if (restFrame.current === "idle") restFrame.current = "arrive";
+              act("arrive", "Pick a package. I'll carry it.");
+            }
+          },
+          { threshold: 0.25 }
+        )
+      : null;
+    // Let the curious "idle" frame and the hello play before the trolley rolls in.
+    const watch = window.setTimeout(() => el && io?.observe(el), 4200);
+    return () => {
+      window.clearTimeout(hi);
+      window.clearTimeout(watch);
+      window.clearTimeout(actTimer.current);
+      window.clearTimeout(openTimer.current);
+      io?.disconnect();
+    };
+  }, [act]);
+
+  /* Buy: the pack goes into the trolley, then checkout opens. */
+  const withAdd = (label: string, open: () => void) => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setDrop({ id: Date.now(), icon });
-    window.clearTimeout(dropTimer.current);
+    act("add-1", `${label} added!`);
+    window.clearTimeout(openTimer.current);
     if (reduce) open();
-    else dropTimer.current = window.setTimeout(open, 750);
+    else openTimer.current = window.setTimeout(open, 800);
   };
   const [showBuilder, setShowBuilder] = React.useState(() => typeof window !== "undefined" && window.location.hash === "#build");
 
@@ -371,6 +395,71 @@ export default function HostYourCTF() {
     n: allLines.filter((l) => l.tier === t).reduce((s, l) => s + l.n, 0),
   }));
 
+  /* ---------- mascot reacts to the trolley, checkout, idling and leaving ---------- */
+  // Resting frame: trolley with packs while a custom build has challenges in it.
+  React.useEffect(() => {
+    const rest: ShopFrame = showBuilder && challengeCount > 0 ? "add-2" : seenPackages.current ? "arrive" : "idle";
+    restFrame.current = rest;
+  }, [showBuilder, challengeCount]);
+
+  // Checkout opens -> the bill; order placed -> celebrate; closed without ordering -> sad.
+  const lastDrawer = React.useRef(drawer);
+  React.useEffect(() => {
+    const was = lastDrawer.current;
+    lastDrawer.current = drawer;
+    if (drawer === "checkout" && order) {
+      act("bill", `Total ${money(order.total)}${order.quoted ? " + quote" : ""}. Nothing to pay right now.`);
+    } else if (drawer === "done") {
+      act("success", "Order placed! Check your email.");
+      setCelebrate((n) => n + 1);
+    } else if (drawer === "closed" && was === "checkout") {
+      act("sad", "No worries, come back anytime.", 3200);
+    } else if (drawer === "closed" && was === "done") {
+      act("success", "See you on the scoreboard!", 3000);
+    }
+  }, [drawer, order, act]);
+
+  // Idle for 30s -> looks around with a hint (twice at most).
+  React.useEffect(() => {
+    let t = 0;
+    let hints = 0;
+    const arm = () => {
+      window.clearTimeout(t);
+      if (hints >= 2) return;
+      t = window.setTimeout(() => {
+        if (lastDrawer.current !== "closed") return arm();
+        hints += 1;
+        act("idle", "Not sure which one? Pro is the most picked.", 4200);
+        arm();
+      }, 30000);
+    };
+    const evs = ["pointermove", "keydown", "scroll", "touchstart"] as const;
+    evs.forEach((e) => window.addEventListener(e, arm, { passive: true }));
+    arm();
+    return () => {
+      window.clearTimeout(t);
+      evs.forEach((e) => window.removeEventListener(e, arm));
+    };
+  }, [act]);
+
+  // Desktop: cursor heads for the tab bar -> one gentle reminder per visit.
+  React.useEffect(() => {
+    const KEY = "cyberhx-shop-exit-nudge";
+    const onOut = (e: MouseEvent) => {
+      if (e.relatedTarget || e.clientY > 0 || lastDrawer.current !== "closed") return;
+      try {
+        if (sessionStorage.getItem(KEY)) return;
+        sessionStorage.setItem(KEY, "1");
+      } catch {
+        /* storage blocked: still show it once for this page view */
+      }
+      document.removeEventListener("mouseout", onOut);
+      act("sad", "Leaving? It's pay later, no charge right now.", 4200);
+    };
+    if (window.matchMedia("(pointer: fine)").matches) document.addEventListener("mouseout", onOut);
+    return () => document.removeEventListener("mouseout", onOut);
+  }, [act]);
+
   /* ---------- edits (always on the round being edited) ---------- */
   const patchRound = (fn: (r: Round) => Round) =>
     setBuild((b) => ({ ...b, rounds: { ...b.rounds, [editing]: fn(b.rounds[editing]) } }));
@@ -385,6 +474,9 @@ export default function HostYourCTF() {
     });
   const inc = (catId: string, tier: Tier) => {
     const cur = round.qty[key(catId, tier)] ?? 0;
+    addFlip.current = !addFlip.current;
+    const cat = builderCategories.find((c) => c.id === catId);
+    act(addFlip.current ? "add-1" : "add-2", `${cat?.name ?? "Challenge"} (${tier}) in the trolley`, 1300);
     setQty(catId, tier, cur === 0 ? minFor(catId) : cur + 1);
   };
   const dec = (catId: string, tier: Tier) => {
@@ -418,6 +510,7 @@ export default function HostYourCTF() {
   };
 
   const reset = () => {
+    act("idle", "Fresh start. Pick again.", 2600);
     setBuild(emptyBuild());
     setActive("main");
   };
@@ -646,7 +739,7 @@ export default function HostYourCTF() {
           </label>
           <Local usd={total} className="font-semibold text-white/85" />
         </div>
-        <button type="button" data-buy onClick={() => withDrop("toolbox", checkoutBuild)} className="btn btn-lime mt-4 w-full">
+        <button type="button" data-buy onClick={() => withAdd("Your custom build", checkoutBuild)} className="btn btn-lime mt-4 w-full">
           Check out this build <ArrowRight size={16} />
         </button>
         <p className="mt-2.5 text-center text-[11px] text-muted">
@@ -693,7 +786,7 @@ export default function HostYourCTF() {
 
       {/* Hero */}
       <section className="mx-auto max-w-7xl px-5 pb-10 pt-12 sm:px-6 lg:px-8 lg:pt-16">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="max-w-2xl">
           <div>
             <h1 className="font-display text-[2.4rem] leading-[1.02] sm:text-5xl lg:text-6xl">
               Your CTF, ready to run.
@@ -718,9 +811,6 @@ export default function HostYourCTF() {
                 Compare them
               </a>
             </div>
-          </div>
-          <div ref={heroRef} className="hidden pt-6 sm:block">
-            <StoreMascot variant="hero" drop={drop} />
           </div>
         </div>
       </section>
@@ -752,7 +842,7 @@ export default function HostYourCTF() {
                   </li>
                 ))}
               </ul>
-              <button type="button" data-buy onClick={() => withDrop(plan.icon, () => checkoutPlan(plan.id))} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
+              <button type="button" data-buy onClick={() => withAdd(`${plan.name} pack`, () => checkoutPlan(plan.id))} className={`btn mt-6 w-full ${plan.featured ? "btn-lime" : "btn-ghost"}`}>
                 Buy {plan.name} <ArrowRight size={16} />
               </button>
             </article>
@@ -768,7 +858,7 @@ export default function HostYourCTF() {
               </p>
             </div>
           </div>
-          <button type="button" data-buy onClick={() => withDrop("cloud", checkoutHosting)} className="btn btn-ghost shrink-0">
+          <button type="button" data-buy onClick={() => withAdd("Hosting", checkoutHosting)} className="btn btn-ghost shrink-0">
             Buy hosting only
           </button>
         </div>
@@ -813,8 +903,8 @@ export default function HostYourCTF() {
                         data-buy
                         onClick={() =>
                           c.id === "hosting"
-                            ? withDrop("cloud", checkoutHosting)
-                            : withDrop(plans.find((p) => p.id === c.id)?.icon ?? "trophy", () => checkoutPlan(c.id))
+                            ? withAdd("Hosting", checkoutHosting)
+                            : withAdd(`${c.name} pack`, () => checkoutPlan(c.id))
                         }
                         className={`btn w-full !min-h-[40px] !text-sm ${c.id === "pro" ? "btn-lime" : "btn-ghost"}`}
                       >
@@ -1234,14 +1324,21 @@ export default function HostYourCTF() {
                 {challengeCount} challenges · {build.format === "split" ? "2 rounds" : `${totalHours}h`}
               </div>
             </div>
-            <button type="button" data-buy onClick={() => withDrop("toolbox", checkoutBuild)} className="btn btn-lime">
+            <button type="button" data-buy onClick={() => withAdd("Your custom build", checkoutBuild)} className="btn btn-lime">
               Check out <ArrowRight size={16} />
             </button>
           </div>
         </div>
       )}
 
-      <StoreMascot variant="dock" drop={drop} visible={drawer === "closed" && (isPhone || !heroInView)} raised={showBuilder} />
+      <ShopMascot
+        frame={frame}
+        bubble={bubble}
+        count={showBuilder ? challengeCount : 0}
+        celebrate={celebrate}
+        beside={drawer !== "closed"}
+        raised={showBuilder && drawer === "closed"}
+      />
 
       {/* Checkout drawer */}
       {drawer !== "closed" && order && (
@@ -1364,7 +1461,7 @@ export default function HostYourCTF() {
 
             {drawer === "done" && (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-                <Mascot pose="trophy" alt="" className="w-40" />
+                <img src="/mascots/shop/success.webp" width={480} height={476} alt="" className="w-44" />
                 <h3 className="font-display mt-5 text-2xl">Your CTF is in the queue.</h3>
                 <p className="mt-2 text-sm text-muted">
                   Order <span className="font-mono text-lime">{orderId}</span> is in. Check your email: we'll send the
