@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Mascot } from './shared/Mascot';
@@ -594,59 +594,6 @@ const Terminal = () => {
   );
 };
 
-/* Team: only the name and the role at CyberHx. Add a person by adding a line. */
-const team: { name: string; role: string; image: string }[] = [
-  { name: 'Kushagra Dwivedi', role: 'Founder', image: 'https://i.ibb.co/dw8SKDgt/kush1.jpg' },
-  { name: 'Aman Singh Tomar', role: 'Organizer', image: 'https://i.ibb.co/TDd8BKQW/profile-no-star-aman-tomar.png' },
-];
-
-const initials = (n: string) =>
-  n
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
-
-function TeamCard({ m, i }: { m: (typeof team)[number]; i: number }) {
-  const [broken, setBroken] = useState(false);
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.7, delay: i * 0.12, ease: [0.2, 0.8, 0.2, 1] }}
-      className="team-card group"
-    >
-      <div className="team-photo">
-        {broken ? (
-          <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_35%,rgba(198,241,53,0.18),transparent_60%),linear-gradient(180deg,#101a33,#070a14)]">
-            <span className="font-display text-6xl text-white/80">{initials(m.name)}</span>
-          </div>
-        ) : (
-          <img
-            src={m.image}
-            alt={m.name}
-            loading="lazy"
-            decoding="async"
-            onError={() => setBroken(true)}
-            className="h-full w-full object-cover object-top transition duration-700 ease-out group-hover:scale-[1.04]"
-          />
-        )}
-        <span className="team-index">{String(i + 1).padStart(2, '0')}</span>
-      </div>
-      <div className="relative px-1.5 pb-1 pt-5">
-        <h3 className="font-display text-[1.6rem] leading-tight text-white">{m.name}</h3>
-        <p className="mt-2 inline-flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-lime">
-          <span className="h-1.5 w-1.5 rounded-full bg-lime shadow-[0_0_10px_rgba(198,241,53,0.9)]" />
-          {m.role} · CyberHx
-        </p>
-      </div>
-    </motion.article>
-  );
-}
-
 export const About = () => (
   <section id="about" className="relative overflow-hidden bg-ink pb-24 pt-28 sm:pb-32 sm:pt-32">
     <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[38rem] bg-[radial-gradient(60%_50%_at_75%_10%,rgba(59,211,255,0.10),transparent_70%),radial-gradient(45%_40%_at_10%_0%,rgba(198,241,53,0.07),transparent_70%)]" />
@@ -677,17 +624,6 @@ export const About = () => (
         </motion.div>
       </div>
 
-      <div className="mt-28 sm:mt-36">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-lime">The team</p>
-          <h2 className="mt-3 font-display text-4xl text-white sm:text-5xl">Who runs CyberHx</h2>
-        </div>
-        <div className="mx-auto mt-14 grid max-w-[19rem] gap-7 sm:max-w-3xl sm:grid-cols-2 sm:gap-8">
-          {team.map((m, i) => (
-            <TeamCard key={m.name} m={m} i={i} />
-          ))}
-        </div>
-      </div>
     </div>
   </section>
 );
