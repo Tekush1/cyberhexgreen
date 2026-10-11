@@ -128,7 +128,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={reduce ? { opacity: 0 } : { opacity: 0, y: 70, scale: 0.98 }}
         transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-        className="relative flex max-h-[92svh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-30px_90px_rgba(16,24,40,0.3)] sm:max-h-[88vh] sm:rounded-[28px]"
+        className="relative flex max-h-[92svh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] bg-white/[0.04] shadow-[0_-30px_90px_rgba(16,24,40,0.3)] sm:max-h-[88vh] sm:rounded-[28px]"
       >
         {/* drag handle (phones) */}
         <div
@@ -143,20 +143,20 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink/70 ring-1 ring-black/[0.08] backdrop-blur-md transition hover:rotate-90 hover:text-ink sm:right-4 sm:top-4"
+          className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-ink/80 text-white/70 ring-1 ring-white/[0.08] backdrop-blur-md transition hover:rotate-90 hover:text-white sm:right-4 sm:top-4"
         >
           <X size={18} />
         </button>
 
         <div className="overflow-y-auto overscroll-contain">
           {/* cover: poster on a light stage */}
-          <div className="relative overflow-hidden bg-[#f1f3ee] px-5 pb-6 pt-12 sm:px-10 sm:pb-8 sm:pt-14">
+          <div className="relative overflow-hidden bg-[#0b1020] px-5 pb-6 pt-12 sm:px-10 sm:pb-8 sm:pt-14">
             <div aria-hidden="true" className="ev-floor-light absolute inset-x-[-30%] bottom-0 h-[70%]" />
             <motion.div
               initial={reduce ? false : { scale: 0.94, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ duration: 0.9, delay: 0.1, ease }}
-              className="relative mx-auto aspect-[2/1] w-full max-w-[34rem] overflow-hidden rounded-2xl bg-[#0b0f1a] shadow-[0_26px_60px_-24px_rgba(16,24,40,0.55)] ring-1 ring-black/[0.08]"
+              className="relative mx-auto aspect-[2/1] w-full max-w-[34rem] overflow-hidden rounded-2xl bg-[#0b0f1a] shadow-[0_26px_60px_-24px_rgba(16,24,40,0.55)] ring-1 ring-white/[0.08]"
             >
               <img src={event.image} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-70 blur-2xl" />
               <img src={event.image} alt={event.title} className="relative h-full w-full object-contain" />
@@ -168,44 +168,44 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
               {s.label}
             </span>
-            <h2 id="event-dialog-title" className="font-display mt-3 text-3xl leading-none text-ink sm:text-[2.6rem]">
+            <h2 id="event-dialog-title" className="font-display mt-3 text-3xl leading-none text-white sm:text-[2.6rem]">
               {event.title}
             </h2>
-            <p className="mt-2.5 text-ink/55 sm:text-[15px]">{event.subtitle}</p>
+            <p className="mt-2.5 text-white/55 sm:text-[15px]">{event.subtitle}</p>
           </div>
 
           <motion.div variants={list} initial={reduce ? false : 'hidden'} animate="show" className="space-y-7 px-5 pb-8 pt-6 sm:px-8">
-            <motion.p variants={item} className="leading-7 text-ink/65">
+            <motion.p variants={item} className="leading-7 text-white/65">
               {event.description}
             </motion.p>
 
             <motion.dl variants={item} className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {facts.map((f) => (
-                <div key={f.label} className="rounded-2xl border border-black/[0.07] bg-[#fafbf8] p-3.5">
-                  <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-ink/40">
-                    <span className="text-[#7a9a00]">{f.icon}</span>
+                <div key={f.label} className="rounded-2xl border border-white/[0.07] bg-[#0b1020] p-3.5">
+                  <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-white/40">
+                    <span className="text-lime">{f.icon}</span>
                     {f.label}
                   </dt>
-                  <dd className="mt-1.5 text-sm font-semibold leading-5 text-ink">{f.value}</dd>
+                  <dd className="mt-1.5 text-sm font-semibold leading-5 text-white">{f.value}</dd>
                 </div>
               ))}
             </motion.dl>
 
             <motion.div variants={item} className="flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-lime/40 bg-lime/10 px-5 py-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8a00]">Prize pool</p>
-                <p className="font-display mt-1 text-3xl leading-none text-ink sm:text-4xl">{prizeShort(event.prize)}</p>
+                <p className="text-[11px] uppercase tracking-[0.12em] text-lime">Prize pool</p>
+                <p className="font-display mt-1 text-3xl leading-none text-white sm:text-4xl">{prizeShort(event.prize)}</p>
               </div>
               <SiteIcon name="trophy" size={64} alt="" />
             </motion.div>
 
             {event.highlights && event.highlights.length > 0 && (
               <motion.div variants={item}>
-                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Highlights</h3>
+                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">Highlights</h3>
                 <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                   {event.highlights.map((h) => (
-                    <li key={h} className="flex items-center gap-2.5 rounded-xl border border-black/[0.06] bg-[#fafbf8] px-3 py-2.5 text-sm text-ink/80">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lime/25 text-[#5f7700]">
+                    <li key={h} className="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-[#0b1020] px-3 py-2.5 text-sm text-white/80">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lime/25 text-lime">
                         <Check size={12} strokeWidth={3} />
                       </span>
                       {h}
@@ -216,10 +216,10 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
             )}
 
             <motion.div variants={item}>
-              <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Categories</h3>
+              <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">Categories</h3>
               <ul className="mt-3 flex flex-wrap gap-1.5">
                 {event.tags.map((t) => (
-                  <li key={t} className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[12px] font-medium text-ink/65">
+                  <li key={t} className="rounded-full bg-white/[0.04] px-2.5 py-1 text-[12px] font-medium text-white/65">
                     {t}
                   </li>
                 ))}
@@ -228,7 +228,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
 
             {photos.length > 0 && (
               <motion.div variants={item}>
-                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Photos</h3>
+                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">Photos</h3>
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   {photos.map((src, i) => (
                     <button
@@ -236,7 +236,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
                       type="button"
                       onClick={() => setShot(i)}
                       aria-label={`Open photo ${i + 1} of ${photos.length}`}
-                      className="group/ph relative aspect-square overflow-hidden rounded-xl ring-1 ring-black/[0.07]"
+                      className="group/ph relative aspect-square overflow-hidden rounded-xl ring-1 ring-white/[0.07]"
                     >
                       <img src={src} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover/ph:scale-110" />
                       <span className="absolute inset-0 bg-ink/0 transition-colors group-hover/ph:bg-ink/10" />
@@ -248,7 +248,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
 
             {links.length > 0 && (
               <motion.div variants={item}>
-                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/40">Links</h3>
+                <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">Links</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {links.map((l) => (
                     <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className="ev-chip-light">
@@ -263,7 +263,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
         </div>
 
         {/* actions */}
-        <div className="border-t border-black/[0.07] bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
+        <div className="border-t border-white/[0.07] bg-ink/80 px-5 py-4 backdrop-blur sm:px-8">
           {event.status === 'live' && event.link ? (
             <a
               href={event.link}
@@ -292,14 +292,14 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
                   href={event.social.certificates}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-black/15 font-bold text-ink transition hover:border-black/30 hover:bg-black/[0.03]"
+                  className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-white/15 font-bold text-white transition hover:border-white/30 hover:bg-white/[0.03]"
                 >
                   <BadgeCheck size={17} /> Certificates
                 </a>
               )}
             </div>
           ) : (
-            <p className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-amber-500/30 bg-amber-50 font-semibold text-amber-700">
+            <p className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-amber-500/30 bg-amber-400/10 font-semibold text-amber-200">
               <Radio size={16} /> Coming soon
             </p>
           )}
@@ -341,7 +341,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
                     e.stopPropagation();
                     setShot((shot - 1 + photos.length) % photos.length);
                   }}
-                  className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink ring-1 ring-black/10 sm:left-6"
+                  className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/80 text-white ring-1 ring-white/10 sm:left-6"
                 >
                   <ChevronLeft size={20} />
                 </button>
@@ -352,7 +352,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
                     e.stopPropagation();
                     setShot((shot + 1) % photos.length);
                   }}
-                  className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink ring-1 ring-black/10 sm:right-6"
+                  className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/80 text-white ring-1 ring-white/10 sm:right-6"
                 >
                   <ChevronRight size={20} />
                 </button>
@@ -362,7 +362,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
               type="button"
               aria-label="Close photo"
               onClick={() => setShot(null)}
-              className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-ink ring-1 ring-black/10"
+              className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-ink/80 text-white ring-1 ring-white/10"
             >
               <X size={20} />
             </button>

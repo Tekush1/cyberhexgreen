@@ -8,9 +8,9 @@ export const LIME = '#c6f135';
 
 // Status pill styles for the light theme (soft tint + ring + dot).
 export const STATUS = {
-  live: { label: 'Live now', dot: '#ef4444', chip: 'bg-red-50 text-red-600 ring-1 ring-red-600/15' },
-  completed: { label: 'Completed', dot: '#10b981', chip: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15' },
-  upcoming: { label: 'Upcoming', dot: '#f59e0b', chip: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/15' },
+  live: { label: 'Live now', dot: '#ef4444', chip: 'bg-red-500/10 text-red-300 ring-1 ring-red-400/30' },
+  completed: { label: 'Completed', dot: '#10b981', chip: 'bg-emerald-400/10 text-emerald-200 ring-1 ring-emerald-300/30' },
+  upcoming: { label: 'Upcoming', dot: '#f59e0b', chip: 'bg-amber-400/10 text-amber-200 ring-1 ring-amber-300/30' },
 } as const;
 
 export const pad2 = (n: number) => String(n).padStart(2, '0');

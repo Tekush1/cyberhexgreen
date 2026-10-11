@@ -61,9 +61,8 @@ export const Navigation = () => {
     };
   }, []);
 
-  // Pages that use the light (white/grey/lime) theme need a readable navbar.
-  const p = location.pathname;
-  const light = /^\/gallery(\/|$)/.test(p) || (/^\/blog(\/|$)/.test(p) && !/^\/blog\/(write|edit)/.test(p));
+  // Every page is dark now (the blog and events pages used to be light).
+  const light = false;
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
     `rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold transition-colors ${

@@ -152,13 +152,13 @@ export default function BlogPostPage() {
 
   if (state === 'loading') {
     return (
-      <div className="min-h-screen bg-white pt-32">
+      <div className="min-h-screen bg-ink pt-32">
         {companion}
         <div className="mx-auto max-w-3xl space-y-4 px-5">
-          <div className="h-4 w-24 animate-pulse rounded bg-black/[0.06]" />
-          <div className="h-12 w-full animate-pulse rounded bg-black/[0.06]" />
-          <div className="h-12 w-2/3 animate-pulse rounded bg-black/[0.06]" />
-          <div className="mt-8 aspect-[2/1] animate-pulse rounded-2xl bg-black/[0.04]" />
+          <div className="h-4 w-24 animate-pulse rounded bg-white/[0.06]" />
+          <div className="h-12 w-full animate-pulse rounded bg-white/[0.06]" />
+          <div className="h-12 w-2/3 animate-pulse rounded bg-white/[0.06]" />
+          <div className="mt-8 aspect-[2/1] animate-pulse rounded-2xl bg-white/[0.04]" />
         </div>
       </div>
     );
@@ -166,13 +166,13 @@ export default function BlogPostPage() {
 
   if (state !== 'ready' || !post) {
     return (
-      <div className="min-h-screen bg-white px-5 pb-24 pt-32 text-center text-ink">
+      <div className="min-h-screen bg-ink px-5 pb-24 pt-32 text-center text-white">
         <Mascot pose="crying" alt="" eager className="mx-auto w-40" />
         <h1 className="font-display mt-6 text-3xl">{state === 'missing' ? 'Post not found' : "This post couldn't load"}</h1>
-        <p className="mx-auto mt-3 max-w-md text-ink/55">
+        <p className="mx-auto mt-3 max-w-md text-white/55">
           {state === 'missing' ? 'It may have been moved or unpublished.' : error}
         </p>
-        <Link to="/blog" className="btn-light-lime mt-8">Back to the blog</Link>
+        <Link to="/blog" className="btn btn-lime mt-8">Back to the blog</Link>
       </div>
     );
   }
@@ -201,7 +201,7 @@ export default function BlogPostPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-24 pt-16 text-ink sm:pt-[72px]">
+    <div className="min-h-screen bg-ink pb-24 pt-16 text-white sm:pt-[72px]">
       <Seo
         title={`${post.title} · CyberHx Blog`}
         description={post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`}
@@ -219,23 +219,23 @@ export default function BlogPostPage() {
       <article>
         <header className="mx-auto max-w-3xl px-5 pt-12 sm:px-6">
           <div className="flex items-center justify-between gap-4">
-            <Link to="/blog" className="flex items-center gap-1.5 text-sm text-ink/50 transition hover:text-ink">
+            <Link to="/blog" className="flex items-center gap-1.5 text-sm text-white/50 transition hover:text-white">
               <ArrowLeft size={16} /> All posts
             </Link>
             {isAdmin && (
-              <Link to={`/blog/edit/${post.id}`} className="flex items-center gap-1.5 rounded-lg border border-black/15 px-3 py-1.5 text-sm font-semibold text-ink transition hover:border-black/30">
+              <Link to={`/blog/edit/${post.id}`} className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-sm font-semibold text-white transition hover:border-white/30">
                 <PenLine size={15} /> Edit
               </Link>
             )}
           </div>
-          <Link to={`/blog?category=${encodeURIComponent(post.category)}`} className="mt-8 inline-block text-sm font-semibold uppercase tracking-wide text-[#7a9a00] hover:underline">
+          <Link to={`/blog?category=${encodeURIComponent(post.category)}`} className="mt-8 inline-block text-sm font-semibold uppercase tracking-wide text-lime hover:underline">
             {post.category}
           </Link>
-          <h1 className="font-display mt-3 text-4xl leading-[1.08] text-ink sm:text-5xl">{post.title}</h1>
-          {post.excerpt && <p className="mt-5 text-xl leading-8 text-ink/55">{post.excerpt}</p>}
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-black/10 py-4">
+          <h1 className="font-display mt-3 text-4xl leading-[1.08] text-white sm:text-5xl">{post.title}</h1>
+          {post.excerpt && <p className="mt-5 text-xl leading-8 text-white/55">{post.excerpt}</p>}
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-white/10 py-4">
             <Byline post={post} />
-            <span className="flex items-center gap-1.5 text-sm text-ink/50">
+            <span className="flex items-center gap-1.5 text-sm text-white/50">
               <Eye size={15} /> {compactNumber(post.views)} views
             </span>
           </div>
@@ -243,7 +243,7 @@ export default function BlogPostPage() {
 
         {post.cover_image && (
           <div className="mx-auto mt-10 max-w-5xl px-5 sm:px-6">
-            <div className="aspect-[2/1] overflow-hidden rounded-3xl border border-black/10 shadow-sm">
+            <div className="aspect-[2/1] overflow-hidden rounded-3xl border border-white/10 shadow-sm">
               <Cover src={post.cover_image} alt="" seed={post.slug} label={post.category} />
             </div>
           </div>
@@ -254,14 +254,14 @@ export default function BlogPostPage() {
           <nav className="hidden xl:block" aria-label="On this page">
             {toc.length >= 2 && (
               <div className="sticky top-32 pt-10">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink/45">On this page</p>
-                <ul className="mt-3 space-y-2 border-l border-black/10 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/45">On this page</p>
+                <ul className="mt-3 space-y-2 border-l border-white/10 text-sm">
                   {toc.map((t) => (
                     <li key={t.id}>
                       <a
                         href={`#${t.id}`}
                         className={`-ml-px block border-l-2 py-0.5 transition ${t.level === 3 ? 'pl-6' : 'pl-3.5'} ${
-                          activeId === t.id ? 'border-lime font-semibold text-ink' : 'border-transparent text-ink/50 hover:text-ink'
+                          activeId === t.id ? 'border-lime font-semibold text-white' : 'border-transparent text-white/50 hover:text-white'
                         }`}
                       >
                         {t.text}
@@ -274,12 +274,12 @@ export default function BlogPostPage() {
           </nav>
 
           <div id="post-body" className="min-w-0">
-            <Markdown tone="light">{post.content}</Markdown>
+            <Markdown tone="dark">{post.content}</Markdown>
 
             {post.tags?.length > 0 && (
               <div className="mt-12 flex flex-wrap gap-2">
                 {post.tags.map((t) => (
-                  <Link key={t} to={`/blog?tag=${encodeURIComponent(t)}`} className="rounded-full border border-black/10 bg-white px-3 py-1 text-sm text-ink/65 transition hover:border-black/25 hover:text-ink">
+                  <Link key={t} to={`/blog?tag=${encodeURIComponent(t)}`} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-sm text-white/65 transition hover:border-white/25 hover:text-white">
                     #{t}
                   </Link>
                 ))}
@@ -287,23 +287,23 @@ export default function BlogPostPage() {
             )}
 
             {/* Like + share */}
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-black/[0.08] bg-[#f4f6f1] p-4">
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-[#0b1020] p-4">
               <button
                 type="button"
                 onClick={toggleLike}
                 aria-pressed={liked}
                 className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                  liked ? 'border-red-400/60 bg-red-50 text-red-600' : 'border-black/12 bg-white text-ink/85 hover:border-red-400/50'
+                  liked ? 'border-red-400/50 bg-red-500/10 text-red-300' : 'border-white/12 bg-white/[0.04] text-white/85 hover:border-red-400/50'
                 }`}
               >
                 <Heart size={17} className={liked ? 'fill-current' : ''} /> {liked ? 'Liked' : 'Like'} · {compactNumber(likes)}
               </button>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={copy} className="flex h-10 items-center gap-1.5 rounded-full border border-black/12 bg-white px-3 text-sm font-semibold text-ink transition hover:border-black/30">
-                  {copied ? <Check size={16} className="text-[#5f7700]" /> : <Link2 size={16} />} {copied ? 'Copied' : 'Copy link'}
+                <button type="button" onClick={copy} className="flex h-10 items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.04] px-3 text-sm font-semibold text-white transition hover:border-white/30">
+                  {copied ? <Check size={16} className="text-lime" /> : <Link2 size={16} />} {copied ? 'Copied' : 'Copy link'}
                 </button>
                 {share.map((s) => (
-                  <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} title={s.label} className="flex h-10 w-10 items-center justify-center rounded-full border border-black/12 bg-white text-ink/70 transition hover:border-black/30 hover:text-ink">
+                  <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} title={s.label} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/70 transition hover:border-white/30 hover:text-white">
                     {s.icon}
                   </a>
                 ))}
@@ -317,7 +317,7 @@ export default function BlogPostPage() {
       {/* Related */}
       {related.length > 0 && (
         <section className="mx-auto mt-20 max-w-6xl px-5 sm:px-6">
-          <h2 className="font-display text-2xl text-ink">More in {post.category}</h2>
+          <h2 className="font-display text-2xl text-white">More in {post.category}</h2>
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((p) => <PostCard key={p.id} post={p} />)}
           </div>
