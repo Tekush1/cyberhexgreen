@@ -1,25 +1,45 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { certifications } from '../../data/pentest';
+import { certifications, type Cert } from '../../data/pentest';
 import { Local } from '../shared/Local';
 
 const ease = [0.2, 0.8, 0.2, 1] as const;
 
+type ScreenCopy = {
+  kicker: string;
+  heading: [string, string];
+  body: string;
+  steps: string[];
+  ghost: string;
+  cta: string;
+};
+
+const copy: Record<Cert['code'], ScreenCopy> = {
+  CPPT: {
+    kicker: 'THE FLAGSHIP · SPIRIT OF THE FALCON',
+    heading: ['Break in like', 'a professional.'],
+    body: 'CPPT is a hands-on exam on real machines. No multiple choice: you get a target and you take it.',
+    steps: ['Recon and enumeration at scale', 'Exploitation mapped to MITRE ATT&CK', 'Privilege escalation and attack chaining'],
+    ghost: 'PRO',
+    cta: 'Get CPPT',
+  },
+  CAPT: {
+    kicker: 'START HERE · SPIRIT OF THE WOLF',
+    heading: ['Think like', 'an attacker.'],
+    body: 'CAPT is your first hands-on exam. Learn the method on guided lab machines, then prove it on a real target.',
+    steps: ['Core pentest methodology, start to finish', 'Guided practice machines on the Pentest Lab', 'Recon, scanning and exploitation basics'],
+    ghost: 'WOLF',
+    cta: 'Get CAPT',
+  },
+};
+
 // Rising sparks: [left %, top %, delay s]
-const topSparks: [number, number, number][] = [[6, 80, 0], [18, 92, -2], [34, 70, -4], [52, 88, -1], [66, 76, -5], [78, 95, -3], [90, 72, -6]];
-const bandSparks: [number, number, number][] = [[8, 90, -1], [24, 80, -3], [46, 95, -5], [70, 85, -2], [88, 92, -4]];
+const sparks: [number, number, number][] = [[6, 80, 0], [18, 92, -2], [34, 70, -4], [52, 88, -1], [66, 76, -5], [78, 95, -3], [90, 72, -6]];
 
-const cpptSteps = [
-  'Recon and enumeration at scale',
-  'Exploitation mapped to MITRE ATT&CK',
-  'Privilege escalation and attack chaining',
-];
-
-/** Editorial certification section: CPPT as the flagship (falcon), CAPT as the entry band (wolf). */
-export const CertificationsSection = () => {
+function CertScreen({ cert, tone, mirrored }: { cert: Cert; tone: 'lime' | 'cyan'; mirrored?: boolean }) {
   const reduce = useReducedMotion();
-  const capt = certifications.find((c) => c.code === 'CAPT')!;
-  const cppt = certifications.find((c) => c.code === 'CPPT')!;
+  const c = copy[cert.code];
+  const accent = tone === 'lime' ? 'text-lime' : 'text-glow';
 
   const rise = (delay = 0, y = 28) => ({
     initial: reduce ? false : { opacity: 0, y },
@@ -29,25 +49,36 @@ export const CertificationsSection = () => {
   });
 
   return (
-    <section id="certifications" className="cx-ed relative scroll-mt-20 overflow-hidden border-t border-white/[0.06]">
-      {/* Falcon realm (design 1 background) */}
-      <div className="cx-ed-realm cx-ed-realm-top" aria-hidden="true">
-        <img src={cppt.mascot} alt="" draggable={false} className="cx-ed-falcon pointer-events-none absolute select-none" />
+    <div className={`cx-scr cx-scr-${tone} ${mirrored ? 'cx-scr-mirror' : ''} relative overflow-hidden`}>
+      {/* Realm background + spirit */}
+      <div className="cx-ed-realm" aria-hidden="true">
+        <img src={cert.mascot} alt="" draggable={false} className="cx-scr-spirit pointer-events-none absolute select-none" />
       </div>
-      <div className="cx-ed-ghost pointer-events-none absolute select-none" aria-hidden="true">PRO</div>
-      {topSparks.map(([l, t, d], i) => (
-        <span key={`t${i}`} className="cx-spark" style={{ left: `${l}%`, top: `${t}%`, animationDelay: `${d}s` }} aria-hidden="true" />
+      <div className="cx-ed-ghost pointer-events-none absolute select-none" aria-hidden="true">
+        {c.ghost}
+      </div>
+      {sparks.map(([l, t, d], i) => (
+        <span
+          key={i}
+          className={`cx-spark ${tone === 'cyan' ? 'cx-spark-c' : ''}`}
+          style={{ left: `${mirrored ? 100 - l : l}%`, top: `${t}%`, animationDelay: `${d}s` }}
+          aria-hidden="true"
+        />
       ))}
 
-      {/* Flagship: CPPT */}
-      <div className="cx-ed-flag relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-24 sm:px-6 sm:pt-28 lg:grid-cols-[0.92fr_1.08fr] lg:gap-10 lg:px-8 lg:pb-28 lg:pt-32">
-        <motion.div {...rise(0.1, 40)} className="cx-ed-hw relative mx-auto aspect-square w-full max-w-[34rem]">
+      <div
+        className={`cx-scr-grid relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 sm:px-6 lg:gap-10 lg:px-8 lg:pb-28 ${
+          mirrored ? 'pt-[calc(5rem+4vw)] lg:grid-cols-[1.08fr_0.92fr] lg:pt-[calc(7rem+4vw)]' : 'pt-24 sm:pt-28 lg:grid-cols-[0.92fr_1.08fr] lg:pt-32'
+        }`}
+      >
+        {/* Badge stage */}
+        <motion.div {...rise(0.1, 40)} className={`cx-ed-hw relative mx-auto aspect-square w-full max-w-[34rem] ${mirrored ? 'lg:order-2' : ''}`}>
           <div className="cx-ed-halo absolute inset-[10%] rounded-full" aria-hidden="true" />
           <div className="cx-ed-orbit absolute inset-[4%] rounded-full" aria-hidden="true" />
           <div className="cx-ed-orbit cx-ed-orbit-b absolute -inset-[4%] rounded-full" aria-hidden="true" />
           <img
-            src={cppt.badge}
-            alt="CyberHx CPPT — Certified Professional Penetration Tester badge"
+            src={cert.badge}
+            alt={`CyberHx ${cert.code} — ${cert.title} badge`}
             loading="lazy"
             decoding="async"
             draggable={false}
@@ -55,25 +86,26 @@ export const CertificationsSection = () => {
           />
         </motion.div>
 
-        <div className="relative min-w-0">
-          <motion.p {...rise(0)} className="font-mono text-xs tracking-[0.2em] text-lime sm:text-[13px]">
-            THE FLAGSHIP · SPIRIT OF THE FALCON
+        {/* Copy */}
+        <div className={`relative min-w-0 ${mirrored ? 'lg:order-1' : ''}`}>
+          <motion.p {...rise(0)} className={`font-mono text-xs tracking-[0.2em] sm:text-[13px] ${accent}`}>
+            {c.kicker}
           </motion.p>
           <motion.h2
             {...rise(0.08)}
             className="font-display mt-5 text-[2.6rem] leading-[0.93] tracking-[-0.04em] text-[#f4f4f0] sm:text-7xl lg:text-[3.5rem] lg:whitespace-nowrap xl:text-[4rem]"
           >
-            <span className="block">Break in like</span>
-            <span className="block">a professional.</span>
+            <span className="block">{c.heading[0]}</span>
+            <span className="block">{c.heading[1]}</span>
           </motion.h2>
           <motion.p {...rise(0.16)} className="mt-6 max-w-lg text-lg leading-8 text-[#f4f4f0]/60">
-            CPPT is a hands-on exam on real machines. No multiple choice: you get a target and you take it.
+            {c.body}
           </motion.p>
 
           <div className="mt-7 flex flex-col gap-3.5">
-            {cpptSteps.map((s, i) => (
+            {c.steps.map((s, i) => (
               <motion.div key={s} {...rise(0.22 + i * 0.07, 14)} className="cx-ed-step flex items-baseline gap-5">
-                <span className="font-mono text-[13px] text-lime">0{i + 1}</span>
+                <span className={`font-mono text-[13px] ${accent}`}>0{i + 1}</span>
                 <span className="text-lg text-[#f4f4f0]/90">{s}</span>
               </motion.div>
             ))}
@@ -84,62 +116,37 @@ export const CertificationsSection = () => {
             <div className="flex flex-wrap items-center justify-between gap-6">
               <div>
                 <p className="text-[13px] tracking-[0.2em] text-[#f4f4f0]/45">ONE-TIME</p>
-                <p className="font-display mt-1.5 text-7xl leading-none tracking-[-0.035em] text-[#f4f4f0] sm:text-[5rem]">
-                  ${cppt.usd}
+                <p className={`font-display mt-1.5 text-7xl leading-none tracking-[-0.035em] sm:text-[5rem] ${tone === 'cyan' ? 'text-glow' : 'text-[#f4f4f0]'}`}>
+                  ${cert.usd}
                 </p>
-                <Local usd={cppt.usd} className="mt-2 block text-sm text-[#f4f4f0]/45" />
+                <Local usd={cert.usd} className="mt-2 block text-sm text-[#f4f4f0]/45" />
               </div>
-              <a href={cppt.href} target="_blank" rel="noopener noreferrer" className="cx-ed-cta group relative overflow-hidden">
-                Get CPPT
+              <a
+                href={cert.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`cx-ed-cta group relative overflow-hidden ${tone === 'cyan' ? 'cx-ed-cta-cyan' : ''}`}
+              >
+                {c.cta}
                 <ArrowRight size={19} strokeWidth={2.6} className="transition-transform duration-300 group-hover:translate-x-1" />
               </a>
             </div>
           </motion.div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Entry band: CAPT, in the wolf realm */}
-      <div className="cx-ed-bandwrap relative">
-      <motion.a
-        {...rise(0, 20)}
-        href={capt.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="cx-ed-band group relative block overflow-hidden"
-      >
-        <div className="cx-ed-realm cx-ed-realm-band" aria-hidden="true">
-          <img src={capt.mascot} alt="" draggable={false} className="cx-ed-wolf pointer-events-none absolute select-none" />
-        </div>
-        {bandSparks.map(([l, t, d], i) => (
-          <span key={`b${i}`} className="cx-spark cx-spark-c" style={{ left: `${l}%`, top: `${t}%`, animationDelay: `${d}s` }} aria-hidden="true" />
-        ))}
-        <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-8 px-5 pb-14 pt-[calc(3.5rem+4vw)] sm:px-6 md:flex-row md:items-center md:gap-12 lg:px-8 lg:pb-16 lg:pt-[calc(4rem+4vw)] lg:pl-[22rem]">
-          <img
-            src={capt.badge}
-            alt="CyberHx CAPT — Certified Associate Penetration Tester badge"
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-            className="cx-ed-mini w-32 shrink-0 select-none sm:w-40"
-          />
-          <div className="flex-1">
-            <p className="font-mono text-xs tracking-[0.18em] text-glow sm:text-[13px]">NEW TO PENTESTING · SPIRIT OF THE WOLF</p>
-            <p className="font-display mt-3 text-4xl leading-none tracking-[-0.03em] text-[#f4f4f0] sm:text-[2.75rem]">Start with CAPT.</p>
-            <p className="mt-3 text-[17px] text-[#f4f4f0]/60">
-              Certified Associate Penetration Tester · core methodology on guided lab machines.
-            </p>
-          </div>
-          <div className="md:text-right">
-            <p className="font-display text-6xl leading-none text-glow">${capt.usd}</p>
-            <Local usd={capt.usd} className="mt-1 block text-sm text-[#f4f4f0]/45" />
-            <span className="cx-ed-ghostbtn mt-4">
-              Get CAPT
-              <ArrowRight size={18} strokeWidth={2.6} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </span>
-          </div>
-        </div>
-      </motion.a>
-      </div>
+/** Two full certification screens: CPPT (falcon, lime) then CAPT (wolf, cyan, mirrored). */
+export const CertificationsSection = () => {
+  const capt = certifications.find((c) => c.code === 'CAPT')!;
+  const cppt = certifications.find((c) => c.code === 'CPPT')!;
+
+  return (
+    <section id="certifications" className="cx-ed relative scroll-mt-20 overflow-hidden border-t border-white/[0.06]">
+      <CertScreen cert={cppt} tone="lime" />
+      <CertScreen cert={capt} tone="cyan" mirrored />
     </section>
   );
 };
