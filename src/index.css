@@ -894,25 +894,6 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .cx-ed:has(.cx-ed-flag:hover) .cx-ed-realm-band { filter: brightness(.45) saturate(.5); }
 .cx-ed:has(.cx-ed-flag:hover) .cx-ed-falcon { opacity: .5; scale: 1.05; }
 .cx-ed-bandwrap { margin-top: -4vw; z-index: 1; }
-.cx-ed-seam {
-  position: absolute; left: -2%; width: 104%; top: 2vw; height: 2px; z-index: 3; pointer-events: none;
-  transform: translateY(-50%) rotate(-2.29deg);
-  background: linear-gradient(90deg, transparent, #3bd3ff 25%, #fff 50%, #c6f135 75%, transparent);
-  box-shadow: 0 0 18px rgba(198,241,53,.8), 0 0 60px rgba(59,211,255,.5);
-}
-.cx-ed-bolt {
-  position: absolute; top: -5px; width: 120px; height: 12px; border-radius: 12px;
-  background: radial-gradient(closest-side, #fff, rgba(198,241,53,.6), transparent);
-  animation: cx-ed-bolt 3.2s linear infinite;
-}
-@keyframes cx-ed-bolt { from { left: -140px; } to { left: 100%; } }
-.cx-ed-lvl {
-  position: absolute; left: 50%; top: 2vw; z-index: 4; width: 60px; height: 60px; transform: translate(-50%, -50%);
-  display: flex; align-items: center; justify-content: center; border-radius: 50%;
-  background: #03050a; border: 1px solid rgba(255,255,255,.25); color: #fff;
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: .1em;
-  box-shadow: 0 0 0 8px rgba(3,5,10,.9), 0 0 40px rgba(198,241,53,.35);
-}
 .cx-spark { position: absolute; z-index: 1; width: 3px; height: 3px; border-radius: 50%; background: #c6f135; box-shadow: 0 0 8px #c6f135; opacity: 0; pointer-events: none; animation: cx-rise 8s linear infinite; }
 .cx-spark-c { background: #3bd3ff; box-shadow: 0 0 8px #3bd3ff; }
 @keyframes cx-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } 100% { transform: translateY(-420px); opacity: 0; } }
@@ -928,7 +909,7 @@ img[loading="lazy"] { transition: filter 0.3s; }
   .cx-ed-wolf { opacity: .2; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cx-ed-falcon, .cx-ed-halo, .cx-ed-orbit, .cx-ed-hero, .cx-ed-wolf, .cx-ed-bolt, .cx-spark, .cx-ed-cta::before { animation: none !important; }
+  .cx-ed-falcon, .cx-ed-halo, .cx-ed-orbit, .cx-ed-hero, .cx-ed-wolf, .cx-spark, .cx-ed-cta::before { animation: none !important; }
   .cx-spark { display: none; }
   .cx-ed-hw:hover .cx-ed-hero, .cx-ed-band:hover .cx-ed-mini, .cx-ed-band:hover .cx-ed-wolf { transform: none; }
 }

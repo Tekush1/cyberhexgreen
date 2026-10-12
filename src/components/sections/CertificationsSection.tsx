@@ -98,12 +98,8 @@ export const CertificationsSection = () => {
         </div>
       </div>
 
-      {/* Entry band: CAPT, split from the falcon realm by the glowing seam */}
+      {/* Entry band: CAPT, in the wolf realm */}
       <div className="cx-ed-bandwrap relative">
-        <div className="cx-ed-seam" aria-hidden="true">
-          <span className="cx-ed-bolt" />
-        </div>
-        <div className="cx-ed-lvl" aria-hidden="true">LVL</div>
       <motion.a
         {...rise(0, 20)}
         href={capt.href}
