@@ -112,13 +112,9 @@ function CertScreen({ cert, tone, mirrored, pinned }: { cert: Cert; tone: 'lime'
           <motion.p {...rise(0)} className={`font-mono text-xs tracking-[0.2em] sm:text-[13px] ${accent}`}>
             {c.kicker}
           </motion.p>
-          <motion.div {...rise(0.04, 12)} className="cx-scr-meta mt-3 flex flex-wrap gap-2">
-            {c.meta.map((m) => (
-              <span key={m} className="cx-scr-chip">
-                {m}
-              </span>
-            ))}
-          </motion.div>
+          <motion.p {...rise(0.04, 12)} className="cx-scr-meta mt-2.5 text-sm font-medium text-[#f4f4f0]/55">
+            {c.meta.join('  ·  ')}
+          </motion.p>
           <motion.h2
             {...rise(0.08)}
             className={`font-display mt-5 leading-[0.93] tracking-[-0.04em] text-[#f4f4f0] ${

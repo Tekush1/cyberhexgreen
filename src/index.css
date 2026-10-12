@@ -898,7 +898,6 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .cx-spark-c { background: #3bd3ff; box-shadow: 0 0 8px #3bd3ff; }
 @keyframes cx-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } 100% { transform: translateY(-420px); opacity: 0; } }
 
-.cx-scr-chip { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: rgb(var(--cx)); background: rgba(var(--cx), .1); box-shadow: inset 0 0 0 1px rgba(var(--cx), .35); }
 
 /* Diagonal wipe: both screens pinned in one viewport */
 .cx-wipe-sticky { height: 100vh; height: 100svh; }
