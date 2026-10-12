@@ -9,28 +9,44 @@ const ease = [0.2, 0.8, 0.2, 1] as const;
 type ScreenCopy = {
   kicker: string;
   heading: [string, string];
+  fullName: string;
+  meta: string[];
   body: string;
-  steps: string[];
+  steps: { title: string; text: string }[];
   ghost: string;
   cta: string;
+  long?: boolean;
 };
 
 const copy: Record<Cert['code'], ScreenCopy> = {
   CPPT: {
     kicker: 'THE FLAGSHIP · SPIRIT OF THE FALCON',
-    heading: ['Break in like', 'a professional.'],
-    body: 'CPPT is a hands-on exam on real machines. No multiple choice: you get a target and you take it.',
-    steps: ['Recon and enumeration at scale', 'Exploitation mapped to MITRE ATT&CK', 'Privilege escalation and attack chaining'],
+    heading: ['Break In Like', 'a Professional.'],
+    fullName: 'Certified Professional Penetration Tester',
+    meta: ['Professional · Level 02', 'Difficulty: Medium–Hard'],
+    body: 'CPPT is a professional penetration-testing certification focused on independent security assessment, vulnerability validation, and practical exploitation.',
+    steps: [
+      { title: 'Advanced Recon & Enumeration', text: 'Map the attack surface and identify potential entry points.' },
+      { title: 'Advanced Web & API Security', text: 'Investigate vulnerabilities, authorization flaws, and attack paths.' },
+      { title: 'Privilege Escalation & Attack Chaining', text: 'Validate impact and document findings professionally.' },
+    ],
     ghost: 'PRO',
     cta: 'Get CPPT',
   },
   CAPT: {
-    kicker: 'START HERE · SPIRIT OF THE WOLF',
-    heading: ['Think like', 'an attacker.'],
-    body: 'CAPT is your first hands-on exam. Learn the method on guided lab machines, then prove it on a real target.',
-    steps: ['Core pentest methodology, start to finish', 'Guided practice machines on the Pentest Lab', 'Recon, scanning and exploitation basics'],
+    kicker: 'THE FLAGSHIP · SPIRIT OF THE WOLF',
+    heading: ['Master the Fundamentals.', 'Hunt the Weakness.'],
+    fullName: 'Certified Associate Penetration Tester',
+    meta: ['Associate · Level 01'],
+    body: 'CAPT is an associate-level penetration-testing certification focused on building practical skills in reconnaissance, vulnerability assessment, web security, network testing, and exploitation fundamentals.',
+    steps: [
+      { title: 'Recon & Enumeration', text: 'Discover assets, map services, and identify potential weaknesses.' },
+      { title: 'Web & Network Security', text: 'Investigate common vulnerabilities and validate findings in authorized labs.' },
+      { title: 'Exploitation Fundamentals', text: 'Learn controlled testing, evidence collection, and professional reporting.' },
+    ],
     ghost: 'WOLF',
     cta: 'Get CAPT',
+    long: true,
   },
 };
 
@@ -96,28 +112,41 @@ function CertScreen({ cert, tone, mirrored, pinned }: { cert: Cert; tone: 'lime'
           <motion.p {...rise(0)} className={`font-mono text-xs tracking-[0.2em] sm:text-[13px] ${accent}`}>
             {c.kicker}
           </motion.p>
+          <motion.p {...rise(0.04, 12)} className="cx-scr-meta mt-2.5 text-sm font-medium text-[#f4f4f0]/55">
+            {c.meta.join('  ·  ')}
+          </motion.p>
           <motion.h2
             {...rise(0.08)}
-            className="font-display mt-5 text-[2.6rem] leading-[0.93] tracking-[-0.04em] text-[#f4f4f0] sm:text-7xl lg:text-[3.5rem] lg:whitespace-nowrap xl:text-[4rem]"
+            className={`font-display mt-5 leading-[0.93] tracking-[-0.04em] text-[#f4f4f0] ${
+              c.long
+                ? 'text-[2.15rem] sm:text-6xl lg:whitespace-nowrap lg:text-[2.3rem] xl:text-[2.6rem]'
+                : 'text-[2.6rem] sm:text-7xl lg:whitespace-nowrap lg:text-[3.5rem] xl:text-[4rem]'
+            }`}
           >
             <span className="block">{c.heading[0]}</span>
             <span className="block">{c.heading[1]}</span>
           </motion.h2>
-          <motion.p {...rise(0.16)} className="cx-scr-body mt-6 max-w-lg text-lg leading-8 text-[#f4f4f0]/60">
+          <motion.p {...rise(0.12, 14)} className="cx-scr-full mt-3 text-[15px] font-semibold text-[#f4f4f0]/75">
+            {c.fullName}
+          </motion.p>
+          <motion.p {...rise(0.16)} className="cx-scr-body mt-4 max-w-lg text-[17px] leading-7 text-[#f4f4f0]/60">
             {c.body}
           </motion.p>
 
-          <div className="cx-scr-steps mt-7 flex flex-col gap-3.5">
+          <div className="cx-scr-steps mt-6 flex flex-col gap-3.5">
             {c.steps.map((s, i) => (
-              <motion.div key={s} {...rise(0.22 + i * 0.07, 14)} className="cx-ed-step flex items-baseline gap-5">
+              <motion.div key={s.title} {...rise(0.22 + i * 0.07, 14)} className="cx-ed-step flex items-baseline gap-5">
                 <span className={`font-mono text-[13px] ${accent}`}>0{i + 1}</span>
-                <span className="text-lg text-[#f4f4f0]/90">{s}</span>
+                <span>
+                  <span className="block text-[17px] font-semibold text-[#f4f4f0]/95">{s.title}</span>
+                  <span className="cx-scr-stepd block text-[15px] leading-6 text-[#f4f4f0]/55">{s.text}</span>
+                </span>
               </motion.div>
             ))}
           </div>
 
           <motion.div {...rise(0.45)}>
-            <div className="my-8 h-px bg-white/[0.12]" />
+            <div className="cx-scr-rule my-7 h-px bg-white/[0.12]" />
             <div className="flex flex-wrap items-center justify-between gap-6">
               <div>
                 <p className="text-[13px] tracking-[0.2em] text-[#f4f4f0]/45">ONE-TIME</p>
