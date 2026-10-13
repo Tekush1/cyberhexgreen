@@ -95,8 +95,6 @@ function CertScreen({ cert, tone, mirrored, pinned }: { cert: Cert; tone: 'lime'
         {/* Badge stage */}
         <motion.div {...rise(0.1, 40)} className={`cx-ed-hw relative mx-auto aspect-square w-full max-w-[34rem] cx-scr-stage ${mirrored ? 'lg:order-2' : ''}`}>
           <div className="cx-ed-halo absolute inset-[10%] rounded-full" aria-hidden="true" />
-          <div className="cx-ed-orbit absolute inset-[4%] rounded-full" aria-hidden="true" />
-          <div className="cx-ed-orbit cx-ed-orbit-b absolute -inset-[4%] rounded-full" aria-hidden="true" />
           <img
             src={cert.badge}
             alt={`CyberHx ${cert.code} — ${cert.title} badge`}
