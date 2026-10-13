@@ -122,7 +122,7 @@ const PROVIDERS: ProviderDef[] = [
       }),
   },
   {
-    id: 'brevo', label: 'Brevo', env: ['BREVO_API_KEY'], defaultFrom: 'CyberHx <news@n1.cyberhx.com>',
+    id: 'brevo', label: 'Brevo', env: ['BREVO_API_KEY'], defaultFrom: 'CyberHx <mail@n1.cyberhx.com>',
     day: 300, month: null, concurrency: 4, dashboard: 'https://app.brevo.com',
     send: (msgs, from, replyTo) =>
       perMessage(msgs, 4, async (m) => {
