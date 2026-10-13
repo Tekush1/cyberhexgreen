@@ -10,7 +10,7 @@ export const HomePage = () => (
   <>
     <Seo
       title="CyberHx — Global Cybersecurity Community | CTF, Pentest Lab, Scam Alerts"
-      description="CyberHx runs capture-the-flag events for the global security community, builds custom CTFs for universities and companies worldwide from $49, and trains you on the Pentest Lab with the CAPT ($49) and CPPT ($99) certifications."
+      description="CyberHx runs capture-the-flag events for the global security community, builds custom CTFs for universities and companies worldwide from $49, and trains you on the Pentest Lab with the CAPT ($149) and CPPT ($199) certifications."
       path="/"
     />
     <HeroSection />
