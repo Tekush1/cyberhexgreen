@@ -18,7 +18,7 @@ Supabase → SQL Editor → paste `supabase/mailing.sql` → **Run**.
 | Service | Free limit | Used first for | Sending domain / address | Status (14 Oct) |
 |---|---|---|---|---|
 | Sender (sender.net) | 15,000 / month, no daily cap | Event blasts | `events@cyberhx.com` (root domain) | key set |
-| Brevo | 300 / day | Newsletters | `news@subscriber.cyberhx.com` | key set, domain DNS not found yet |
+| Brevo | 300 / day | Newsletters | `news@n1.cyberhx.com` (n1 is delegated to Brevo nameservers) | key set |
 | Mailgun | 100 / day | Notifications | `alerts@n3.cyberhx.com` | key set |
 | Mailjet | 200 / day, 6,000 / month | Notifications | `alerts@notification.cyberhx.com` | not set up |
 | Mailtrap | 150 / day, 4,000 / month | Backup | `alerts@n2.cyberhx.com` | not set up |
