@@ -6,8 +6,8 @@
 //
 // Required env vars (Vercel -> Project -> Settings -> Environment Variables; NEVER commit them):
 //   RESEND_API_KEY   your Resend API key (re_...)
-//   RESEND_FROM      sender, e.g. "CyberHx <team@cyberhx.com>" (the domain must be verified in Resend)
-//   RESEND_REPLY_TO  optional reply-to address
+//   RESEND_FROM      optional sender, default "CyberHx <team@mail.cyberhx.com>" (mail.cyberhx.com is verified in Resend)
+//   RESEND_REPLY_TO  optional but recommended: a real inbox for replies (mail.cyberhx.com is send-only)
 // Plus the SUPABASE_URL / SUPABASE_ANON_KEY already used by api/interview.ts for the admin check.
 
 import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates.js';
@@ -74,7 +74,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const mail = renderEmail(template, vars);
-  const from = process.env.RESEND_FROM || 'CyberHx <onboarding@resend.dev>';
+  const from = process.env.RESEND_FROM || 'CyberHx <team@mail.cyberhx.com>';
   const replyTo = process.env.RESEND_REPLY_TO;
 
   // One email per person, so nobody sees the other recipients.

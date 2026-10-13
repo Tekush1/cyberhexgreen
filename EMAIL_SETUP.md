@@ -10,16 +10,16 @@ the server (`process.env.RESEND_API_KEY`) and it is never sent to the browser.
 
 ## Steps
 
-1. **Resend → Domains → Add domain** → `cyberhx.com` → add the DNS records it shows (at your domain/DNS
-   provider) → wait until it says *Verified*. Without this you can only send to your own Resend email.
+1. **Resend → Domains**: `mail.cyberhx.com` must show *Verified* (already added). Emails go out from
+   `team@mail.cyberhx.com` by default.
 2. **Resend → API Keys → Create API key** → permission *Sending access* → copy it (starts with `re_`).
 3. **Vercel → cyberhexgreen project → Settings → Environment Variables**, add for *Production* (and *Preview* if you like):
 
    | Name | Value |
    |---|---|
    | `RESEND_API_KEY` | the `re_…` key |
-   | `RESEND_FROM` | `CyberHx <team@cyberhx.com>` (any address on the verified domain) |
-   | `RESEND_REPLY_TO` | where replies should go, e.g. `team@cyberhx.com` (optional) |
+   | `RESEND_REPLY_TO` | a real inbox that should receive replies (recommended — the emails say "just reply") |
+   | `RESEND_FROM` | optional; default is `CyberHx <team@mail.cyberhx.com>`. Any address `@mail.cyberhx.com` works |
 
 4. **Vercel → Deployments → ⋯ on the latest → Redeploy** so the new variables are picked up.
 5. Open `/admin` → Meetings → **Email** on any meeting → pick a template → **Send**.
