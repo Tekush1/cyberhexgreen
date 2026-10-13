@@ -27,6 +27,7 @@ const TermsOfServicePage = lazy(retryImport(() => import('./pages/TermsOfService
 const NotFoundPage = lazy(retryImport(() => import('./pages/NotFoundPage')));
 const CollaborationsPage = lazy(retryImport(() => import('./pages/CollaborationsPage')));
 const BookInterviewPage = lazy(retryImport(() => import('./pages/BookInterviewPage')));
+const UnsubscribePage = lazy(retryImport(() => import('./pages/UnsubscribePage')));
 const HostYourCTF = lazy(retryImport(() => import('./pages/HostYourCTF')));
 const HiringPopup = lazy(retryImport(() => import('./components/HiringPopup').then(m => ({ default: m.HiringPopup }))));
 
@@ -91,6 +92,7 @@ function App() {
               <Route path="/terms" element={<TermsOfServicePage />} />
               {/* 404 */}
               <Route path="/host-your-ctf" element={<HostYourCTF />} />
+              <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

@@ -13,6 +13,7 @@
 // Plus the SUPABASE_URL / SUPABASE_ANON_KEY already used by api/interview.ts for the admin check.
 
 import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates.js';
+import { countUsage } from '../server/mailer.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 100; // Resend batch limit
@@ -139,6 +140,7 @@ export default async function handler(req: any, res: any) {
       const detail = [data?.name, data?.message].filter(Boolean).join(': ');
       return res.status(500).json({ error: `Resend ${r.status}${detail ? ` - ${detail}` : ''}` });
     }
+    await countUsage(String(req.headers?.authorization || ''), 'resend', list.length); // keeps Admin -> Campaigns usage honest
     return res.status(200).json({ sent: list.length });
   } catch (e) {
     console.error('resend request failed', e);

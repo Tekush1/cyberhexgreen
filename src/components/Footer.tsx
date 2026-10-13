@@ -1,6 +1,7 @@
 import { Github, Linkedin, Twitter, Instagram, Mail, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Mascot } from './shared/Mascot';
+import { SubscribeForm } from './shared/SubscribeForm';
 
 const columns = [
   {
@@ -41,6 +42,13 @@ export const Footer = () => {
         <div className="flex items-end justify-between gap-6">
           <p className="font-display max-w-xl text-3xl leading-[1.05] text-white sm:text-5xl">See you on the scoreboard.</p>
           <Mascot pose="jump" alt="" className="-mb-2 w-24 shrink-0 sm:w-32 lg:w-36" />
+        </div>
+        <div className="mt-10 grid gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6 lg:grid-cols-[1fr_1.15fr] lg:items-center lg:gap-10">
+          <div>
+            <h4 className="font-display text-xl text-white sm:text-2xl">Never miss a CTF.</h4>
+            <p className="mt-1.5 text-sm leading-6 text-muted">Get new events, registrations and results straight to your inbox.</p>
+          </div>
+          <SubscribeForm source="footer" />
         </div>
         <div className="mt-14 grid grid-cols-2 gap-x-6 gap-y-12 sm:mt-20 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
           <div className="col-span-2 lg:col-span-1">

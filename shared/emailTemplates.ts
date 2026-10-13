@@ -60,9 +60,9 @@ export const esc = (s: unknown) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const safeUrl = (u?: string | null) => (u && /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : '');
+export const safeUrl = (u?: string | null) => (u && /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : '');
 
-const firstName = (n?: string) => (n || '').trim().split(/\s+/)[0] || '';
+export const firstName = (n?: string) => (n || '').trim().split(/\s+/)[0] || '';
 
 export function fmtWhen(start?: string | null, end?: string | null) {
   if (!start) return { date: '', time: '', length: '' };
@@ -79,7 +79,7 @@ export function fmtWhen(start?: string | null, end?: string | null) {
   return { date, time, length };
 }
 
-interface Layout {
+export interface Layout {
   preheader: string;
   eyebrow: string;
   heading: string;
@@ -87,9 +87,13 @@ interface Layout {
   details?: [string, string][];
   cta?: { label: string; url: string };
   note?: string;
+  /** Promotional mail: adds an unsubscribe line to the footer. */
+  unsubscribeUrl?: string;
+  /** Optional banner image (https) shown above the heading. */
+  image?: string;
 }
 
-function layout(o: Layout) {
+export function layout(o: Layout) {
   const p = o.paragraphs
     .filter(Boolean)
     .map((t) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${C.text};">${esc(t).replace(/\n/g, '<br>')}</p>`)
@@ -125,7 +129,9 @@ function layout(o: Layout) {
       <span style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#ffffff;">cyber<span style="color:${C.lime};">hx</span></span>
     </td></tr>
     <tr><td style="background:${C.card};border:1px solid ${C.line};border-radius:16px;overflow:hidden;">
-      <div style="height:4px;background:${C.lime};font-size:0;line-height:0;">&nbsp;</div>
+      <div style="height:4px;background:${C.lime};font-size:0;line-height:0;">&nbsp;</div>${
+        safeUrl(o.image) ? `<img src="${esc(safeUrl(o.image))}" alt="" width="560" style="display:block;width:100%;height:auto;border:0;">` : ''
+      }
       <div style="padding:32px 32px 12px;">
         <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:${C.lime};">${esc(o.eyebrow)}</p>
         <h1 style="margin:0 0 20px;font-size:26px;line-height:1.2;font-weight:800;color:#ffffff;">${esc(o.heading)}</h1>
@@ -135,7 +141,11 @@ function layout(o: Layout) {
     </td></tr>
     <tr><td style="padding:20px 8px 0;font-size:12px;line-height:1.6;color:${C.muted};text-align:center;">
       CyberHx &middot; Global cybersecurity community &middot; <a href="https://cyberhx.com" style="color:${C.muted};">cyberhx.com</a><br>
-      Questions? Just reply to this email.
+      Questions? Just reply to this email.${
+        safeUrl(o.unsubscribeUrl)
+          ? `<br>You are getting this because you joined CyberHx updates. <a href="${esc(safeUrl(o.unsubscribeUrl))}" style="color:${C.muted};text-decoration:underline;">Unsubscribe</a>`
+          : ''
+      }
     </td></tr>
   </table>
 </td></tr>
@@ -143,7 +153,7 @@ function layout(o: Layout) {
 </body></html>`;
 }
 
-function textVersion(o: Layout) {
+export function textVersion(o: Layout) {
   return [
     o.heading,
     '',
@@ -155,6 +165,7 @@ function textVersion(o: Layout) {
     'Regards,',
     'Team CyberHx',
     'cyberhx.com',
+    safeUrl(o.unsubscribeUrl) ? `\nUnsubscribe: ${safeUrl(o.unsubscribeUrl)}` : '',
   ]
     .filter((l) => l !== undefined)
     .join('\n');
