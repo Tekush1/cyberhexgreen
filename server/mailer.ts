@@ -5,7 +5,7 @@
 // When a provider is out of quota or fails as a whole (bad key, domain not verified, rate limited, down),
 // the remaining recipients move to the next provider in the lane.
 
-export type ProviderId = 'resend' | 'brevo' | 'sender' | 'mailjet' | 'mailtrap' | 'smtp2go' | 'maileroo' | 'ahasend';
+export type ProviderId = 'resend' | 'brevo' | 'sender' | 'mailjet' | 'mailgun' | 'mailtrap' | 'smtp2go' | 'maileroo' | 'ahasend';
 export type Lane = 'event' | 'newsletter' | 'notification';
 
 export interface OutMsg {
@@ -35,6 +35,9 @@ interface ProviderDef {
 }
 
 const env = (k: string) => (process.env[k] || '').trim();
+
+/** Every reply to any CyberHx email lands here (override with MAIL_REPLY_TO). */
+export const DEFAULT_REPLY_TO = 'CyberHx Support <support@cyberhx.com>';
 
 // ---------- helpers ----------
 export function parseFrom(s: string): Addr {
@@ -103,7 +106,7 @@ async function perMessage(msgs: OutMsg[], concurrency: number, one: (m: OutMsg) 
 // ---------- providers ----------
 const PROVIDERS: ProviderDef[] = [
   {
-    id: 'sender', label: 'Sender', env: ['SENDER_API_KEY'], defaultFrom: 'CyberHx <events@events.cyberhx.com>',
+    id: 'sender', label: 'Sender', env: ['SENDER_API_KEY'], defaultFrom: 'CyberHx <events@cyberhx.com>',
     day: null, month: 15000, concurrency: 4, dashboard: 'https://app.sender.net',
     send: (msgs, from, replyTo) =>
       perMessage(msgs, 4, async (m) => {
@@ -180,6 +183,38 @@ const PROVIDERS: ProviderDef[] = [
     },
   },
   {
+    id: 'mailgun', label: 'Mailgun', env: ['MAILGUN_API_KEY'], defaultFrom: 'CyberHx <alerts@n3.cyberhx.com>',
+    // Free plan: 100 emails a day. Domain = MAILGUN_DOMAIN (default n3.cyberhx.com). EU accounts: MAILGUN_REGION=eu.
+    day: 100, month: null, concurrency: 3, dashboard: 'https://app.mailgun.com',
+    send: (msgs, from, replyTo) =>
+      perMessage(msgs, 3, async (m) => {
+        const domain = env('MAILGUN_DOMAIN') || 'n3.cyberhx.com';
+        const auth = 'Basic ' + Buffer.from(`api:${env('MAILGUN_API_KEY')}`).toString('base64');
+        const send = async (base: string) => {
+          const form = new FormData();
+          form.append('from', fmtAddr(from));
+          form.append('to', m.name ? fmtAddr({ email: m.to, name: m.name }) : m.to);
+          form.append('subject', m.subject);
+          form.append('text', m.text);
+          form.append('html', m.html);
+          if (replyTo) form.append('h:Reply-To', replyTo);
+          for (const [k, v] of Object.entries(m.headers || {})) form.append(`h:${k}`, v);
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 20000);
+          try {
+            return await fetch(`${base}/v3/${encodeURIComponent(domain)}/messages`, { method: 'POST', headers: { Authorization: auth }, body: form, signal: ctrl.signal });
+          } finally { clearTimeout(timer); }
+        };
+        const region = env('MAILGUN_REGION').toLowerCase();
+        let r = await send(region === 'eu' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net');
+        // A key or domain from an EU account answers 401/404 on the US endpoint: try EU once.
+        if (!region && (r.status === 401 || r.status === 404)) r = await send('https://api.eu.mailgun.net');
+        if (!r.ok) return failure(r.status, await readErr(r));
+        const j = await r.json().catch(() => ({}));
+        return { ok: true, id: j?.id };
+      }),
+  },
+  {
     id: 'mailtrap', label: 'Mailtrap', env: ['MAILTRAP_API_KEY'], defaultFrom: 'CyberHx <alerts@n2.cyberhx.com>',
     day: 150, month: 4000, concurrency: 3, dashboard: 'https://mailtrap.io',
     send: (msgs, from, replyTo) =>
@@ -197,7 +232,7 @@ const PROVIDERS: ProviderDef[] = [
       }),
   },
   {
-    id: 'maileroo', label: 'Maileroo', env: ['MAILEROO_API_KEY'], defaultFrom: 'CyberHx <alerts@n3.cyberhx.com>',
+    id: 'maileroo', label: 'Maileroo', env: ['MAILEROO_API_KEY'], defaultFrom: 'CyberHx <alerts@n5.cyberhx.com>',
     day: null, month: 3000, concurrency: 3, dashboard: 'https://app.maileroo.com',
     send: (msgs, from, replyTo) =>
       perMessage(msgs, 3, async (m) => {
@@ -214,7 +249,7 @@ const PROVIDERS: ProviderDef[] = [
       }),
   },
   {
-    id: 'smtp2go', label: 'SMTP2GO', env: ['SMTP2GO_API_KEY'], defaultFrom: 'CyberHx <alerts@n4.cyberhx.com>',
+    id: 'smtp2go', label: 'SMTP2GO', env: ['SMTP2GO_API_KEY'], defaultFrom: 'CyberHx <alerts@n6.cyberhx.com>',
     day: 200, month: 1000, concurrency: 3, dashboard: 'https://app.smtp2go.com',
     send: (msgs, from, replyTo) =>
       perMessage(msgs, 3, async (m) => {
@@ -233,7 +268,7 @@ const PROVIDERS: ProviderDef[] = [
       }),
   },
   {
-    id: 'ahasend', label: 'AhaSend', env: ['AHASEND_API_KEY', 'AHASEND_ACCOUNT_ID'], defaultFrom: 'CyberHx <alerts@n5.cyberhx.com>',
+    id: 'ahasend', label: 'AhaSend', env: ['AHASEND_API_KEY', 'AHASEND_ACCOUNT_ID'], defaultFrom: 'CyberHx <alerts@n7.cyberhx.com>',
     day: null, month: 1000, concurrency: 3, dashboard: 'https://dash.ahasend.com',
     send: (msgs, from, replyTo) =>
       perMessage(msgs, 3, async (m) => {
@@ -286,9 +321,9 @@ const PROVIDERS: ProviderDef[] = [
 
 /** Provider order per lane. Unconfigured providers are skipped; Resend is last so interviews keep their quota. */
 export const LANES: Record<Lane, ProviderId[]> = {
-  event: ['sender', 'brevo', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend'],
-  newsletter: ['brevo', 'sender', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend'],
-  notification: ['mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'brevo', 'sender', 'resend'],
+  event: ['sender', 'brevo', 'mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend'],
+  newsletter: ['brevo', 'sender', 'mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend'],
+  notification: ['mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'brevo', 'sender', 'resend'],
 };
 
 const limitFromEnv = (k: string, fallback: number | null): number | null => {
@@ -383,7 +418,7 @@ export async function route<R>(
   rows: R[],
   build: (row: R) => OutMsg,
 ): Promise<{ done: RoutedResult<R>[]; leftover: R[]; providerErrors: Record<string, string>; anyConfigured: boolean }> {
-  const replyTo = env('MAIL_REPLY_TO') || env('RESEND_REPLY_TO');
+  const replyTo = env('MAIL_REPLY_TO') || DEFAULT_REPLY_TO;
   const done: RoutedResult<R>[] = [];
   const providerErrors: Record<string, string> = {};
   let pool = rows.slice();

@@ -15,22 +15,27 @@ Supabase → SQL Editor → paste `supabase/mailing.sql` → **Run**.
 
 ## 2. Services and limits (free plans, no card)
 
-| Service | Free limit | Used first for | Suggested sending address |
-|---|---|---|---|
-| Sender (sender.net) | 15,000 / month, no daily cap | Event blasts | `events@events.cyberhx.com` |
-| Brevo | 300 / day | Newsletters | `news@subscriber.cyberhx.com` |
-| Mailjet | 200 / day, 6,000 / month | Notifications | `alerts@notification.cyberhx.com` |
-| Mailtrap | 150 / day, 4,000 / month | Notifications | `alerts@n2.cyberhx.com` |
-| Maileroo | 3,000 / month | Backup | `alerts@n3.cyberhx.com` |
-| SMTP2GO | 1,000 / month | Backup | `alerts@n4.cyberhx.com` |
-| AhaSend | 1,000 / month | Backup | `alerts@n5.cyberhx.com` |
-| Resend | 100 / day (campaigns use max 70) | Interview emails, last backup | `team@mail.cyberhx.com` |
+| Service | Free limit | Used first for | Sending domain / address | Status (14 Oct) |
+|---|---|---|---|---|
+| Sender (sender.net) | 15,000 / month, no daily cap | Event blasts | `events@cyberhx.com` (root domain) | key set |
+| Brevo | 300 / day | Newsletters | `news@subscriber.cyberhx.com` | key set, domain DNS not found yet |
+| Mailgun | 100 / day | Notifications | `alerts@n3.cyberhx.com` | key set |
+| Mailjet | 200 / day, 6,000 / month | Notifications | `alerts@notification.cyberhx.com` | not set up |
+| Mailtrap | 150 / day, 4,000 / month | Backup | `alerts@n2.cyberhx.com` | not set up |
+| Maileroo | 3,000 / month | Backup | `alerts@n5.cyberhx.com` | not set up |
+| SMTP2GO | 1,000 / month | Backup | `alerts@n6.cyberhx.com` | not set up |
+| AhaSend | 1,000 / month | Backup | `alerts@n7.cyberhx.com` | not set up |
+| Resend | 100 / day (campaigns use max 70) | Interview emails, last backup | `team@mail.cyberhx.com` | live |
+
+MailerLite (n4.cyberhx.com) is **not** used: its free plan does not allow sending through the API. Use it from its own dashboard if you like.
+
+All replies go to **support@cyberhx.com** (set `MAIL_REPLY_TO` to change).
 
 Order per type (unconnected services are skipped):
 
-- Event blast: Sender → Brevo → Mailjet → Mailtrap → Maileroo → SMTP2GO → AhaSend → Resend
-- Newsletter: Brevo → Sender → Mailjet → Mailtrap → Maileroo → SMTP2GO → AhaSend → Resend
-- Notification: Mailjet → Mailtrap → Maileroo → SMTP2GO → AhaSend → Brevo → Sender → Resend
+- Event blast: Sender → Brevo → Mailgun → Mailjet → Mailtrap → Maileroo → SMTP2GO → AhaSend → Resend
+- Newsletter: Brevo → Sender → Mailgun → Mailjet → Mailtrap → Maileroo → SMTP2GO → AhaSend → Resend
+- Notification: Mailgun → Mailjet → Mailtrap → Maileroo → SMTP2GO → AhaSend → Brevo → Sender → Resend
 
 One account per service. Do not open several free accounts on the same service: their terms forbid it and they can close all of them.
 
@@ -50,6 +55,7 @@ One account per service. Do not open several free accounts on the same service: 
 |---|---|---|
 | `SENDER_API_KEY` | Sender | Settings → API access tokens |
 | `BREVO_API_KEY` | Brevo | SMTP & API → API keys |
+| `MAILGUN_API_KEY` (+ optional `MAILGUN_DOMAIN`, default n3.cyberhx.com; `MAILGUN_REGION=eu` for EU accounts) | Mailgun | Settings → API keys (Private API key) |
 | `MAILJET_API_KEY` + `MAILJET_SECRET_KEY` | Mailjet | Account settings → API key management |
 | `MAILTRAP_API_KEY` | Mailtrap | Sending → API tokens (sending token for your domain) |
 | `MAILEROO_API_KEY` | Maileroo | Domains → your domain → Sending key |
@@ -61,7 +67,7 @@ Optional:
 
 - `<SERVICE>_FROM` changes the sender, e.g. `BREVO_FROM="CyberHx <news@subscriber.cyberhx.com>"`. It must be on a domain verified in that service.
 - `<SERVICE>_DAILY_LIMIT` / `<SERVICE>_MONTHLY_LIMIT` change a limit (`none` = no limit), e.g. after upgrading a plan.
-- `MAIL_REPLY_TO` = a real inbox that receives replies (falls back to `RESEND_REPLY_TO`).
+- `MAIL_REPLY_TO`: where replies go. Default `CyberHx Support <support@cyberhx.com>`.
 - `SITE_URL` (default `https://cyberhx.com`) for unsubscribe links.
 
 ## 5. Before a big event
