@@ -10,7 +10,7 @@
 //   RESEND_REPLY_TO  optional reply-to address
 // Plus the SUPABASE_URL / SUPABASE_ANON_KEY already used by api/interview.ts for the admin check.
 
-import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates';
+import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 100; // Resend batch limit
