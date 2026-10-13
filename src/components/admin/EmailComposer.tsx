@@ -53,14 +53,16 @@ export const EmailComposer: React.FC<{ target: EmailTarget; onClose: () => void;
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem(TOKEN_KEY) || ''}` },
         body: JSON.stringify({ template, to, vars }),
       });
-      const data = await res.json().catch(() => ({}));
+      const raw = await res.text();
+      let data: { error?: string; sent?: number } = {};
+      try { data = JSON.parse(raw); } catch { /* non-JSON (proxy error page) */ }
       if (res.status === 401) {
         sessionStorage.removeItem(TOKEN_KEY);
         window.location.reload();
         return;
       }
-      if (!res.ok) throw new Error(data.error || 'Could not send.');
-      onSent(`"${preview.subject}" sent to ${data.sent} ${data.sent === 1 ? 'person' : 'people'}.`);
+      if (!res.ok) throw new Error(data.error || `Could not send (HTTP ${res.status}).`);
+      onSent(`"${preview.subject}" sent to ${data.sent ?? to.length} ${(data.sent ?? to.length) === 1 ? 'person' : 'people'}.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not send.');
     } finally {

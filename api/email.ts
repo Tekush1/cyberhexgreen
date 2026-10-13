@@ -96,11 +96,13 @@ export default async function handler(req: any, res: any) {
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
       console.error('resend error', r.status, data);
-      return res.status(502).json({ error: data?.message || `Email service error (${r.status}).` });
+      // 500, not 502: Cloudflare in front of cyberhx.com replaces 502 bodies with its own page.
+      const detail = [data?.name, data?.message].filter(Boolean).join(': ');
+      return res.status(500).json({ error: `Resend ${r.status}${detail ? ` - ${detail}` : ''}` });
     }
     return res.status(200).json({ sent: to.length });
   } catch (e) {
     console.error('resend request failed', e);
-    return res.status(502).json({ error: 'Could not reach the email service. Try again.' });
+    return res.status(500).json({ error: 'Could not reach the email service. Try again.' });
   }
 }
