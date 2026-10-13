@@ -185,6 +185,7 @@ export default async function handler(req: any, res: any) {
       if (stuck) {
         pause = true;
         if (!r.anyConfigured) note = 'No email service is connected yet. Add API keys in Vercel (see MAILING_SETUP.md), then press Continue.';
+        else if (Object.keys(r.providerErrors).length && isProviderId(c.provider)) note = `${allProviders().find((p) => p.id === c.provider)?.label} failed. Fix it and press Continue. ${summarizeErrors(r.providerErrors)}`;
         else if (Object.keys(r.providerErrors).length) note = `Some services failed, the rest are out of quota. Fix and press Continue. ${summarizeErrors(r.providerErrors)}`;
         else if (isProviderId(c.provider)) note = `Today's free limit on ${allProviders().find((p) => p.id === c.provider)?.label} is used up. Press Continue tomorrow (05:30 IST), or start a new campaign on Automatic.`;
         else note = "Today's free limits are used up on every connected service. Press Continue tomorrow (limits reset at 05:30 IST).";
