@@ -131,6 +131,16 @@ export const CampaignsPanel: React.FC = () => {
 // =====================================================================
 function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; err: string; onRefresh: () => void }) {
   const [open, setOpen] = useState(false);
+  const [checks, setChecks] = useState<Record<string, string>>({});
+  const check = async (id: string) => {
+    setChecks((c) => ({ ...c, [id]: '…' }));
+    try {
+      const r = await campaignApi<{ ok: boolean; message: string }>({ action: 'check', provider: id });
+      setChecks((c) => ({ ...c, [id]: `${r.ok ? '✓' : '✗'} ${r.message}` }));
+    } catch (e) {
+      setChecks((c) => ({ ...c, [id]: `✗ ${e instanceof Error ? e.message : 'Check failed'}` }));
+    }
+  };
   const list = prov?.providers || [];
   const connected = list.filter((p) => p.configured);
   const today = connected.reduce((a, p) => a + remainingToday(p), 0);
@@ -191,7 +201,15 @@ function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; er
                     <td className="px-3 py-2 text-gray-400 font-mono">{p.from}</td>
                     <td className="px-3 py-2 text-gray-300 tabular-nums">{p.usedToday} / {p.day ?? '∞'}</td>
                     <td className="px-3 py-2 text-gray-300 tabular-nums">{p.usedMonth} / {p.month ?? '∞'}</td>
-                    <td className="px-3 py-2">{p.configured ? <span className="text-[#a3e635]">Connected</span> : <span className="text-gray-500">Add {p.missingEnv.join(' + ')}</span>}</td>
+                    <td className="px-3 py-2">
+                      {p.configured ? <span className="text-[#a3e635]">Connected</span> : <span className="text-gray-500">Add {p.missingEnv.join(' + ')}</span>}
+                      {p.configured && (
+                        <button onClick={() => check(p.id)} className="ml-2 px-2 py-0.5 rounded border border-white/10 text-gray-300 hover:text-white">
+                          {checks[p.id] === '…' ? 'Checking…' : 'Check'}
+                        </button>
+                      )}
+                      {checks[p.id] && checks[p.id] !== '…' && <span className={`block mt-1 max-w-md whitespace-normal ${checks[p.id].startsWith('✓') ? 'text-[#a3e635]' : 'text-amber-300'}`}>{checks[p.id]}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

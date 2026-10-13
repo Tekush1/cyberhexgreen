@@ -14,7 +14,7 @@ import {
   CAMPAIGN_TEMPLATES, CAMPAIGN_FIELDS, CAMPAIGN_MAX, renderCampaign, missingField,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../shared/campaignTemplates.js';
-import { allProviders, isProviderId, LANES, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
+import { allProviders, checkProvider, isProviderId, LANES, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const KINDS: CampaignKind[] = ['event', 'newsletter', 'notification'];
@@ -83,6 +83,11 @@ export default async function handler(req: any, res: any) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     const body = typeof req.body === 'object' && req.body ? req.body : {};
     const action = String(body.action || '');
+
+    if (action === 'check') {
+      if (!isProviderId(body.provider)) return res.status(400).json({ error: 'Unknown email service.' });
+      return res.status(200).json(await checkProvider(body.provider));
+    }
 
     // ---------- Create ----------
     if (action === 'create' || action === 'test') {

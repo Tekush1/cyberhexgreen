@@ -434,7 +434,8 @@ export async function route<R>(
     if (!info.configured) continue;
     anyConfigured = true;
     const cd = cooldown.get(pid);
-    if (cd && cd.until > Date.now()) { providerErrors[pid] = cd.error; continue; }
+    // A provider picked by hand is always tried, so you see its real error (no cool-down).
+    if (!only && cd && cd.until > Date.now()) { providerErrors[pid] = cd.error; continue; }
 
     const granted = await rpc<number>(auth, 'mail_take_quota', { p_provider: pid, p_want: pool.length, p_day_limit: info.day, p_month_limit: info.month });
     if (!granted) continue;
@@ -457,4 +458,51 @@ export async function route<R>(
   }
 
   return { done, leftover: pool, providerErrors, anyConfigured };
+}
+
+// ---------- Connection check (Admin -> Campaigns -> Sending power -> Check) ----------
+/** Asks the service whether the key works and whether the sending address is allowed. Never sends an email. */
+export async function checkProvider(id: ProviderId): Promise<{ ok: boolean; message: string }> {
+  const info = allProviders().find((p) => p.id === id);
+  if (!info) return { ok: false, message: 'Unknown service.' };
+  if (!info.configured) return { ok: false, message: `Not connected: add ${info.missingEnv.join(' + ')} in Vercel, then redeploy.` };
+  const from = parseFrom(info.from);
+  const get = async (url: string, headers: Record<string, string>) => {
+    const r = await fetch(url, { headers: { Accept: 'application/json', ...headers } });
+    const t = await r.text();
+    let j: any = null;
+    try { j = JSON.parse(t); } catch { /* not json */ }
+    return { r, j, t };
+  };
+  try {
+    if (id === 'brevo') {
+      const h = { 'api-key': env('BREVO_API_KEY') };
+      const acc = await get('https://api.brevo.com/v3/account', h);
+      if (!acc.r.ok) return { ok: false, message: `Brevo rejected the key (${acc.r.status}): ${acc.j?.message || acc.t.slice(0, 200)}` };
+      const s = await get('https://api.brevo.com/v3/senders', h);
+      const senders: any[] = Array.isArray(s.j?.senders) ? s.j.senders : [];
+      const match = senders.find((x) => String(x.email).toLowerCase() === from.email.toLowerCase());
+      if (!match) return { ok: false, message: `Key works, but ${from.email} is not a sender in Brevo. Senders there: ${senders.map((x) => x.email).join(', ') || 'none'}. Set BREVO_FROM to one of them.` };
+      if (match.active === false) return { ok: false, message: `${from.email} exists in Brevo but is not verified/active yet.` };
+      return { ok: true, message: `Key works and ${from.email} is an active sender (${acc.j?.email || 'account ok'}).` };
+    }
+    if (id === 'mailgun') {
+      const domain = env('MAILGUN_DOMAIN') || 'n3.cyberhx.com';
+      const auth = { Authorization: 'Basic ' + Buffer.from(`api:${env('MAILGUN_API_KEY')}`).toString('base64') };
+      let d = await get(`https://api.mailgun.net/v3/domains/${encodeURIComponent(domain)}`, auth);
+      if (!d.r.ok && !env('MAILGUN_REGION')) d = await get(`https://api.eu.mailgun.net/v3/domains/${encodeURIComponent(domain)}`, auth);
+      if (!d.r.ok) return { ok: false, message: `Mailgun (${d.r.status}): ${d.j?.message || d.t.slice(0, 200)}` };
+      const state = d.j?.domain?.state;
+      return { ok: state === 'active', message: `Domain ${domain} is ${state || 'unknown'}${state === 'active' ? '' : ': finish DNS verification in Mailgun'}.` };
+    }
+    if (id === 'resend') {
+      const d = await get('https://api.resend.com/domains', { Authorization: `Bearer ${env('RESEND_API_KEY')}` });
+      if (!d.r.ok) return { ok: d.r.status === 401 ? false : true, message: d.r.status === 401 ? `Resend rejected the key: ${d.j?.message || ''}` : 'Key accepted (sending-only key cannot list domains).' };
+      const dom = (d.j?.data || []).find((x: any) => from.email.endsWith('@' + x.name));
+      return { ok: dom?.status === 'verified', message: dom ? `Domain ${dom.name} is ${dom.status}.` : `No Resend domain matches ${from.email}.` };
+    }
+    return { ok: true, message: 'Key is set. This service has no check here: use Send test.' };
+  } catch (e) {
+    return { ok: false, message: `Could not reach the service: ${e instanceof Error ? e.message : e}` };
+  }
 }
