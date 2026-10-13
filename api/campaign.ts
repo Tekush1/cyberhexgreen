@@ -14,7 +14,7 @@ import {
   CAMPAIGN_TEMPLATES, CAMPAIGN_FIELDS, CAMPAIGN_MAX, renderCampaign, missingField,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../shared/campaignTemplates.js';
-import { allProviders, LANES, route, rpc, sbGet, type OutMsg } from '../server/mailer.js';
+import { allProviders, isProviderId, LANES, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const KINDS: CampaignKind[] = ['event', 'newsletter', 'notification'];
@@ -92,6 +92,14 @@ export default async function handler(req: any, res: any) {
       if (!CAMPAIGN_TEMPLATES.some((t) => t.id === template)) return res.status(400).json({ error: 'Unknown template.' });
       const vars = cleanVars(body.vars);
       const miss = missingField(template, vars);
+      // Optional: send only through one service (no automatic switching).
+      let only: ProviderId | undefined;
+      if (body.provider && body.provider !== 'auto') {
+        if (!isProviderId(body.provider)) return res.status(400).json({ error: 'Unknown email service.' });
+        const info = allProviders().find((p) => p.id === body.provider)!;
+        if (!info.configured) return res.status(400).json({ error: `${info.label} is not connected yet (add ${info.missingEnv.join(' + ')} in Vercel).` });
+        only = body.provider;
+      }
       if (miss) return res.status(400).json({ error: `Fill in "${miss}" (links must start with https://).` });
 
       if (action === 'test') {
@@ -100,7 +108,7 @@ export default async function handler(req: any, res: any) {
         const r = await route(auth, kind, [{ email: to, name: String(body.name || '').slice(0, 80), unsub_token: null }], (row) => {
           const m = buildMsg(kind, template, vars, row);
           return { ...m, subject: `[TEST] ${m.subject}` };
-        });
+        }, only);
         if (!r.anyConfigured) return res.status(400).json({ error: 'No email service is connected yet. Add at least one API key in Vercel (see MAILING_SETUP.md).' });
         const d = r.done[0];
         if (d?.ok) return res.status(200).json({ provider: d.provider });
@@ -128,6 +136,14 @@ export default async function handler(req: any, res: any) {
       const out = await rpc<{ id: string; total: number; skipped: number }>(auth, 'mail_create_campaign', {
         p_kind: kind, p_name: name, p_template: template, p_vars: vars, p_audience: audience,
       });
+      if (only) {
+        const { url, anon } = { url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY };
+        await fetch(`${url}/rest/v1/mail_campaigns?id=eq.${out.id}`, {
+          method: 'PATCH',
+          headers: { apikey: String(anon), Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ provider: only }),
+        });
+      }
       return res.status(200).json(out);
     }
 
@@ -136,7 +152,7 @@ export default async function handler(req: any, res: any) {
 
     // ---------- Send next batch ----------
     if (action === 'send') {
-      const [c] = await sbGet<any[]>(auth, `mail_campaigns?id=eq.${id}&select=id,kind,template,vars,status,total,sent,failed,note,providers`);
+      const [c] = await sbGet<any[]>(auth, `mail_campaigns?id=eq.${id}&select=id,kind,template,vars,status,total,sent,failed,note,providers,provider`);
       if (!c) return res.status(404).json({ error: 'Campaign not found.' });
       if (c.status !== 'sending') {
         return res.status(200).json({
@@ -148,7 +164,7 @@ export default async function handler(req: any, res: any) {
         const p = await rpc<any>(auth, 'mail_finish', { p_campaign: id, p_results: [] });
         return res.status(200).json({ ...p, batch: 0 });
       }
-      const r = await route(auth, c.kind as CampaignKind, rows, (row) => buildMsg(c.kind, c.template, c.vars || {}, row));
+      const r = await route(auth, c.kind as CampaignKind, rows, (row) => buildMsg(c.kind, c.template, c.vars || {}, row), isProviderId(c.provider) ? c.provider : undefined);
       const results = [
         ...r.done.map((d) => ({ id: d.row.id, status: d.ok ? 'sent' : 'failed', provider: d.provider, message_id: d.id || null, error: d.ok ? null : d.error || 'failed' })),
         ...r.leftover.map((row) =>
@@ -165,6 +181,7 @@ export default async function handler(req: any, res: any) {
         pause = true;
         if (!r.anyConfigured) note = 'No email service is connected yet. Add API keys in Vercel (see MAILING_SETUP.md), then press Continue.';
         else if (Object.keys(r.providerErrors).length) note = `Some services failed, the rest are out of quota. Fix and press Continue. ${summarizeErrors(r.providerErrors)}`;
+        else if (isProviderId(c.provider)) note = `Today's free limit on ${allProviders().find((p) => p.id === c.provider)?.label} is used up. Press Continue tomorrow (05:30 IST), or start a new campaign on Automatic.`;
         else note = "Today's free limits are used up on every connected service. Press Continue tomorrow (limits reset at 05:30 IST).";
       } else if (Object.keys(r.providerErrors).length) {
         note = `Switched services after an error. ${summarizeErrors(r.providerErrors)}`;

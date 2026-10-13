@@ -19,7 +19,7 @@ interface ProvidersRes { providers: Provider[]; lanes: Record<CampaignKind, stri
 interface Campaign {
   id: string; kind: CampaignKind; name: string; template: CampaignTemplateId; vars: CampaignVars; audience: any;
   status: 'sending' | 'paused' | 'done' | 'cancelled'; total: number; sent: number; failed: number; skipped: number;
-  providers: Record<string, number>; note: string; created_at: string; updated_at: string;
+  providers: Record<string, number>; note: string; created_at: string; updated_at: string; provider?: string | null;
 }
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#a3e635]/50';
@@ -228,6 +228,7 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
   const [listText, setListText] = useState('');
   const [listTag, setListTag] = useState('');
   const [name, setName] = useState('');
+  const [via, setVia] = useState<string>('auto');
   const [testTo, setTestTo] = useState(() => { try { return localStorage.getItem('cx_test_email') || ''; } catch { return ''; } });
   const [busy, setBusy] = useState<'' | 'test' | 'send'>('');
   const [msg, setMsg] = useState('');
@@ -257,7 +258,10 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
   const parsed = useMemo(() => parsePeople(listText), [listText]);
   const recipients = aud === 'all' ? subsCount ?? 0 : aud === 'tag' ? tags.find(([t]) => t === tag)?.[1] ?? 0 : parsed.people.length;
   const lane = prov?.lanes[kind] || [];
-  const capacity = lane.map((id) => prov?.providers.find((p) => p.id === id)).filter(Boolean).reduce((a, p) => a + remainingToday(p!), 0);
+  const connected = (prov?.providers || []).filter((p) => p.configured);
+  const viaInfo = via === 'auto' ? null : connected.find((p) => p.id === via) || null;
+  const autoOrder = lane.map((id) => connected.find((p) => p.id === id)).filter(Boolean) as Provider[];
+  const capacity = viaInfo ? remainingToday(viaInfo) : autoOrder.reduce((a, p) => a + remainingToday(p), 0);
   const miss = missingField(tpl, vars);
 
   const pickKind = (k: CampaignKind) => {
@@ -278,7 +282,7 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
     setBusy('test'); setErr(''); setMsg('');
     try {
       try { localStorage.setItem('cx_test_email', testTo); } catch { /* private mode */ }
-      const r = await campaignApi<{ provider: string }>({ action: 'test', kind, template: tpl, vars, to: testTo, name: 'Aman Verma' });
+      const r = await campaignApi<{ provider: string }>({ action: 'test', kind, template: tpl, vars, to: testTo, name: 'Aman Verma', provider: via });
       setMsg(`Test sent to ${testTo} through ${prov?.providers.find((p) => p.id === r.provider)?.label || r.provider}. Check the inbox (and spam).`);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Test failed.'); } finally { setBusy(''); }
   };
@@ -288,7 +292,7 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
     try {
       const audience = aud === 'all' ? { type: 'all' } : aud === 'tag' ? { type: 'tag', tag } : { type: 'list', rows: parsed.people, tag: cleanTag(listTag) || undefined };
       const r = await campaignApi<{ id: string; total: number; skipped: number }>({
-        action: 'create', kind, template: tpl, vars, audience,
+        action: 'create', kind, template: tpl, vars, audience, provider: via,
         name: name.trim() || vars.eventName || vars.subject || info.label,
       });
       if (!r.total) { setErr(r.skipped ? `Nobody to send to: all ${r.skipped} people in this list unsubscribed.` : 'Nobody to send to.'); return; }
@@ -390,7 +394,35 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
         </Step>
 
         {/* 5 send */}
-        <Step n={5} title="Test and send">
+        <Step n={5} title="Send through">
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setVia('auto')}
+              className={`px-3 py-2 rounded-xl border text-left transition-all ${via === 'auto' ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
+              <span className={`block text-sm font-medium ${via === 'auto' ? 'text-[#a3e635]' : 'text-white'}`}>Automatic</span>
+              <span className="block text-[11px] text-gray-500">Recommended · switches when one is full</span>
+            </button>
+            {connected.map((p) => {
+              const left = remainingToday(p);
+              return (
+                <button key={p.id} onClick={() => setVia(p.id)} disabled={!left}
+                  className={`px-3 py-2 rounded-xl border text-left transition-all disabled:opacity-40 ${via === p.id ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
+                  <span className={`block text-sm font-medium ${via === p.id ? 'text-[#a3e635]' : 'text-white'}`}>{p.label}</span>
+                  <span className="block text-[11px] text-gray-500 tabular-nums">{fmtN(left)} left {p.day !== null ? 'today' : 'this month'}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[11px] text-gray-500 leading-5">
+            {viaInfo
+              ? <>Only <b className="text-gray-300">{viaInfo.label}</b> is used (from <span className="font-mono">{viaInfo.from}</span>). When its limit is reached, the campaign pauses until tomorrow.</>
+              : autoOrder.length
+                ? <>Order for {KIND_INFO[kind].label.toLowerCase()}: {autoOrder.map((p) => p.label).join(' → ')}</>
+                : 'No email service is connected yet.'}
+          </p>
+        </Step>
+
+        {/* 6 send */}
+        <Step n={6} title="Test and send">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`Campaign name (for you): ${vars.eventName || vars.subject || info.label}`} className={input} aria-label="Campaign name" />
           <div className="mt-3 flex gap-2">
             <input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="your@email.com" type="email" className={input} aria-label="Test email address" />
@@ -512,7 +544,7 @@ function CampaignRow({ c, prov, onChanged }: { c: Campaign; prov: ProvidersRes |
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            {KIND_INFO[c.kind].label} · {CAMPAIGN_TEMPLATES.find((t) => t.id === c.template)?.label} · {audienceText} · <span title={fmtDateTime(c.created_at)}>{timeAgo(c.created_at)}</span>
+            {KIND_INFO[c.kind].label} · {CAMPAIGN_TEMPLATES.find((t) => t.id === c.template)?.label} · {audienceText} · {c.provider ? `via ${label(c.provider)} only` : 'Automatic'} · <span title={fmtDateTime(c.created_at)}>{timeAgo(c.created_at)}</span>
           </p>
         </div>
         <div className="flex items-center gap-1.5">

@@ -360,6 +360,7 @@ export function providerInfo(p: ProviderDef): ProviderInfo {
   };
 }
 export const allProviders = () => PROVIDERS.map(providerInfo);
+export const isProviderId = (x: unknown): x is ProviderId => typeof x === 'string' && PROVIDERS.some((p) => p.id === x);
 
 // ---------- Supabase RPC with the admin's own session ----------
 const SB = () => ({
@@ -417,6 +418,8 @@ export async function route<R>(
   lane: Lane,
   rows: R[],
   build: (row: R) => OutMsg,
+  /** Use only this service (no fallover). Undefined = automatic lane order. */
+  only?: ProviderId,
 ): Promise<{ done: RoutedResult<R>[]; leftover: R[]; providerErrors: Record<string, string>; anyConfigured: boolean }> {
   const replyTo = env('MAIL_REPLY_TO') || DEFAULT_REPLY_TO;
   const done: RoutedResult<R>[] = [];
@@ -424,7 +427,7 @@ export async function route<R>(
   let pool = rows.slice();
   let anyConfigured = false;
 
-  for (const pid of LANES[lane]) {
+  for (const pid of only ? [only] : LANES[lane]) {
     if (!pool.length) break;
     const def = PROVIDERS.find((p) => p.id === pid)!;
     const info = providerInfo(def);
