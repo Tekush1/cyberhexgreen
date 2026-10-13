@@ -7,6 +7,9 @@ Run these in **Supabase → SQL Editor → New query → Run**, in this order. E
 3. `blog_v2.sql` — image storage bucket, likes, views
 4. `admin_tables.sql`, `meeting_links.sql` — other admin panel tables
 5. `mailing.sql` — subscribers, campaigns and email sending limits (Admin → Campaigns / Subscribers)
+6. `security_hardening.sql` — tighter form / storage rules (audit Oct 2026)
+
+One-off: `cleanup_pentestlab.sql` deletes the old Pentest Lab tables (data is lost).
 
 Then make yourself an admin:
 

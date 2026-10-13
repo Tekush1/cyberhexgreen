@@ -13,7 +13,7 @@
 | 7 | Vulnerable packages. | `swiper` (critical, unused) removed; `react-router-dom` → 6.30.6; `ws` patched. One moderate react-router advisory needs v7 (breaking); the site has no user-controlled redirects, so impact is low. |
 | 8 | `security.txt` pointed to ctf.cyberhx.com. | Now cyberhx.com. |
 
-## Fixed in the database: run `supabase/RUN_THIS_ONCE.sql`
+## Fixed in the database (applied live on 14 Oct 2026, see `supabase/security_hardening.sql`)
 
 | # | Issue | Fix |
 |---|---|---|
@@ -21,13 +21,13 @@
 | 10 | Anyone could **list every file** in `article-images` and `blog-media` (incl. pending submissions). | List policies removed. Files still load by link. |
 | 11 | Public forms could pre-fill `admin_notes`, fake dates, or point `resume_path` at other files. | Insert rules tightened on all 4 public forms. |
 | 12 | Advisor warnings: `rls_auto_enable` callable by anyone, `update_updated_at` mutable search path. | Fixed. |
-| 13 | ~25 unused Pentest Lab / store tables and functions (incl. old `admin_users`, `store_*` functions callable by anyone). | Dropped (see `cleanup_pentestlab.sql`). |
+| 13 | ~25 unused Pentest Lab / store tables; `store_*` functions callable by anyone. | Functions locked (nobody can call them). Deleting the tables needs you: run `supabase/cleanup_pentestlab.sql` (deletes data for good). |
 
 ## Do these in dashboards (2 minutes, I can't reach them)
 
 1. **Supabase → Authentication → Sign In / Providers → turn OFF "Allow new users to sign up".** The site has no public login; open sign-ups let anyone become an `authenticated` user.
 2. **Supabase → Authentication → Passwords → turn ON "Leaked password protection".**
-3. Optional: in `RUN_THIS_ONCE.sql`, the last line (commented) deletes the 51 old Pentest Lab learner accounts. Remove the `--` and run it if you don't need them.
+3. Run `supabase/cleanup_pentestlab.sql` in SQL Editor to delete the old Pentest Lab tables. Optional: its last line (commented) deletes the 51 old Pentest Lab learner accounts. Remove the `--` and run it if you don't need them.
 4. **Cloudflare → Security → WAF → Rate limiting rules**: `/api/` max 60 requests / minute per IP, and `/api/subscribe` max 5 / minute per IP → Block.
 5. **Web3Forms dashboard**: turn on the domain allow-list (cyberhx.com) and hCaptcha.
 6. Make sure Cloudflare **Rocket Loader is OFF** (it injects scripts the new CSP blocks). Web Analytics is already allowed.
