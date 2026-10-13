@@ -861,9 +861,6 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .cx-scr-lime .cx-ed-halo { background: radial-gradient(circle, rgba(198,241,53,.36), rgba(198,241,53,.05) 55%, transparent 70%); }
 .cx-scr-cyan .cx-ed-halo { background: radial-gradient(circle, rgba(59,211,255,.36), rgba(59,211,255,.05) 55%, transparent 70%); }
 @keyframes cx-pulse { 0%,100% { transform: scale(.94); opacity: .75; } 50% { transform: scale(1.05); opacity: 1; } }
-.cx-ed-orbit { border: 1px dashed rgba(var(--cx), .28); animation: cx-rot 40s linear infinite; }
-.cx-ed-orbit-b { border-style: solid; border-color: rgba(255,255,255,.07); animation-duration: 60s; animation-direction: reverse; }
-.cx-ed-orbit::after { content: ""; position: absolute; top: -4px; left: 50%; width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--cx)); box-shadow: 0 0 14px rgb(var(--cx)); }
 .cx-scr-lime { --cx: 198,241,53; }
 .cx-scr-cyan { --cx: 59,211,255; }
 @keyframes cx-rot { to { transform: rotate(360deg); } }
@@ -871,7 +868,6 @@ img[loading="lazy"] { transition: filter 0.3s; }
 @keyframes cx-bob { 0%,100% { translate: 0 0; } 50% { translate: 0 -14px; } }
 .cx-ed-hw:hover .cx-ed-hero { transform: rotate(-5deg) scale(1.05); filter: drop-shadow(0 50px 60px rgba(0,0,0,.85)) drop-shadow(0 0 40px rgba(var(--cx), .45)); }
 .cx-scr-mirror .cx-ed-hw:hover .cx-ed-hero { transform: rotate(5deg) scale(1.05); }
-.cx-ed-hw:hover .cx-ed-orbit { animation-duration: 12s; }
 
 /* Copy */
 .cx-ed-step { transition: transform .3s ease; }
@@ -940,7 +936,7 @@ img[loading="lazy"] { transition: filter 0.3s; }
   .cx-scr-cyan .cx-scr-spirit { right: -20%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cx-scr-spirit, .cx-ed-halo, .cx-ed-orbit, .cx-ed-hero, .cx-spark, .cx-ed-cta::before { animation: none !important; }
+  .cx-scr-spirit, .cx-ed-halo, .cx-ed-hero, .cx-spark, .cx-ed-cta::before { animation: none !important; }
   .cx-spark { display: none; }
   .cx-ed-hw:hover .cx-ed-hero { transform: none; }
 }
