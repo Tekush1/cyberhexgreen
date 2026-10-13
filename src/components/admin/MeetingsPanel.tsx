@@ -131,6 +131,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const [addGuestsList, setAddGuestsList] = useState<string[]>([]);
   const [addBusy, setAddBusy] = useState(false);
   const [emailingTo, setEmailingTo] = useState<string | null>(null);
+  const [emailingCode, setEmailingCode] = useState<string | null>(null);
   const [emailsCopied, setEmailsCopied] = useState(false);
   const [slotData, setSlotData] = useState<SlotData | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -617,9 +618,31 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
               <button onClick={() => copyPending(p)} className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
                 {copiedCode === p.code ? <Check size={12} /> : <Copy size={12} />} {copiedCode === p.code ? 'Copied' : 'Copy link'}
               </button>
+              <button
+                onClick={() => setEmailingCode(emailingCode === p.code ? null : p.code)}
+                aria-expanded={emailingCode === p.code}
+                className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
+                  emailingCode === p.code ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
+                }`}
+              >
+                <Mail size={12} /> Email
+              </button>
               <button onClick={() => removePending(p)} className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Delete link">
                 <Trash2 size={14} />
               </button>
+              {emailingCode === p.code && (
+                <EmailComposer
+                  target={{
+                    name: p.group ? '' : p.name,
+                    emails: p.group ? p.guests : p.email ? [p.email] : [],
+                    title: p.kind === 'other' && p.topic ? p.topic : MEETING_TITLE[p.kind],
+                  }}
+                  initialTemplate="booking"
+                  initialBookingLink={p.link}
+                  onClose={() => setEmailingCode(null)}
+                  onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingCode(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                />
+              )}
             </div>
           ))}
           {shown.map((b) => {

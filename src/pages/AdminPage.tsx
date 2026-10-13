@@ -4,6 +4,7 @@ import { Seo } from '../features/seo/Seo';
 import { MeetingsPanel, type MeetingKind, type MeetingPrefill } from '../components/admin/MeetingsPanel';
 import { ApplicationsPanel, CtfRequestsPanel, InboxPanel } from '../components/admin/RequestsPanels';
 import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
+import { EmailsPanel } from '../components/admin/EmailsPanel';
 import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -239,7 +240,7 @@ const SubmissionCard = ({ sub, onApprove, onReject, onDelete, loading }: {
   );
 };
 
-type TabId = 'inbox' | 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf' | 'availability';
+type TabId = 'inbox' | 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf' | 'availability' | 'emails';
 
 // ─── Main Admin Panel ─────────────────────────────────────────
 const AdminPage: React.FC = () => {
@@ -397,6 +398,7 @@ const AdminPage: React.FC = () => {
             { id: 'applications', label: 'Applications', badge: newCounts.applications },
             { id: 'ctf', label: 'CTF Requests', badge: newCounts.ctf },
             { id: 'availability', label: 'Availability', badge: 0 },
+            { id: 'emails', label: 'Emails', badge: 0 },
           ] as { id: TabId; label: string; badge: number }[]).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap flex items-center gap-2 ${tab === t.id ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'}`}>
@@ -453,6 +455,7 @@ const AdminPage: React.FC = () => {
         {tab === 'applications' && <ApplicationsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {tab === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {tab === 'availability' && <AvailabilityPanel />}
+        {tab === 'emails' && <EmailsPanel />}
 
         {tab === 'posts' && (
           <div>

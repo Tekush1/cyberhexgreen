@@ -1,7 +1,7 @@
 // CyberHx email templates. Used by api/email.ts (to send) and the admin panel (to preview).
 // Plain TypeScript with no imports, so it runs the same in the browser and in a Vercel function.
 
-export type TemplateId = 'confirmation' | 'reminder' | 'reschedule' | 'shortlisted' | 'followup' | 'custom';
+export type TemplateId = 'booking' | 'confirmation' | 'reminder' | 'reschedule' | 'shortlisted' | 'followup' | 'custom';
 
 export interface EmailVars {
   /** Recipient's name; empty for group emails ("Hi there"). */
@@ -31,6 +31,7 @@ export interface TemplateInfo {
 }
 
 export const TEMPLATES: TemplateInfo[] = [
+  { id: 'booking', label: 'Pick your slot', hint: 'Send their booking link', usesBookingLink: true },
   { id: 'confirmation', label: 'Meeting confirmed', hint: 'Date, time and Meet link' },
   { id: 'reminder', label: 'Reminder', hint: 'Nudge before the call' },
   { id: 'reschedule', label: 'Reschedule', hint: 'Ask to move the meeting', usesBookingLink: true },
@@ -180,6 +181,21 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
   let subject: string;
 
   switch (id) {
+    case 'booking':
+      subject = `Book your ${subj}`;
+      o = {
+        preheader: 'Choose a time that suits you',
+        eyebrow: 'Pick your slot',
+        heading: who ? `${who}, choose your time.` : 'Choose your time.',
+        paragraphs: [
+          hi,
+          `We would like to set up your ${title} with CyberHx. Please pick a slot that works for you. It takes less than a minute, and the Google Meet link is added to your calendar as soon as you confirm.`,
+          booking ? '' : 'Reply to this email with two or three times that suit you and we will send the invite.',
+        ],
+        cta: booking ? { label: 'Choose your slot', url: booking } : undefined,
+        note: v.note,
+      };
+      break;
     case 'confirmation':
       subject = date ? `Confirmed: your ${subj} on ${date}` : `Confirmed: your ${subj}`;
       o = {
