@@ -84,16 +84,30 @@ CREATE POLICY mail_usage_admin     ON public.mail_usage     FOR SELECT TO authen
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.mail_subscribe(p_email text, p_name text DEFAULT '', p_source text DEFAULT 'website')
 RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE e text := lower(trim(coalesce(p_email, '')));
+DECLARE
+  e text := lower(trim(coalesce(p_email, '')));
+  n text := left(trim(regexp_replace(coalesce(p_name, ''), '[[:cntrl:],;:<>"\\]+', ' ', 'g')), 120);
+  cur mail_contacts%ROWTYPE;
 BEGIN
   IF e !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' OR length(e) > 200 THEN RETURN 'invalid'; END IF;
+  -- Flood guard: the public form can't add more than 300 people an hour.
+  IF (SELECT count(*) FROM mail_contacts WHERE source NOT IN ('admin','import','campaign') AND created_at > now() - interval '1 hour') >= 300 THEN
+    RETURN 'busy';
+  END IF;
+  SELECT * INTO cur FROM mail_contacts WHERE email = e;
+  IF FOUND THEN
+    -- Someone who unsubscribed is never re-subscribed by a form (only an admin can do that on request).
+    IF NOT cur.subscribed AND cur.unsubscribed_at IS NOT NULL THEN RETURN 'unsubscribed'; END IF;
+    UPDATE mail_contacts
+       SET subscribed = true,
+           name = CASE WHEN name = '' THEN n ELSE name END,
+           tags = CASE WHEN 'subscriber' = ANY (tags) THEN tags ELSE tags || 'subscriber' END
+     WHERE id = cur.id;
+    RETURN 'ok';
+  END IF;
   INSERT INTO mail_contacts (email, name, source, tags)
-  VALUES (e, left(trim(coalesce(p_name, '')), 120), left(coalesce(nullif(trim(p_source), ''), 'website'), 60), ARRAY['subscriber'])
-  ON CONFLICT (email) DO UPDATE
-    SET subscribed = true,
-        unsubscribed_at = NULL,
-        name = CASE WHEN mail_contacts.name = '' THEN excluded.name ELSE mail_contacts.name END,
-        tags = CASE WHEN 'subscriber' = ANY (mail_contacts.tags) THEN mail_contacts.tags ELSE mail_contacts.tags || 'subscriber' END;
+  VALUES (e, n, left(coalesce(nullif(regexp_replace(trim(coalesce(p_source, '')), '[^A-Za-z0-9_: -]', '', 'g'), ''), 'website'), 60), ARRAY['subscriber'])
+  ON CONFLICT (email) DO NOTHING;
   RETURN 'ok';
 END $$;
 

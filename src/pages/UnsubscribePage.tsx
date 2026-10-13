@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Check, Loader2, MailX } from 'lucide-react';
-import { SubscribeForm } from '../components/shared/SubscribeForm';
 
 /** /unsubscribe?t=<token>: one button, so link scanners in mail apps can't unsubscribe people by accident. */
 export default function UnsubscribePage() {
@@ -40,8 +39,9 @@ export default function UnsubscribePage() {
               {email ? <><span className="text-white/80">{email}</span> won't get </> : "You won't get "}
               CyberHx event and newsletter emails any more. Emails about something you signed up for (like an event you registered for) can still reach you.
             </p>
-            <p className="mt-6 text-sm text-white/45">Changed your mind? Subscribe again:</p>
-            <div className="mt-3"><SubscribeForm source="resubscribe" /></div>
+            <p className="mt-6 text-sm text-white/45">
+              Changed your mind? Write to <a href="mailto:contact@cyberhx.com" className="text-lime hover:underline">contact@cyberhx.com</a> from this address and we'll add you back.
+            </p>
           </>
         ) : (
           <>

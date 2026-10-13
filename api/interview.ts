@@ -426,7 +426,8 @@ async function createEvent(o: {
     method: 'POST',
     body: JSON.stringify({
       summary: eventTitle(o.kind, o.topic, o.name),
-      description: `${o.kind === 'other' && o.topic ? o.topic : KIND_TITLE[o.kind]} with ${o.name} (${o.emails.join(', ')}).\nBooked via the CyberHx website.`,
+      // Every guest can read the description, so group events never list the other invitees' emails.
+      description: `${o.kind === 'other' && o.topic ? o.topic : KIND_TITLE[o.kind]} with ${o.name}${group ? '' : ` (${o.emails[0]})`}.\nBooked via the CyberHx website.`,
       start: { dateTime: new Date(o.startMs).toISOString() },
       end: { dateTime: new Date(o.endMs).toISOString() },
       guestsCanSeeOtherGuests: !(group && o.hide),

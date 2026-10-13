@@ -42,7 +42,8 @@ export function parseFrom(s: string): Addr {
   if (m) return { name: m[1].replace(/^"|"$/g, ''), email: m[2] };
   return { name: 'CyberHx', email: s.trim() };
 }
-const fmtAddr = (a: Addr) => (a.name ? `${a.name.replace(/[<>"]/g, '')} <${a.email}>` : a.email);
+const safeName = (n: string) => n.replace(/[\r\n\t,;:<>"\\]/g, ' ').replace(/\s+/g, ' ').trim();
+const fmtAddr = (a: Addr) => (safeName(a.name) ? `${safeName(a.name)} <${a.email}>` : a.email);
 
 const RECIPIENT_ERR = /(recipient|not valid|malformed|invalid.{0,20}(email|address)|(email|address).{0,20}invalid|not a valid|blacklist|blocklist|blocked|suppress|bounced|unsubscribed|does not exist)/i;
 

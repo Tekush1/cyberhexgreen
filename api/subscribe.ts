@@ -52,9 +52,11 @@ export default async function handler(req: any, res: any) {
     if (body.website) return res.status(200).json({ ok: true }); // bot filled the hidden field: pretend it worked
     const email = String(body.email || '').trim().toLowerCase();
     if (!EMAIL_RE.test(email) || email.length > 200) return res.status(400).json({ error: 'Please enter a valid email address.' });
-    const name = String(body.name || '').trim().slice(0, 120);
+    const name = String(body.name || '').replace(/[\u0000-\u001f\u007f,;:<>"\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
     const source = String(body.source || 'website').replace(/[^\w\-: ]/g, '').slice(0, 60) || 'website';
     const out = await call('mail_subscribe', { p_email: email, p_name: name, p_source: source });
+    if (out === 'unsubscribed') return res.status(409).json({ error: 'This email unsubscribed earlier. To join again, write to contact@cyberhx.com from that address.' });
+    if (out === 'busy') return res.status(429).json({ error: 'Too many sign-ups right now. Please try again later.' });
     if (out !== 'ok') return res.status(400).json({ error: 'Please enter a valid email address.' });
     return res.status(200).json({ ok: true });
   } catch (e) {

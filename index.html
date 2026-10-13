@@ -6,11 +6,7 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <meta name="theme-color" content="#05080f" />
-    <script>
-      /* If a site file from an older version fails to load (a new version was
-         deployed while this tab was open), reload once to get the new one. */
-      (function(){var K='cyberhx-chunk-reload-at';window.addEventListener('error',function(e){var t=e.target;if(!t||t===window)return;var u=t.src||t.href||'';if((t.tagName==='SCRIPT'||t.tagName==='LINK')&&u.indexOf('/assets/')>-1){try{var l=+sessionStorage.getItem(K)||0;if(Date.now()-l<30000)return;sessionStorage.setItem(K,String(Date.now()));}catch(x){}location.reload();}},true);})();
-    </script>
+    <script src="/boot.js"></script>
     <title>CyberHx — Global Cybersecurity Community | CTF Hosting, Pentest Lab, Scam Alerts</title>
     <meta name="description" content="CyberHx is a global cybersecurity community. We host CTF competitions for universities, companies and communities worldwide, run the Pentest Lab, and publish scam alerts and security research." />
     <meta name="keywords" content="cyberhx, ctf hosting, host a ctf, capture the flag platform, ctf for universities, ctf for companies, international ctf, pentest lab, cppt certification, ethical hacking, scam alerts, phishing awareness, malware analysis, cybersecurity community" />
@@ -135,7 +131,7 @@
     <link rel="preconnect" href="https://bqdegvtqnqcmzvrohbow.supabase.co" />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" data-async-css />
     <noscript><link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
   </head>
@@ -159,15 +155,6 @@
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      (function(){
-        var loader=document.getElementById('loader');
-        if(!loader)return;
-        // The app hides the loader once it paints; this is only a safety net.
-        function done(){document.body.classList.add('loaded');setTimeout(function(){loader.style.display='none';},400);}
-        new MutationObserver(function(m,o){if(document.body.classList.contains('loaded')){o.disconnect();setTimeout(function(){loader.style.display='none';},400);}}).observe(document.body,{attributes:true,attributeFilter:['class']});
-        setTimeout(done,4000);
-      })();
-    </script>
+    <script src="/loader-fallback.js"></script>
   </body>
 </html>

@@ -13,6 +13,9 @@ const esc = (s: string) =>
 
 // Minimal, safe markdown -> HTML for crawlers. Everything is escaped first, so
 // any HTML/script a writer pasted is shown as text, never executed.
+/** JSON for a <script> block: escape '<' so field values can't close the tag. */
+const ld = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+
 function mdToHtml(md: string): string {
   const lines = esc(md).replace(/\r\n/g, '\n').split('\n');
   const out: string[] = [];
@@ -141,14 +144,14 @@ ${(post.tags || []).map((t) => `<meta property="article:tag" content="${esc(t)}"
 <meta name="twitter:title" content="${esc(post.title)}">
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(img)}">
-<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
-<script type="application/ld+json">${JSON.stringify(breadcrumb)}</script>
+<script type="application/ld+json">${ld(jsonLd)}</script>
+<script type="application/ld+json">${ld(breadcrumb)}</script>
 </head>
 <body>
 <article>
 <nav><a href="${SITE}/">Home</a> › <a href="${SITE}/blog">Blog</a> › <a href="${SITE}/blog?category=${encodeURIComponent(post.category)}">${esc(post.category)}</a></nav>
 <h1>${esc(post.title)}</h1>
-<p>By ${esc(post.author_name)} · ${post.read_time} min read</p>
+<p>By ${esc(post.author_name)} · ${Number(post.read_time) || 1} min read</p>
 ${post.excerpt ? `<p>${esc(post.excerpt)}</p>` : ''}
 <img src="${esc(img)}" alt="${esc(post.title)}" width="1200">
 ${mdToHtml(post.content)}
@@ -157,5 +160,6 @@ ${mdToHtml(post.content)}
 </body>
 </html>`;
 
+  res.setHeader('Vary', 'User-Agent');
   res.status(200).send(html);
 }
