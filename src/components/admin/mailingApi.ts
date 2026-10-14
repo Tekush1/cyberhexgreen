@@ -60,6 +60,19 @@ export async function sbRows<T = any>(path: string, opts: { from?: number; to?: 
   return { rows: data as T[], total };
 }
 
+/** Insert one row as the admin and return it. */
+export async function sbInsert<T = any>(table: string, row: object): Promise<T> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify(row),
+  });
+  const data = await readJson(res);
+  if (res.status === 401) throw expired();
+  if (!res.ok) throw new Error(['PGRST205', '42P01'].includes(data?.code) ? MISSING : data?.message || `Request failed (${res.status}).`);
+  return (Array.isArray(data) ? data[0] : data) as T;
+}
+
 export async function sbWrite(method: 'PATCH' | 'DELETE', path: string, body?: object) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,

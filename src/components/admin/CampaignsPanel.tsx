@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, BellRing, CalendarDays, Check, ChevronDown, Loader2, Megaphone, Newspaper, Pause, Play, RefreshCw,
-  RotateCcw, Send, Server, Upload, Users, X,
+  RotateCcw, Send, Server, Upload, Users, X, Save, FolderOpen, FilePlus, Copy, Trash2, Eye, Repeat,
 } from 'lucide-react';
 import {
   CAMPAIGN_TEMPLATES, KIND_INFO, missingField, renderCampaign, SENDERS, DEFAULT_SENDER, senderName,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../../../shared/campaignTemplates';
 import { fmtDateTime, timeAgo } from './adminApi';
-import { campaignApi, cleanTag, parsePeople, sbRows, sender } from './mailingApi';
+import { campaignApi, cleanTag, parsePeople, sbInsert, sbRows, sbWrite, sender } from './mailingApi';
 
 // ---------- types ----------
 interface Provider {
@@ -68,6 +68,13 @@ export const CampaignsPanel: React.FC = () => {
   const [listErr, setListErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [composerKey, setComposerKey] = useState(0);
+  const [preset, setPreset] = useState<Preset | null>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+  const useAgain = (c: Campaign) => {
+    setPreset({ name: `${c.name} (copy)`, kind: c.kind, template: c.template, vars: c.vars || {}, audience: c.audience?.tag ? { type: 'tag', tag: c.audience.tag } : { type: c.audience?.type === 'all' ? 'all' : 'list' }, provider: c.provider || 'auto' });
+    setComposerKey((k) => k + 1);
+    setTimeout(() => composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  };
   useRerenderOnSender();
 
   const loadProviders = useCallback(async () => {
@@ -109,10 +116,10 @@ export const CampaignsPanel: React.FC = () => {
 
       <ProvidersCard prov={prov} err={provErr} onRefresh={loadProviders} />
 
-      <div className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5 sm:p-6">
-        <h3 className="text-white font-medium flex items-center gap-2"><Send size={16} className="text-[#a3e635]" /> New campaign</h3>
-        <p className="text-gray-500 text-xs mt-1">Event announcements, reminders, newsletters and notifications. Big lists are split across all connected services automatically.</p>
-        <Composer key={composerKey} prov={prov} onStarted={() => { setComposerKey((k) => k + 1); refresh(); }} />
+      <div ref={composerRef} className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5 sm:p-6 scroll-mt-4">
+        <h3 className="text-white font-medium flex items-center gap-2"><Send size={16} className="text-[#a3e635]" aria-hidden="true" /> New campaign</h3>
+        <p className="text-gray-400 text-xs mt-1">Event announcements, reminders, newsletters and notifications. Big lists are split across all connected services automatically.</p>
+        <Composer key={composerKey} prov={prov} preset={preset} onStarted={() => { setPreset(null); setComposerKey((k) => k + 1); refresh(); }} />
       </div>
 
       <div>
@@ -123,7 +130,7 @@ export const CampaignsPanel: React.FC = () => {
         {listErr && !missing && <p className="text-red-400 text-sm mb-3 flex gap-1.5"><AlertTriangle size={14} className="mt-0.5" /> {listErr}</p>}
         {!loading && !campaigns.length && !listErr && <p className="text-gray-500 text-sm">No campaigns yet. Your first one will show up here with live progress.</p>}
         <div className="space-y-3">
-          {campaigns.map((c) => <CampaignRow key={c.id} c={c} prov={prov} onChanged={refresh} />)}
+          {campaigns.map((c) => <CampaignRow key={c.id} c={c} prov={prov} onChanged={refresh} onUseAgain={() => useAgain(c)} />)}
         </div>
       </div>
     </div>
@@ -239,18 +246,43 @@ function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; er
 // =====================================================================
 type AudType = 'all' | 'tag' | 'list';
 
-function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: () => void }) {
-  const [kind, setKind] = useState<CampaignKind>('event');
-  const [tpl, setTpl] = useState<CampaignTemplateId>('event_announce');
-  const [vars, setVars] = useState<CampaignVars>({});
-  const [aud, setAud] = useState<AudType>('all');
-  const [tag, setTag] = useState('');
-  const [listText, setListText] = useState('');
-  const [listTag, setListTag] = useState('');
-  const [name, setName] = useState('');
-  const [via, setVia] = useState<string>('auto');
+/** Everything the composer needs to fill itself: from a saved draft, a past campaign, or the autosave. */
+export interface Preset {
+  draftId?: string;
+  draftName?: string;
+  name?: string;
+  kind: CampaignKind;
+  template: CampaignTemplateId;
+  vars: CampaignVars;
+  audience?: { type?: AudType; tag?: string; listText?: string; listTag?: string };
+  provider?: string | null;
+}
+interface Draft { id: string; name: string; kind: CampaignKind; template: CampaignTemplateId; vars: CampaignVars; audience: Preset['audience']; provider: string | null; updated_at: string }
+
+const AUTOSAVE_KEY = 'cx_campaign_autosave';
+const readAutosave = (): Preset | null => { try { const v = localStorage.getItem(AUTOSAVE_KEY); return v ? JSON.parse(v) : null; } catch { return null; } };
+
+const focusRing = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a3e635] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1a]';
+const choiceCls = (on: boolean) =>
+  `text-left rounded-xl border transition-all ${focusRing} ${on ? 'border-[#a3e635] bg-[#a3e635]/[0.08]' : 'border-white/10 hover:border-white/25'}`;
+
+function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onStarted: () => void; preset?: Preset | null }) {
+  const start0 = preset || readAutosave();
+  const uid = useId();
+  const [kind, setKind] = useState<CampaignKind>(start0?.kind || 'event');
+  const [tpl, setTpl] = useState<CampaignTemplateId>(start0?.template || 'event_announce');
+  const [vars, setVars] = useState<CampaignVars>(start0?.vars || {});
+  const [aud, setAud] = useState<AudType>(start0?.audience?.type || 'all');
+  const [tag, setTag] = useState(start0?.audience?.tag || '');
+  const [listText, setListText] = useState(start0?.audience?.listText || '');
+  const [listTag, setListTag] = useState(start0?.audience?.listTag || '');
+  const [name, setName] = useState(start0?.name || '');
+  const [via, setVia] = useState<string>(start0?.provider || 'auto');
+  const [draftId, setDraftId] = useState<string | undefined>(start0?.draftId);
+  const [draftName, setDraftName] = useState(start0?.draftName || '');
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [testTo, setTestTo] = useState(() => { try { return localStorage.getItem('cx_test_email') || ''; } catch { return ''; } });
-  const [busy, setBusy] = useState<'' | 'test' | 'send'>('');
+  const [busy, setBusy] = useState<'' | 'test' | 'send' | 'save'>('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [tags, setTags] = useState<[string, number][]>([]);
@@ -258,7 +290,12 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
   const [confirming, setConfirming] = useState(false);
   const file = useRef<HTMLInputElement>(null);
 
+  const loadDrafts = useCallback(async () => {
+    try { setDrafts((await sbRows<Draft>('mail_drafts?select=*&order=updated_at.desc&limit=100')).rows); } catch { /* table may be missing */ }
+  }, []);
+
   useEffect(() => {
+    loadDrafts();
     (async () => {
       try {
         const [s, t] = await Promise.all([
@@ -271,7 +308,22 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
         setTags([...m.entries()].sort((a, b) => b[1] - a[1]));
       } catch { /* shown elsewhere */ }
     })();
-  }, []);
+  }, [loadDrafts]);
+
+  // Autosave what you're typing (this browser only), so a refresh or tab switch never loses work.
+  const snapshot = (): Preset => ({ draftId, draftName, name, kind, template: tpl, vars, audience: { type: aud, tag, listText, listTag }, provider: via });
+  useEffect(() => {
+    const t = setTimeout(() => { try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot())); } catch { /* storage full or blocked */ } }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId, draftName, name, kind, tpl, vars, aud, tag, listText, listTag, via]);
+
+  const apply = (p: Preset) => {
+    setKind(p.kind); setTpl(p.template); setVars(p.vars || {});
+    setAud(p.audience?.type || 'all'); setTag(p.audience?.tag || ''); setListText(p.audience?.listText || ''); setListTag(p.audience?.listTag || '');
+    setVia(p.provider || 'auto'); setName(p.name || ''); setDraftId(p.draftId); setDraftName(p.draftName || '');
+    setConfirming(false); setErr('');
+  };
 
   const info = CAMPAIGN_TEMPLATES.find((t) => t.id === tpl)!;
   const promo = KIND_INFO[kind].promo;
@@ -297,13 +349,48 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
   );
 
   const set = (k: keyof CampaignVars, v: string) => setVars((x) => ({ ...x, [k]: v }));
+  const say = (m: string) => { setErr(''); setMsg(m); };
+
+  // ---- drafts ----
+  const saveDraft = async (asNew: boolean) => {
+    const nm = (draftName || name || vars.eventName || vars.subject || info.label).trim().slice(0, 120);
+    setBusy('save'); setErr(''); setMsg('');
+    try {
+      const row = { name: nm, kind, template: tpl, vars, audience: { type: aud, tag, listText: listText.slice(0, 300000), listTag }, provider: via === 'auto' ? null : via, updated_at: new Date().toISOString() };
+      if (draftId && !asNew) {
+        await sbWrite('PATCH', `mail_drafts?id=eq.${draftId}`, row);
+      } else {
+        const res = await sbInsert<Draft>('mail_drafts', row);
+        setDraftId(res.id);
+      }
+      setDraftName(nm);
+      say(`Saved as "${nm}". Pick it from Saved campaigns any time.`);
+      loadDrafts();
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save.'); } finally { setBusy(''); }
+  };
+  const openDraft = (id: string) => {
+    const d = drafts.find((x) => x.id === id);
+    if (!d) return;
+    apply({ draftId: d.id, draftName: d.name, kind: d.kind, template: d.template, vars: d.vars, audience: d.audience || {}, provider: d.provider });
+    say(`Opened "${d.name}".`);
+  };
+  const deleteDraft = async () => {
+    if (!draftId || !confirm(`Delete the saved campaign "${draftName}"?`)) return;
+    try { await sbWrite('DELETE', `mail_drafts?id=eq.${draftId}`); setDraftId(undefined); say('Saved campaign deleted. What you typed is still here.'); loadDrafts(); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Could not delete.'); }
+  };
+  const startFresh = () => {
+    if (!confirm('Clear the form and start a new campaign?')) return;
+    apply({ kind: 'event', template: 'event_announce', vars: {}, audience: { type: 'all' }, provider: 'auto' });
+    say('Started a new campaign.');
+  };
 
   const sendTest = async () => {
     setBusy('test'); setErr(''); setMsg('');
     try {
       try { localStorage.setItem('cx_test_email', testTo); } catch { /* private mode */ }
       const r = await campaignApi<{ provider: string }>({ action: 'test', kind, template: tpl, vars, to: testTo, name: 'Aman Verma', provider: via });
-      setMsg(`Test sent to ${testTo} through ${prov?.providers.find((p) => p.id === r.provider)?.label || r.provider}. Check the inbox (and spam).`);
+      say(`Test sent to ${testTo} through ${prov?.providers.find((p) => p.id === r.provider)?.label || r.provider}. Check the inbox (and Spam / Promotions).`);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Test failed.'); } finally { setBusy(''); }
   };
 
@@ -313,209 +400,241 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
       const audience = aud === 'all' ? { type: 'all' } : aud === 'tag' ? { type: 'tag', tag } : { type: 'list', rows: parsed.people, tag: cleanTag(listTag) || undefined };
       const r = await campaignApi<{ id: string; total: number; skipped: number }>({
         action: 'create', kind, template: tpl, vars, audience, provider: via,
-        name: name.trim() || vars.eventName || vars.subject || info.label,
+        name: name.trim() || draftName || vars.eventName || vars.subject || info.label,
       });
       if (!r.total) { setErr(r.skipped ? `Nobody to send to: all ${r.skipped} people in this list unsubscribed.` : 'Nobody to send to.'); return; }
+      try { localStorage.removeItem(AUTOSAVE_KEY); } catch { /* ignore */ }
       sender.run(r.id);
       onStarted();
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not start.'); } finally { setBusy(''); }
   };
 
   const canSend = !miss && recipients > 0 && (aud !== 'tag' || !!tag) && !busy;
+  const id = (k: string) => `${uid}-${k}`;
 
   return (
-    <div className="mt-5 grid gap-6 xl:grid-cols-[1.05fr_1fr]">
-      <div className="space-y-6 min-w-0">
-        {/* 1 type */}
-        <Step n={1} title="What are you sending?">
-          <div className="grid sm:grid-cols-3 gap-2">
-            {(Object.keys(KIND_INFO) as CampaignKind[]).map((k) => (
-              <button key={k} onClick={() => pickKind(k)}
-                className={`text-left p-3 rounded-xl border transition-all ${kind === k ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
-                <span className={`flex items-center gap-2 text-sm font-medium ${kind === k ? 'text-[#a3e635]' : 'text-white'}`}>{KIND_ICON[k]} {KIND_INFO[k].label}</span>
-                <span className="block text-[11px] text-gray-500 mt-1 leading-4">{KIND_INFO[k].hint}</span>
-              </button>
-            ))}
-          </div>
-        </Step>
-
-        {/* 2 template */}
-        <Step n={2} title="Template">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {CAMPAIGN_TEMPLATES.map((t) => (
-              <button key={t.id} onClick={() => setTpl(t.id)}
-                className={`text-left px-3 py-2.5 rounded-xl border transition-all ${tpl === t.id ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'} ${t.kind !== kind && tpl !== t.id ? 'opacity-60' : ''}`}>
-                <span className="block text-sm text-white font-medium">{t.label}</span>
-                <span className="block text-[11px] text-gray-500 mt-0.5 leading-4">{t.hint}</span>
-              </button>
-            ))}
-          </div>
-        </Step>
-
-        {/* 3 content */}
-        <Step n={3} title="Content">
-          <div className="mb-4 grid sm:grid-cols-2 gap-2">
-            {([
-              ['plain', 'Simple (Primary inbox)', 'Looks like a normal typed email. No images or big buttons, tracking off. Best chance of landing in Primary.'],
-              ['designed', 'Designed', 'Branded dark card with a button and banner. Gmail usually files these under Promotions.'],
-            ] as const).map(([id, label, hint]) => {
-              const on = (vars.style === 'designed' ? 'designed' : 'plain') === id;
-              return (
-                <button key={id} onClick={() => set('style', id)}
-                  className={`text-left p-3 rounded-xl border transition-all ${on ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
-                  <span className={`block text-sm font-medium ${on ? 'text-[#a3e635]' : 'text-white'}`}>{label}</span>
-                  <span className="block text-[11px] text-gray-500 mt-0.5 leading-4">{hint}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {info.fields.filter((f) => f !== 'image' || vars.style === 'designed').map((f) => {
-              const meta = FIELD[f];
-              const req = info.required.includes(f);
-              const bad = miss === f && !!vars[f];
-              return (
-                <label key={f} className={`block ${meta.long || f === 'subject' || f === 'link' || f === 'image' ? 'sm:col-span-2' : ''}`}>
-                  <span className="text-xs text-gray-400">{meta.label}{req && <span className="text-[#a3e635]"> *</span>}</span>
-                  {meta.long ? (
-                    <textarea value={vars[f] || ''} onChange={(e) => set(f, e.target.value)} rows={f === 'body' ? 6 : 2} placeholder={meta.placeholder} className={`${input} mt-1`} />
-                  ) : (
-                    <input value={vars[f] || ''} onChange={(e) => set(f, e.target.value)} placeholder={f === 'ctaLabel' ? info.defaultCta : meta.placeholder}
-                      className={`${input} mt-1 ${bad ? '!border-red-500/60' : ''}`} inputMode={f === 'link' || f === 'image' ? 'url' : undefined} />
-                  )}
-                  {meta.hint && <span className={`block text-[11px] mt-1 ${bad ? 'text-red-400' : 'text-gray-600'}`}>{meta.hint}</span>}
-                </label>
-              );
-            })}
-          </div>
-        </Step>
-
-        {/* 4 audience */}
-        <Step n={4} title="Who gets it?">
-          <div className="space-y-2">
-            {([
-              ['all', 'All subscribers', subsCount === null ? '…' : `${subsCount.toLocaleString('en-IN')} people`],
-              ['tag', 'A saved group (tag)', tags.length ? `${tags.length} groups` : 'No groups yet'],
-              ['list', 'Paste or upload a list', 'CSV, sheet columns, or one per line'],
-            ] as [AudType, string, string][]).map(([id, label, sub]) => (
-              <label key={id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer ${aud === id ? 'border-[#a3e635]/60 bg-[#a3e635]/[0.04]' : 'border-white/8 hover:border-white/15'}`}>
-                <input type="radio" name="aud" checked={aud === id} onChange={() => setAud(id)} className="accent-[#a3e635]" />
-                <span className="text-sm text-white">{label}</span>
-                <span className="ml-auto text-xs text-gray-500">{sub}</span>
-              </label>
-            ))}
-          </div>
-          {aud === 'tag' && (
-            <select value={tag} onChange={(e) => setTag(e.target.value)} className={`${input} mt-3`} aria-label="Group">
-              <option value="">Choose a group…</option>
-              {tags.map(([t, n]) => <option key={t} value={t}>{t} · {n} people</option>)}
-            </select>
-          )}
-          {aud === 'list' && (
-            <div className="mt-3 space-y-2">
-              <textarea value={listText} onChange={(e) => setListText(e.target.value)} rows={6} spellCheck={false} aria-label="People"
-                placeholder={'Aman Verma, aman@gmail.com\nRiya <riya@college.edu>\nneha@gmail.com'} className={`${input} font-mono text-[13px] leading-6`} />
-              <div className="flex items-center gap-3 flex-wrap text-xs">
-                <button onClick={() => file.current?.click()} className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5"><Upload size={13} /> Upload CSV</button>
-                <input ref={file} type="file" accept=".csv,.txt,.tsv" className="hidden"
-                  onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { if (/\.xlsx?$/i.test(f.name)) setErr('Save the Excel sheet as .csv first.'); else setListText(await f.text()); } }} />
-                {listText && <span className="text-gray-400"><b className="text-white">{parsed.people.length}</b> people{parsed.bad ? <span className="text-amber-300"> · {parsed.bad} lines skipped</span> : ''}</span>}
-              </div>
-              <input value={listTag} onChange={(e) => setListTag(e.target.value)} placeholder="Save this list as a group (optional), e.g. ctf-oct-2026" className={input} aria-label="Group name" />
-              <p className="text-[11px] text-gray-600">They are saved to Contacts with this tag (not added to Subscribers), so you can send the reminder and results to the same group later.</p>
-            </div>
-          )}
-          {promo && <p className="mt-2 text-[11px] text-gray-600">People who unsubscribed are skipped automatically, and every email gets an unsubscribe link.</p>}
-        </Step>
-
-        {/* 5 send */}
-        <Step n={5} title="From and send through">
-          <p className="text-xs text-gray-400 mb-2">From (a person's name lands in Primary more often)</p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {[...Object.keys(SENDERS), ''].map((key) => {
-              const cur = vars.sender === undefined ? DEFAULT_SENDER : vars.sender;
-              const on = cur === key;
-              return (
-                <button key={key || 'team'} onClick={() => set('sender', key)}
-                  className={`px-3 py-1.5 rounded-lg border text-sm transition-all ${on ? 'border-[#a3e635] bg-[#a3e635]/[0.06] text-[#a3e635]' : 'border-white/8 text-gray-300 hover:border-white/20'}`}>
-                  {key ? `${SENDERS[key]} from CyberHx` : 'CyberHx'}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-gray-400 mb-2">Send through</p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setVia('auto')}
-              className={`px-3 py-2 rounded-xl border text-left transition-all ${via === 'auto' ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
-              <span className={`block text-sm font-medium ${via === 'auto' ? 'text-[#a3e635]' : 'text-white'}`}>Automatic</span>
-              <span className="block text-[11px] text-gray-500">Recommended · switches when one is full</span>
-            </button>
-            {connected.map((p) => {
-              const left = remainingToday(p);
-              return (
-                <button key={p.id} onClick={() => setVia(p.id)} disabled={!left}
-                  className={`px-3 py-2 rounded-xl border text-left transition-all disabled:opacity-40 ${via === p.id ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
-                  <span className={`block text-sm font-medium ${via === p.id ? 'text-[#a3e635]' : 'text-white'}`}>{p.label}</span>
-                  <span className="block text-[11px] text-gray-500 tabular-nums">{fmtN(left)} left {p.day !== null ? 'today' : 'this month'}</span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-[11px] text-gray-500 leading-5">
-            {viaInfo
-              ? <>Only <b className="text-gray-300">{viaInfo.label}</b> is used (from <span className="font-mono">{viaInfo.from}</span>). When its limit is reached, the campaign pauses until tomorrow.</>
-              : autoOrder.length
-                ? <>Order for {KIND_INFO[kind].label.toLowerCase()}: {autoOrder.map((p) => p.label).join(' → ')}</>
-                : 'No email service is connected yet.'}
-          </p>
-        </Step>
-
-        {/* 6 send */}
-        <Step n={6} title="Test and send">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`Campaign name (for you): ${vars.eventName || vars.subject || info.label}`} className={input} aria-label="Campaign name" />
-          <div className="mt-3 flex gap-2">
-            <input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="your@email.com" type="email" className={input} aria-label="Test email address" />
-            <button onClick={sendTest} disabled={!!busy || !!miss || !/\S+@\S+\.\S+/.test(testTo)}
-              className="shrink-0 px-4 rounded-lg border border-white/15 text-sm text-gray-200 hover:text-white hover:border-white/30 disabled:opacity-40 flex items-center gap-1.5">
-              {busy === 'test' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send test
-            </button>
-          </div>
-
-          {recipients > 0 && prov && (
-            <div className={`mt-4 p-3 rounded-xl border text-xs leading-5 ${recipients > capacity ? 'border-amber-500/30 bg-amber-500/5 text-amber-200' : 'border-white/8 text-gray-400'}`}>
-              {recipients > capacity
-                ? <>About <b>{fmtN(capacity)}</b> of {recipients.toLocaleString('en-IN')} can go out today with the connected services. The rest will wait, and you press <b>Continue</b> tomorrow. Connect more services to send it all today.</>
-                : <>Ready: {recipients.toLocaleString('en-IN')} emails, about {fmtN(capacity)} can go out today. Keep this page open while it sends (you can switch admin tabs).</>}
-            </div>
-          )}
-
-          {!confirming ? (
-            <button onClick={() => setConfirming(true)} disabled={!canSend}
-              className="mt-4 w-full sm:w-auto px-6 py-3 rounded-xl bg-[#a3e635] text-[#05080f] font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2">
-              {busy === 'send' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              Send to {recipients.toLocaleString('en-IN')} {recipients === 1 ? 'person' : 'people'}
-            </button>
-          ) : (
-            <div className="mt-4 p-4 rounded-xl border border-[#a3e635]/40 bg-[#a3e635]/[0.04]">
-              <p className="text-sm text-white">Send <b>"{preview.subject}"</b> to <b>{recipients.toLocaleString('en-IN')}</b> {recipients === 1 ? 'person' : 'people'}? This can't be undone.</p>
-              <div className="mt-3 flex gap-2">
-                <button onClick={start} className="px-5 py-2 rounded-lg bg-[#a3e635] text-[#05080f] font-semibold text-sm flex items-center gap-1.5"><Check size={15} /> Yes, send now</button>
-                <button onClick={() => setConfirming(false)} className="px-4 py-2 rounded-lg border border-white/10 text-sm text-gray-300">Back</button>
-              </div>
-            </div>
-          )}
-          {miss && <p className="mt-2 text-[11px] text-gray-500">Fill in: <span className="text-amber-300">{FIELD[miss as keyof CampaignVars]?.label || miss}</span></p>}
-          {msg && <p className="mt-3 text-sm text-[#a3e635] flex items-start gap-1.5"><Check size={14} className="mt-0.5 shrink-0" /> {msg}</p>}
-          {err && <p className="mt-3 text-sm text-red-400 flex items-start gap-1.5"><AlertTriangle size={14} className="mt-0.5 shrink-0" /> {err}</p>}
-        </Step>
+    <div className="mt-5">
+      {/* Saved campaigns bar */}
+      <div className="mb-6 p-3 sm:p-4 rounded-xl border border-white/10 bg-white/[0.02] flex flex-wrap items-end gap-3">
+        <div className="min-w-[14rem] flex-1">
+          <label htmlFor={id('open')} className="text-xs text-gray-300 flex items-center gap-1.5"><FolderOpen size={13} aria-hidden="true" /> Saved campaigns</label>
+          <select id={id('open')} value={draftId || ''} onChange={(e) => e.target.value && openDraft(e.target.value)} className={`${input} mt-1 ${focusRing}`}>
+            <option value="">{drafts.length ? 'Open a saved campaign…' : 'Nothing saved yet'}</option>
+            {drafts.map((d) => <option key={d.id} value={d.id}>{d.name} · {KIND_INFO[d.kind]?.label} · {timeAgo(d.updated_at)}</option>)}
+          </select>
+        </div>
+        <div className="min-w-[12rem] flex-1">
+          <label htmlFor={id('dname')} className="text-xs text-gray-300">Save as</label>
+          <input id={id('dname')} value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder={vars.eventName || vars.subject || 'e.g. CTF reminder'} className={`${input} mt-1 ${focusRing}`} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => saveDraft(false)} disabled={busy === 'save'} className={`px-3.5 py-2 rounded-lg bg-white/10 text-sm text-white hover:bg-white/15 flex items-center gap-1.5 disabled:opacity-50 ${focusRing}`}>
+            {busy === 'save' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Save size={14} aria-hidden="true" />} {draftId ? 'Save changes' : 'Save'}
+          </button>
+          {draftId && <button onClick={() => saveDraft(true)} className={`px-3 py-2 rounded-lg border border-white/10 text-sm text-gray-200 hover:text-white flex items-center gap-1.5 ${focusRing}`}><Copy size={14} aria-hidden="true" /> Save as new</button>}
+          {draftId && <button onClick={deleteDraft} aria-label="Delete this saved campaign" className={`p-2 rounded-lg border border-white/10 text-gray-300 hover:text-red-400 ${focusRing}`}><Trash2 size={15} aria-hidden="true" /></button>}
+          <button onClick={startFresh} className={`px-3 py-2 rounded-lg border border-white/10 text-sm text-gray-200 hover:text-white flex items-center gap-1.5 ${focusRing}`}><FilePlus size={14} aria-hidden="true" /> New</button>
+        </div>
+        <p className="w-full text-[11px] text-gray-400">Your typing is kept automatically in this browser. Press <b className="text-gray-200">Save</b> to keep a campaign for later (event, list, sender and service included).</p>
       </div>
 
-      {/* preview */}
-      <div className="min-w-0 xl:sticky xl:top-4 self-start">
-        <p className="text-xs text-gray-400 mb-2 flex items-center gap-1.5"><Check size={13} className="text-[#a3e635]" /> Preview <span className="text-gray-600">· as "Aman Verma" sees it</span></p>
-        <div className="rounded-xl border border-white/10 overflow-hidden bg-[#05070c]">
-          <p className="px-4 py-2.5 text-xs border-b border-white/8 text-gray-500 truncate">From: <span className="text-gray-200">{senderName(vars)}</span> · Subject: <span className="text-gray-200">{preview.subject}</span></p>
-          <iframe title="Email preview" srcDoc={preview.html} sandbox="" className="w-full h-[640px] bg-[#05070c]" />
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_1fr]">
+        <div className="space-y-7 min-w-0">
+          <Step n={1} title="What are you sending?">
+            <div role="radiogroup" aria-label="Campaign type" className="grid sm:grid-cols-3 gap-2">
+              {(Object.keys(KIND_INFO) as CampaignKind[]).map((k) => (
+                <button key={k} role="radio" aria-checked={kind === k} onClick={() => pickKind(k)} className={`p-3 ${choiceCls(kind === k)}`}>
+                  <span className={`flex items-center gap-2 text-sm font-medium ${kind === k ? 'text-[#a3e635]' : 'text-white'}`}>{KIND_ICON[k]} {KIND_INFO[k].label}</span>
+                  <span className="block text-xs text-gray-400 mt-1 leading-5">{KIND_INFO[k].hint}</span>
+                </button>
+              ))}
+            </div>
+          </Step>
+
+          <Step n={2} title="Template">
+            <div role="radiogroup" aria-label="Template" className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {CAMPAIGN_TEMPLATES.map((t) => (
+                <button key={t.id} role="radio" aria-checked={tpl === t.id} onClick={() => setTpl(t.id)} className={`px-3 py-2.5 ${choiceCls(tpl === t.id)}`}>
+                  <span className={`block text-sm font-medium ${tpl === t.id ? 'text-[#a3e635]' : 'text-white'}`}>{t.label}</span>
+                  <span className="block text-xs text-gray-400 mt-0.5 leading-5">{t.hint}</span>
+                </button>
+              ))}
+            </div>
+          </Step>
+
+          <Step n={3} title="Content">
+            <div role="radiogroup" aria-label="Email style" className="mb-4 grid sm:grid-cols-2 gap-2">
+              {([
+                ['plain', 'Simple (Primary inbox)', 'Looks like a normal typed email. No images or big buttons, tracking off.'],
+                ['designed', 'Designed', 'Branded card with a button and banner. Gmail usually files it under Promotions.'],
+              ] as const).map(([sid, label, hint]) => {
+                const on = (vars.style === 'designed' ? 'designed' : 'plain') === sid;
+                return (
+                  <button key={sid} role="radio" aria-checked={on} onClick={() => set('style', sid)} className={`p-3 ${choiceCls(on)}`}>
+                    <span className={`block text-sm font-medium ${on ? 'text-[#a3e635]' : 'text-white'}`}>{label}</span>
+                    <span className="block text-xs text-gray-400 mt-0.5 leading-5">{hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {info.fields.filter((f) => f !== 'image' || vars.style === 'designed').map((f) => {
+                const meta = FIELD[f];
+                const req = info.required.includes(f);
+                const bad = miss === f && !!vars[f];
+                const fid = id(`f-${f}`);
+                return (
+                  <div key={f} className={meta.long || f === 'subject' || f === 'link' || f === 'image' ? 'sm:col-span-2' : ''}>
+                    <label htmlFor={fid} className="text-xs text-gray-300">{meta.label}{req && <span className="text-[#a3e635]" aria-hidden="true"> *</span>}{req && <span className="sr-only"> (required)</span>}</label>
+                    {meta.long ? (
+                      <textarea id={fid} value={vars[f] || ''} onChange={(e) => set(f, e.target.value)} rows={f === 'body' ? 6 : 2} placeholder={meta.placeholder} className={`${input} mt-1 ${focusRing}`} />
+                    ) : (
+                      <input id={fid} value={vars[f] || ''} onChange={(e) => set(f, e.target.value)} placeholder={f === 'ctaLabel' ? info.defaultCta : meta.placeholder}
+                        aria-invalid={bad || undefined} aria-describedby={meta.hint ? `${fid}-h` : undefined} required={req}
+                        className={`${input} mt-1 ${focusRing} ${bad ? '!border-red-500/70' : ''}`} inputMode={f === 'link' || f === 'image' ? 'url' : undefined} />
+                    )}
+                    {meta.hint && <span id={`${fid}-h`} className={`block text-xs mt-1 ${bad ? 'text-red-400' : 'text-gray-400'}`}>{meta.hint}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </Step>
+
+          <Step n={4} title="Who gets it?">
+            <fieldset>
+              <legend className="sr-only">Recipients</legend>
+              <div className="space-y-2">
+                {([
+                  ['all', 'All subscribers', subsCount === null ? '…' : `${subsCount.toLocaleString('en-IN')} people`],
+                  ['tag', 'A saved group (tag)', tags.length ? `${tags.length} groups` : 'No groups yet'],
+                  ['list', 'Paste or upload a list', 'CSV, sheet columns, or one per line'],
+                ] as [AudType, string, string][]).map(([aid, label, sub]) => (
+                  <label key={aid} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer focus-within:ring-2 focus-within:ring-[#a3e635] ${aud === aid ? 'border-[#a3e635]/70 bg-[#a3e635]/[0.05]' : 'border-white/10 hover:border-white/25'}`}>
+                    <input type="radio" name={id('aud')} checked={aud === aid} onChange={() => setAud(aid)} className="accent-[#a3e635] w-4 h-4" />
+                    <span className="text-sm text-white">{label}</span>
+                    <span className="ml-auto text-xs text-gray-400">{sub}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {aud === 'tag' && (
+              <div className="mt-3">
+                <label htmlFor={id('tag')} className="text-xs text-gray-300">Group</label>
+                <select id={id('tag')} value={tag} onChange={(e) => setTag(e.target.value)} className={`${input} mt-1 ${focusRing}`}>
+                  <option value="">Choose a group…</option>
+                  {tags.map(([t, n]) => <option key={t} value={t}>{t} · {n} people</option>)}
+                </select>
+              </div>
+            )}
+            {aud === 'list' && (
+              <div className="mt-3 space-y-2">
+                <label htmlFor={id('list')} className="text-xs text-gray-300">People (Name, email per line)</label>
+                <textarea id={id('list')} value={listText} onChange={(e) => setListText(e.target.value)} rows={6} spellCheck={false}
+                  placeholder={'Aman Verma, aman@gmail.com\nRiya <riya@college.edu>\nneha@gmail.com'} className={`${input} font-mono text-[13px] leading-6 ${focusRing}`} />
+                <div className="flex items-center gap-3 flex-wrap text-xs">
+                  <button onClick={() => file.current?.click()} className={`px-3 py-1.5 rounded-lg border border-white/10 text-gray-200 hover:text-white flex items-center gap-1.5 ${focusRing}`}><Upload size={13} aria-hidden="true" /> Upload CSV</button>
+                  <input ref={file} type="file" accept=".csv,.txt,.tsv" className="hidden" aria-hidden="true" tabIndex={-1}
+                    onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { if (/\.xlsx?$/i.test(f.name)) setErr('Save the Excel sheet as .csv first.'); else setListText(await f.text()); } }} />
+                  {listText && <span className="text-gray-300" aria-live="polite"><b className="text-white">{parsed.people.length}</b> people{parsed.bad ? <span className="text-amber-300"> · {parsed.bad} lines skipped</span> : ''}</span>}
+                </div>
+                <label htmlFor={id('ltag')} className="text-xs text-gray-300 block pt-1">Save this list as a group (optional)</label>
+                <input id={id('ltag')} value={listTag} onChange={(e) => setListTag(e.target.value)} placeholder="e.g. ctf-oct-2026" className={`${input} ${focusRing}`} />
+                <p className="text-xs text-gray-400">Saved to Contacts with this tag (not added to Subscribers), so the reminder and results can go to the same group later.</p>
+              </div>
+            )}
+            {promo && <p className="mt-2 text-xs text-gray-400">People who unsubscribed are skipped, and every email gets an unsubscribe link.</p>}
+          </Step>
+
+          <Step n={5} title="From and send through">
+            <p id={id('fromlbl')} className="text-xs text-gray-300 mb-2">From (a person's name lands in Primary more often)</p>
+            <div role="radiogroup" aria-labelledby={id('fromlbl')} className="flex flex-wrap gap-2 mb-4">
+              {[...Object.keys(SENDERS), ''].map((key) => {
+                const cur = vars.sender === undefined ? DEFAULT_SENDER : vars.sender;
+                const on = cur === key;
+                return (
+                  <button key={key || 'team'} role="radio" aria-checked={on} onClick={() => set('sender', key)}
+                    className={`px-3 py-1.5 text-sm ${choiceCls(on)} ${on ? 'text-[#a3e635]' : 'text-gray-200'}`}>
+                    {key ? `${SENDERS[key]} from CyberHx` : 'CyberHx'}
+                  </button>
+                );
+              })}
+            </div>
+            <p id={id('vialbl')} className="text-xs text-gray-300 mb-2">Send through</p>
+            <div role="radiogroup" aria-labelledby={id('vialbl')} className="flex flex-wrap gap-2">
+              <button role="radio" aria-checked={via === 'auto'} onClick={() => setVia('auto')} className={`px-3 py-2 ${choiceCls(via === 'auto')}`}>
+                <span className={`block text-sm font-medium ${via === 'auto' ? 'text-[#a3e635]' : 'text-white'}`}>Automatic</span>
+                <span className="block text-xs text-gray-400">Recommended · switches when one is full</span>
+              </button>
+              {connected.map((p) => {
+                const left = remainingToday(p);
+                return (
+                  <button key={p.id} role="radio" aria-checked={via === p.id} onClick={() => setVia(p.id)} disabled={!left} className={`px-3 py-2 disabled:opacity-40 ${choiceCls(via === p.id)}`}>
+                    <span className={`block text-sm font-medium ${via === p.id ? 'text-[#a3e635]' : 'text-white'}`}>{p.label}</span>
+                    <span className="block text-xs text-gray-400 tabular-nums">{fmtN(left)} left {p.day !== null ? 'today' : 'this month'}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-gray-400 leading-5">
+              {viaInfo
+                ? <>Only <b className="text-gray-200">{viaInfo.label}</b> is used (from <span className="font-mono">{viaInfo.from}</span>). When its limit is reached, the campaign pauses until tomorrow.</>
+                : autoOrder.length
+                  ? <>Order for {KIND_INFO[kind].label.toLowerCase()}: {autoOrder.map((p) => p.label).join(' → ')}</>
+                  : 'No email service is connected yet.'}
+            </p>
+          </Step>
+
+          <Step n={6} title="Test and send">
+            <label htmlFor={id('cname')} className="text-xs text-gray-300">Campaign name (only you see it)</label>
+            <input id={id('cname')} value={name} onChange={(e) => setName(e.target.value)} placeholder={draftName || vars.eventName || vars.subject || info.label} className={`${input} mt-1 ${focusRing}`} />
+            <label htmlFor={id('test')} className="text-xs text-gray-300 block mt-3">Send a test to</label>
+            <div className="mt-1 flex gap-2">
+              <input id={id('test')} value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="your@email.com" type="email" autoComplete="email" className={`${input} ${focusRing}`} />
+              <button onClick={sendTest} disabled={!!busy || !!miss || !/\S+@\S+\.\S+/.test(testTo)}
+                className={`shrink-0 px-4 rounded-lg border border-white/20 text-sm text-gray-100 hover:text-white hover:border-white/40 disabled:opacity-40 flex items-center gap-1.5 ${focusRing}`}>
+                {busy === 'test' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Send size={14} aria-hidden="true" />} Send test
+              </button>
+            </div>
+
+            {recipients > 0 && prov && (
+              <div className={`mt-4 p-3 rounded-xl border text-xs leading-5 ${recipients > capacity ? 'border-amber-500/40 bg-amber-500/5 text-amber-200' : 'border-white/10 text-gray-300'}`}>
+                {recipients > capacity
+                  ? <>About <b>{fmtN(capacity)}</b> of {recipients.toLocaleString('en-IN')} can go out today with the connected services. The rest will wait, and you press <b>Continue</b> tomorrow.</>
+                  : <>Ready: {recipients.toLocaleString('en-IN')} emails, about {fmtN(capacity)} can go out today. Keep this browser tab open while it sends (switching admin tabs is fine).</>}
+              </div>
+            )}
+
+            {!confirming ? (
+              <button onClick={() => setConfirming(true)} disabled={!canSend}
+                className={`mt-4 w-full sm:w-auto px-6 py-3 rounded-xl bg-[#a3e635] text-[#05080f] font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2 ${focusRing}`}>
+                {busy === 'send' ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
+                Send to {recipients.toLocaleString('en-IN')} {recipients === 1 ? 'person' : 'people'}
+              </button>
+            ) : (
+              <div role="alertdialog" aria-label="Confirm send" className="mt-4 p-4 rounded-xl border border-[#a3e635]/50 bg-[#a3e635]/[0.05]">
+                <p className="text-sm text-white">Send <b>"{preview.subject}"</b> to <b>{recipients.toLocaleString('en-IN')}</b> {recipients === 1 ? 'person' : 'people'}? This can't be undone.</p>
+                <div className="mt-3 flex gap-2">
+                  <button autoFocus onClick={start} className={`px-5 py-2 rounded-lg bg-[#a3e635] text-[#05080f] font-semibold text-sm flex items-center gap-1.5 ${focusRing}`}><Check size={15} aria-hidden="true" /> Yes, send now</button>
+                  <button onClick={() => setConfirming(false)} className={`px-4 py-2 rounded-lg border border-white/15 text-sm text-gray-200 ${focusRing}`}>Back</button>
+                </div>
+              </div>
+            )}
+            {miss && <p className="mt-2 text-xs text-gray-300">Still needed: <span className="text-amber-300">{FIELD[miss as keyof CampaignVars]?.label || miss}</span></p>}
+          </Step>
+
+          <div aria-live="polite" className="min-h-0">
+            {msg && <p role="status" className="text-sm text-[#a3e635] flex items-start gap-1.5"><Check size={14} className="mt-0.5 shrink-0" aria-hidden="true" /> {msg}</p>}
+            {err && <p role="alert" className="text-sm text-red-400 flex items-start gap-1.5"><AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" /> {err}</p>}
+          </div>
+        </div>
+
+        {/* preview */}
+        <div className="min-w-0 xl:sticky xl:top-4 self-start">
+          <p className="text-xs text-gray-300 mb-2 flex items-center gap-1.5"><Eye size={13} className="text-[#a3e635]" aria-hidden="true" /> Preview <span className="text-gray-400">· as "Aman Verma" sees it</span></p>
+          <div className="rounded-xl border border-white/10 overflow-hidden bg-[#05070c]">
+            <p className="px-4 py-2.5 text-xs border-b border-white/10 text-gray-400 truncate">From: <span className="text-gray-100">{senderName(vars)}</span> · Subject: <span className="text-gray-100">{preview.subject}</span></p>
+            <iframe title="Email preview" srcDoc={preview.html} sandbox="" className="w-full h-[640px] bg-white" />
+          </div>
         </div>
       </div>
     </div>
@@ -523,10 +642,12 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
 }
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  const hid = useId();
   return (
-    <section>
-      <h4 className="text-sm text-white font-medium flex items-center gap-2 mb-3">
-        <span className="w-5 h-5 rounded-full bg-[#a3e635]/15 text-[#a3e635] text-[11px] font-bold flex items-center justify-center">{n}</span>{title}
+    <section aria-labelledby={hid}>
+      <h4 id={hid} className="text-sm text-white font-semibold flex items-center gap-2 mb-3">
+        <span aria-hidden="true" className="w-6 h-6 rounded-full bg-[#a3e635]/15 text-[#a3e635] text-xs font-bold flex items-center justify-center">{n}</span>
+        <span className="sr-only">Step {n}: </span>{title}
       </h4>
       {children}
     </section>
@@ -534,7 +655,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 }
 
 // =====================================================================
-function CampaignRow({ c, prov, onChanged }: { c: Campaign; prov: ProvidersRes | null; onChanged: () => void }) {
+function CampaignRow({ c, prov, onChanged, onUseAgain }: { c: Campaign; prov: ProvidersRes | null; onChanged: () => void; onUseAgain: () => void }) {
   useRerenderOnSender();
   const live = sender.running.get(c.id);
   const [busy, setBusy] = useState(false);
@@ -596,7 +717,10 @@ function CampaignRow({ c, prov, onChanged }: { c: Campaign; prov: ProvidersRes |
             {KIND_INFO[c.kind].label} · {CAMPAIGN_TEMPLATES.find((t) => t.id === c.template)?.label} · {audienceText} · {c.provider ? `via ${label(c.provider)} only` : 'Automatic'} · <span title={fmtDateTime(c.created_at)}>{timeAgo(c.created_at)}</span>
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button onClick={onUseAgain} className="px-3 py-1.5 rounded-lg text-xs border border-white/15 text-gray-200 hover:text-white flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a3e635]" title="Copy this campaign into the form to send again">
+            <Repeat size={12} aria-hidden="true" /> Use again
+          </button>
           {(status === 'paused' || (status === 'sending' && !live)) && pending > 0 && (
             <button onClick={() => act('continue')} disabled={busy} className="px-3 py-1.5 rounded-lg text-xs bg-[#a3e635] text-[#05080f] font-semibold flex items-center gap-1 disabled:opacity-50"><Play size={12} /> Continue</button>
           )}
@@ -605,7 +729,7 @@ function CampaignRow({ c, prov, onChanged }: { c: Campaign; prov: ProvidersRes |
             <button onClick={() => act('retry')} disabled={busy} className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1"><RotateCcw size={12} /> Retry failed</button>
           )}
           {(status === 'sending' || status === 'paused') && pending > 0 && (
-            <button onClick={() => act('cancel')} disabled={busy} title="Cancel" className="p-1.5 rounded-lg text-gray-500 hover:text-red-400"><X size={14} /></button>
+            <button onClick={() => act('cancel')} disabled={busy} title="Cancel" aria-label="Cancel this campaign" className="p-1.5 rounded-lg text-gray-400 hover:text-red-400"><X size={14} /></button>
           )}
         </div>
       </div>
