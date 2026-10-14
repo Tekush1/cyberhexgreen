@@ -37,6 +37,8 @@ interface ProviderDef {
 }
 
 const env = (k: string) => (process.env[k] || '').trim();
+/** Some services (Brevo) reject an empty headers object, so only send headers when there are any. */
+const hasHeaders = (h?: Record<string, string>) => !!h && Object.keys(h).length > 0;
 
 /** Every reply to any CyberHx email lands here (override with MAIL_REPLY_TO). */
 export const DEFAULT_REPLY_TO = 'CyberHx Support <support@cyberhx.com>';
@@ -133,7 +135,7 @@ const PROVIDERS: ProviderDef[] = [
           to: [{ email: m.to, ...(m.name ? { name: m.name } : {}) }],
           subject: m.subject, htmlContent: m.html, textContent: m.text,
           ...(replyTo ? { replyTo: parseFrom(replyTo) } : {}),
-          ...(m.headers ? { headers: m.headers } : {}),
+          ...(hasHeaders(m.headers) ? { headers: m.headers } : {}),
         });
         if (!r.ok) return failure(r.status, await readErr(r));
         const j = await r.json().catch(() => ({}));
@@ -158,7 +160,7 @@ const PROVIDERS: ProviderDef[] = [
               To: [{ Email: m.to, ...(m.name ? { Name: m.name } : {}) }],
               Subject: m.subject, TextPart: m.text, HTMLPart: m.html,
               ...(replyTo ? { ReplyTo: { Email: parseFrom(replyTo).email, Name: parseFrom(replyTo).name } } : {}),
-              ...(m.headers ? { Headers: m.headers } : {}),
+              ...(hasHeaders(m.headers) ? { Headers: m.headers } : {}),
             })),
           });
         } catch (e) {
@@ -227,7 +229,7 @@ const PROVIDERS: ProviderDef[] = [
           to: [{ email: m.to, ...(m.name ? { name: m.name } : {}) }],
           subject: m.subject, html: m.html, text: m.text, category: 'cyberhx-campaign',
           ...(replyTo ? { reply_to: parseFrom(replyTo) } : {}),
-          ...(m.headers ? { headers: m.headers } : {}),
+          ...(hasHeaders(m.headers) ? { headers: m.headers } : {}),
         });
         if (!r.ok) return failure(r.status, await readErr(r));
         const j = await r.json().catch(() => ({}));
@@ -245,7 +247,7 @@ const PROVIDERS: ProviderDef[] = [
           subject: m.subject.slice(0, 255), html: m.html, plain: m.text,
           ...(m.tracking === false ? { tracking: false } : {}),
           ...(replyTo ? { reply_to: { address: parseFrom(replyTo).email, display_name: parseFrom(replyTo).name } } : {}),
-          ...(m.headers ? { headers: m.headers } : {}),
+          ...(hasHeaders(m.headers) ? { headers: m.headers } : {}),
         });
         if (!r.ok) return failure(r.status, await readErr(r));
         const j = await r.json().catch(() => ({}));
@@ -281,7 +283,7 @@ const PROVIDERS: ProviderDef[] = [
           recipients: [{ email: m.to, ...(m.name ? { name: m.name } : {}) }],
           subject: m.subject, html_content: m.html, text_content: m.text,
           ...(replyTo ? { reply_to: parseFrom(replyTo) } : {}),
-          ...(m.headers ? { headers: m.headers } : {}),
+          ...(hasHeaders(m.headers) ? { headers: m.headers } : {}),
         });
         if (!r.ok) return failure(r.status, await readErr(r));
         const j = await r.json().catch(() => ({}));
@@ -304,7 +306,7 @@ const PROVIDERS: ProviderDef[] = [
             part.map((m) => ({
               from: fmtAddr(from), to: [m.to], subject: m.subject, html: m.html, text: m.text,
               ...(replyTo ? { reply_to: replyTo } : {}),
-              ...(m.headers ? { headers: m.headers } : {}),
+              ...(hasHeaders(m.headers) ? { headers: m.headers } : {}),
             })));
         } catch (e) {
           out.push(...part.map(() => ({ ok: false, fatal: true, error: e instanceof Error ? e.message : 'network error' })));
