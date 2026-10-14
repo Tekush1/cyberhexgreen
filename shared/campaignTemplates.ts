@@ -21,11 +21,13 @@ export interface CampaignVars {
   heading?: string;
   body?: string;
   note?: string;
+  /** 'designed' = branded card with button; anything else = simple letter style (better for Gmail Primary). */
+  style?: string;
 }
 
-export const CAMPAIGN_FIELDS = ['eventName', 'when', 'where', 'link', 'ctaLabel', 'image', 'subject', 'heading', 'body', 'note'] as const;
+export const CAMPAIGN_FIELDS = ['eventName', 'when', 'where', 'link', 'ctaLabel', 'image', 'subject', 'heading', 'body', 'note', 'style'] as const;
 export const CAMPAIGN_MAX: Record<(typeof CAMPAIGN_FIELDS)[number], number> = {
-  eventName: 120, when: 120, where: 120, link: 500, ctaLabel: 40, image: 500, subject: 150, heading: 150, body: 6000, note: 1500,
+  style: 10, eventName: 120, when: 120, where: 120, link: 500, ctaLabel: 40, image: 500, subject: 150, heading: 150, body: 6000, note: 1500,
 };
 
 export interface CampaignTemplateInfo {
@@ -160,6 +162,7 @@ export function renderCampaign(
       };
   }
   if (opts.unsubscribeUrl) o.unsubscribeUrl = opts.unsubscribeUrl;
+  if (v.style !== 'designed') o.plain = true;
   return { subject: subject.slice(0, 200), html: layout(o), text: textVersion(o) };
 }
 

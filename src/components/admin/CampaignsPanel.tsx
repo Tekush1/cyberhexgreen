@@ -27,6 +27,7 @@ const KIND_ICON: Record<CampaignKind, React.ReactNode> = {
   event: <Megaphone size={16} />, newsletter: <Newspaper size={16} />, notification: <BellRing size={16} />,
 };
 const FIELD: Record<keyof CampaignVars, { label: string; placeholder: string; long?: boolean; hint?: string }> = {
+  style: { label: 'Style', placeholder: '' },
   eventName: { label: 'Event name', placeholder: 'CyberHx CTF October 2026' },
   when: { label: 'When', placeholder: 'Saturday 25 Oct, 7:00 PM IST' },
   where: { label: 'Where', placeholder: 'Online · ctf.cyberhx.com' },
@@ -352,8 +353,23 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
 
         {/* 3 content */}
         <Step n={3} title="Content">
+          <div className="mb-4 grid sm:grid-cols-2 gap-2">
+            {([
+              ['plain', 'Simple (Primary inbox)', 'Looks like a normal typed email. No images or big buttons, tracking off. Best chance of landing in Primary.'],
+              ['designed', 'Designed', 'Branded dark card with a button and banner. Gmail usually files these under Promotions.'],
+            ] as const).map(([id, label, hint]) => {
+              const on = (vars.style === 'designed' ? 'designed' : 'plain') === id;
+              return (
+                <button key={id} onClick={() => set('style', id)}
+                  className={`text-left p-3 rounded-xl border transition-all ${on ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
+                  <span className={`block text-sm font-medium ${on ? 'text-[#a3e635]' : 'text-white'}`}>{label}</span>
+                  <span className="block text-[11px] text-gray-500 mt-0.5 leading-4">{hint}</span>
+                </button>
+              );
+            })}
+          </div>
           <div className="grid sm:grid-cols-2 gap-3">
-            {info.fields.map((f) => {
+            {info.fields.filter((f) => f !== 'image' || vars.style === 'designed').map((f) => {
               const meta = FIELD[f];
               const req = info.required.includes(f);
               const bad = miss === f && !!vars[f];

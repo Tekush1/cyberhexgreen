@@ -15,6 +15,8 @@ export interface OutMsg {
   html: string;
   text: string;
   headers?: Record<string, string>;
+  /** false = ask the service not to add open pixels / rewrite links (helps inbox placement). */
+  tracking?: boolean;
 }
 interface Addr { email: string; name: string }
 export interface SendResult { ok: boolean; id?: string; error?: string; /** provider-level problem: try the next provider */ fatal?: boolean }
@@ -198,6 +200,7 @@ const PROVIDERS: ProviderDef[] = [
           form.append('text', m.text);
           form.append('html', m.html);
           if (replyTo) form.append('h:Reply-To', replyTo);
+          if (m.tracking === false) form.append('o:tracking', 'no');
           for (const [k, v] of Object.entries(m.headers || {})) form.append(`h:${k}`, v);
           const ctrl = new AbortController();
           const timer = setTimeout(() => ctrl.abort(), 20000);
@@ -240,6 +243,7 @@ const PROVIDERS: ProviderDef[] = [
           from: { address: from.email, display_name: from.name || 'CyberHx' },
           to: [{ address: m.to, ...(m.name ? { display_name: m.name } : {}) }],
           subject: m.subject.slice(0, 255), html: m.html, plain: m.text,
+          ...(m.tracking === false ? { tracking: false } : {}),
           ...(replyTo ? { reply_to: { address: parseFrom(replyTo).email, display_name: parseFrom(replyTo).name } } : {}),
           ...(m.headers ? { headers: m.headers } : {}),
         });

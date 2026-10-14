@@ -44,7 +44,7 @@ function buildMsg(kind: CampaignKind, template: CampaignTemplateId, vars: Campai
     headers['List-Unsubscribe'] = `<${site()}/api/subscribe?unsub=${row.unsub_token}>`;
     headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
   }
-  return { to: row.email, name: row.name, subject: mail.subject, html: mail.html, text: mail.text, headers };
+  return { to: row.email, name: row.name, subject: mail.subject, html: mail.html, text: mail.text, headers, tracking: vars.style === 'designed' };
 }
 
 function summarizeErrors(errs: Record<string, string>) {

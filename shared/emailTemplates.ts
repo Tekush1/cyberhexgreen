@@ -91,9 +91,33 @@ export interface Layout {
   unsubscribeUrl?: string;
   /** Optional banner image (https) shown above the heading. */
   image?: string;
+  /** Simple, letter-style email (no card, button or images): Gmail puts these in Primary far more often. */
+  plain?: boolean;
+}
+
+/** Letter-style HTML: looks like a normal email someone typed, which is what inbox filters expect from a person. */
+function plainLayout(o: Layout) {
+  const para = (t: string) => `<p style="margin:0 0 14px;">${esc(t).replace(/\n/g, '<br>')}</p>`;
+  const details = (o.details || []).filter(([, v]) => v).map(([k, v]) => `${esc(k)}: <b>${esc(v)}</b>`).join('<br>');
+  const link = o.cta && safeUrl(o.cta.url) ? `<p style="margin:0 0 14px;">${esc(o.cta.label)}: <a href="${esc(safeUrl(o.cta.url))}">${esc(safeUrl(o.cta.url))}</a></p>` : '';
+  const unsub = safeUrl(o.unsubscribeUrl)
+    ? `<p style="margin:24px 0 0;font-size:12px;color:#777;">You are getting this because you joined CyberHx updates. <a href="${esc(safeUrl(o.unsubscribeUrl))}" style="color:#777;">Unsubscribe</a></p>`
+    : '';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(o.heading)}</title></head>
+<body style="margin:0;padding:16px;background:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222;">
+<div style="max-width:600px;">
+${o.paragraphs.filter(Boolean).map(para).join('')}
+${details ? `<p style="margin:0 0 14px;">${details}</p>` : ''}
+${link}
+${o.note?.trim() ? para(o.note.trim()) : ''}
+<p style="margin:18px 0 0;">Regards,<br>Team CyberHx<br><a href="https://cyberhx.com">cyberhx.com</a></p>
+${unsub}
+</div>
+</body></html>`;
 }
 
 export function layout(o: Layout) {
+  if (o.plain) return plainLayout(o);
   const p = o.paragraphs
     .filter(Boolean)
     .map((t) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${C.text};">${esc(t).replace(/\n/g, '<br>')}</p>`)
