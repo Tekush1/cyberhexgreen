@@ -219,21 +219,26 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
   let subject: string;
 
   switch (id) {
-    case 'booking':
-      subject = `Book your ${subj}`;
+    case 'booking': {
+      const isInterview = /interview/i.test(title);
+      subject = isInterview ? 'Congratulations! Book your CyberHx interview' : `Book your ${subj}`;
       o = {
-        preheader: 'Choose a time that suits you',
-        eyebrow: 'Pick your slot',
-        heading: who ? `${who}, choose your time.` : 'Choose your time.',
+        preheader: isInterview ? 'Thank you for applying to CyberHx. Choose your interview slot.' : 'Choose a time that suits you',
+        eyebrow: isInterview ? 'Congratulations' : 'Pick your slot',
+        heading: isInterview ? (who ? `Congratulations, ${who}!` : 'Congratulations!') : who ? `${who}, choose your time.` : 'Choose your time.',
         paragraphs: [
           hi,
-          `We would like to set up your ${title} with CyberHx. Please pick a slot that works for you. It takes less than a minute, and the Google Meet link is added to your calendar as soon as you confirm.`,
+          ...(isInterview ? ['Thank you for applying to CyberHx. We enjoyed going through your application and we are happy to invite you to an interview.'] : []),
+          isInterview
+            ? 'Please pick a slot that works for you. It takes less than a minute, and the Google Meet link is added to your calendar as soon as you confirm.'
+            : `We would like to set up your ${title} with CyberHx. Please pick a slot that works for you. It takes less than a minute, and the Google Meet link is added to your calendar as soon as you confirm.`,
           booking ? '' : 'Reply to this email with two or three times that suit you and we will send the invite.',
         ],
         cta: booking ? { label: 'Choose your slot', url: booking } : undefined,
         note: v.note,
       };
       break;
+    }
     case 'confirmation':
       subject = date ? `Confirmed: your ${subj} on ${date}` : `Confirmed: your ${subj}`;
       o = {
