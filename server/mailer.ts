@@ -424,6 +424,8 @@ export async function route<R>(
   build: (row: R) => OutMsg,
   /** Use only this service (no fallover). Undefined = automatic lane order. */
   only?: ProviderId,
+  /** Display name for the From line (the address stays the service's verified one). */
+  fromName?: string,
 ): Promise<{ done: RoutedResult<R>[]; leftover: R[]; providerErrors: Record<string, string>; anyConfigured: boolean }> {
   const replyTo = env('MAIL_REPLY_TO') || DEFAULT_REPLY_TO;
   const done: RoutedResult<R>[] = [];
@@ -444,7 +446,9 @@ export async function route<R>(
     const granted = await rpc<number>(auth, 'mail_take_quota', { p_provider: pid, p_want: pool.length, p_day_limit: info.day, p_month_limit: info.month });
     if (!granted) continue;
     const chunk = pool.splice(0, granted);
-    const results = await def.send(chunk.map(build), parseFrom(info.from), replyTo);
+    const fromAddr = parseFrom(info.from);
+    if (fromName) fromAddr.name = fromName;
+    const results = await def.send(chunk.map(build), fromAddr, replyTo);
 
     const retry: R[] = [];
     let unsent = 0;

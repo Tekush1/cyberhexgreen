@@ -23,11 +23,22 @@ export interface CampaignVars {
   note?: string;
   /** 'designed' = branded card with button; anything else = simple letter style (better for Gmail Primary). */
   style?: string;
+  /** Who the email is from: a key of SENDERS ('' = just CyberHx). */
+  sender?: string;
 }
 
-export const CAMPAIGN_FIELDS = ['eventName', 'when', 'where', 'link', 'ctaLabel', 'image', 'subject', 'heading', 'body', 'note', 'style'] as const;
+/** People who can send campaigns. The email shows "Kush from CyberHx" and is signed by that person. */
+export const SENDERS: Record<string, string> = { kush: 'Kush', aman: 'Aman', rio: 'Rio' };
+export const DEFAULT_SENDER = 'kush';
+/** Display name for the From line, e.g. "Kush from CyberHx". */
+export const senderName = (v: CampaignVars) => {
+  const key = v.sender === undefined || v.sender === null ? DEFAULT_SENDER : String(v.sender);
+  return SENDERS[key] ? `${SENDERS[key]} from CyberHx` : 'CyberHx';
+};
+
+export const CAMPAIGN_FIELDS = ['eventName', 'when', 'where', 'link', 'ctaLabel', 'image', 'subject', 'heading', 'body', 'note', 'style', 'sender'] as const;
 export const CAMPAIGN_MAX: Record<(typeof CAMPAIGN_FIELDS)[number], number> = {
-  style: 10, eventName: 120, when: 120, where: 120, link: 500, ctaLabel: 40, image: 500, subject: 150, heading: 150, body: 6000, note: 1500,
+  style: 10, sender: 10, eventName: 120, when: 120, where: 120, link: 500, ctaLabel: 40, image: 500, subject: 150, heading: 150, body: 6000, note: 1500,
 };
 
 export interface CampaignTemplateInfo {
@@ -163,6 +174,8 @@ export function renderCampaign(
   }
   if (opts.unsubscribeUrl) o.unsubscribeUrl = opts.unsubscribeUrl;
   if (v.style !== 'designed') o.plain = true;
+  const who2 = SENDERS[raw.sender === undefined ? DEFAULT_SENDER : String(raw.sender)];
+  if (who2) o.signer = who2;
   return { subject: subject.slice(0, 200), html: layout(o), text: textVersion(o) };
 }
 

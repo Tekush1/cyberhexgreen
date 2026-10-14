@@ -4,7 +4,7 @@ import {
   RotateCcw, Send, Server, Upload, Users, X,
 } from 'lucide-react';
 import {
-  CAMPAIGN_TEMPLATES, KIND_INFO, missingField, renderCampaign,
+  CAMPAIGN_TEMPLATES, KIND_INFO, missingField, renderCampaign, SENDERS, DEFAULT_SENDER, senderName,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../../../shared/campaignTemplates';
 import { fmtDateTime, timeAgo } from './adminApi';
@@ -28,6 +28,7 @@ const KIND_ICON: Record<CampaignKind, React.ReactNode> = {
 };
 const FIELD: Record<keyof CampaignVars, { label: string; placeholder: string; long?: boolean; hint?: string }> = {
   style: { label: 'Style', placeholder: '' },
+  sender: { label: 'From', placeholder: '' },
   eventName: { label: 'Event name', placeholder: 'CyberHx CTF October 2026' },
   when: { label: 'When', placeholder: 'Saturday 25 Oct, 7:00 PM IST' },
   where: { label: 'Where', placeholder: 'Online · ctf.cyberhx.com' },
@@ -428,7 +429,21 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
         </Step>
 
         {/* 5 send */}
-        <Step n={5} title="Send through">
+        <Step n={5} title="From and send through">
+          <p className="text-xs text-gray-400 mb-2">From (a person's name lands in Primary more often)</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {[...Object.keys(SENDERS), ''].map((key) => {
+              const cur = vars.sender === undefined ? DEFAULT_SENDER : vars.sender;
+              const on = cur === key;
+              return (
+                <button key={key || 'team'} onClick={() => set('sender', key)}
+                  className={`px-3 py-1.5 rounded-lg border text-sm transition-all ${on ? 'border-[#a3e635] bg-[#a3e635]/[0.06] text-[#a3e635]' : 'border-white/8 text-gray-300 hover:border-white/20'}`}>
+                  {key ? `${SENDERS[key]} from CyberHx` : 'CyberHx'}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-400 mb-2">Send through</p>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setVia('auto')}
               className={`px-3 py-2 rounded-xl border text-left transition-all ${via === 'auto' ? 'border-[#a3e635] bg-[#a3e635]/[0.06]' : 'border-white/8 hover:border-white/20'}`}>
@@ -499,7 +514,7 @@ function Composer({ prov, onStarted }: { prov: ProvidersRes | null; onStarted: (
       <div className="min-w-0 xl:sticky xl:top-4 self-start">
         <p className="text-xs text-gray-400 mb-2 flex items-center gap-1.5"><Check size={13} className="text-[#a3e635]" /> Preview <span className="text-gray-600">· as "Aman Verma" sees it</span></p>
         <div className="rounded-xl border border-white/10 overflow-hidden bg-[#05070c]">
-          <p className="px-4 py-2.5 text-xs border-b border-white/8 text-gray-500 truncate">Subject: <span className="text-gray-200">{preview.subject}</span></p>
+          <p className="px-4 py-2.5 text-xs border-b border-white/8 text-gray-500 truncate">From: <span className="text-gray-200">{senderName(vars)}</span> · Subject: <span className="text-gray-200">{preview.subject}</span></p>
           <iframe title="Email preview" srcDoc={preview.html} sandbox="" className="w-full h-[640px] bg-[#05070c]" />
         </div>
       </div>

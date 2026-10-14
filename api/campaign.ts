@@ -11,7 +11,7 @@
 // Provider keys live only in Vercel env vars: see MAILING_SETUP.md.
 
 import {
-  CAMPAIGN_TEMPLATES, CAMPAIGN_FIELDS, CAMPAIGN_MAX, renderCampaign, missingField,
+  CAMPAIGN_TEMPLATES, CAMPAIGN_FIELDS, CAMPAIGN_MAX, renderCampaign, missingField, senderName,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../shared/campaignTemplates.js';
 import { allProviders, checkProvider, isProviderId, LANES, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
@@ -113,7 +113,7 @@ export default async function handler(req: any, res: any) {
         const r = await route(auth, kind, [{ email: to, name: String(body.name || '').slice(0, 80), unsub_token: null }], (row) => {
           const m = buildMsg(kind, template, vars, row);
           return { ...m, subject: `[TEST] ${m.subject}` };
-        }, only);
+        }, only, senderName(vars));
         if (!r.anyConfigured) return res.status(400).json({ error: 'No email service is connected yet. Add at least one API key in Vercel (see MAILING_SETUP.md).' });
         const d = r.done[0];
         if (d?.ok) return res.status(200).json({ provider: d.provider });
@@ -169,7 +169,7 @@ export default async function handler(req: any, res: any) {
         const p = await rpc<any>(auth, 'mail_finish', { p_campaign: id, p_results: [] });
         return res.status(200).json({ ...p, batch: 0 });
       }
-      const r = await route(auth, c.kind as CampaignKind, rows, (row) => buildMsg(c.kind, c.template, c.vars || {}, row), isProviderId(c.provider) ? c.provider : undefined);
+      const r = await route(auth, c.kind as CampaignKind, rows, (row) => buildMsg(c.kind, c.template, c.vars || {}, row), isProviderId(c.provider) ? c.provider : undefined, senderName(c.vars || {}));
       const results = [
         ...r.done.map((d) => ({ id: d.row.id, status: d.ok ? 'sent' : 'failed', provider: d.provider, message_id: d.id || null, error: d.ok ? null : d.error || 'failed' })),
         ...r.leftover.map((row) =>

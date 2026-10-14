@@ -91,6 +91,8 @@ export interface Layout {
   unsubscribeUrl?: string;
   /** Optional banner image (https) shown above the heading. */
   image?: string;
+  /** Person signing the email, e.g. "Kush" (shown above Team CyberHx). */
+  signer?: string;
   /** Simple, letter-style email (no card, button or images): Gmail puts these in Primary far more often. */
   plain?: boolean;
 }
@@ -110,7 +112,7 @@ ${o.paragraphs.filter(Boolean).map(para).join('')}
 ${details ? `<p style="margin:0 0 14px;">${details}</p>` : ''}
 ${link}
 ${o.note?.trim() ? para(o.note.trim()) : ''}
-<p style="margin:18px 0 0;">Regards,<br>Team CyberHx<br><a href="https://cyberhx.com">cyberhx.com</a></p>
+<p style="margin:18px 0 0;">Regards,<br>${o.signer ? `${esc(o.signer)}<br>` : ''}Team CyberHx<br><a href="https://cyberhx.com">cyberhx.com</a></p>
 ${unsub}
 </div>
 </body></html>`;
@@ -160,7 +162,7 @@ export function layout(o: Layout) {
         <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:${C.lime};">${esc(o.eyebrow)}</p>
         <h1 style="margin:0 0 20px;font-size:26px;line-height:1.2;font-weight:800;color:#ffffff;">${esc(o.heading)}</h1>
         ${p}${details}${cta}${note}
-        <p style="margin:8px 0 20px;font-size:15px;line-height:1.6;color:${C.text};">Regards,<br><strong>Team CyberHx</strong></p>
+        <p style="margin:8px 0 20px;font-size:15px;line-height:1.6;color:${C.text};">Regards,<br>${o.signer ? `<strong>${esc(o.signer)}</strong><br>Team CyberHx` : '<strong>Team CyberHx</strong>'}</p>
       </div>
     </td></tr>
     <tr><td style="padding:20px 8px 0;font-size:12px;line-height:1.6;color:${C.muted};text-align:center;">
@@ -187,6 +189,7 @@ export function textVersion(o: Layout) {
     o.note?.trim() ? `\n${o.note.trim()}` : '',
     '',
     'Regards,',
+    ...(o.signer ? [o.signer] : []),
     'Team CyberHx',
     'cyberhx.com',
     safeUrl(o.unsubscribeUrl) ? `\nUnsubscribe: ${safeUrl(o.unsubscribeUrl)}` : '',
