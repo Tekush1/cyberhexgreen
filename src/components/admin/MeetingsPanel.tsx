@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { TOKEN_KEY } from './adminApi';
 import { GuestInput } from './GuestInput';
+import { SentHistory, loadHistory, type History } from './SentHistory';
 import { EmailComposer } from './EmailComposer';
 
 export type MeetingKind = 'interview' | 'partnership' | 'ctf' | 'other';
@@ -132,6 +133,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const [addBusy, setAddBusy] = useState(false);
   const [emailingTo, setEmailingTo] = useState<string | null>(null);
   const [emailingCode, setEmailingCode] = useState<string | null>(null);
+  const [history, setHistory] = useState<History | null>(null);
   const [emailsCopied, setEmailsCopied] = useState(false);
   const [slotData, setSlotData] = useState<SlotData | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -186,6 +188,11 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
       const data = await api(undefined, '?admin=list');
       setItems(data.items || []);
       setPending(data.pending || []);
+      const all: string[] = [
+        ...(data.pending || []).flatMap((p: any) => (p.group ? p.guests || [] : p.email ? [p.email] : [])),
+        ...(data.items || []).flatMap((b: any) => (b.group ? (b.attendees || []).map((a: any) => a.email) : b.email ? [b.email] : [])),
+      ];
+      loadHistory(all).then(setHistory).catch(() => setHistory({}));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load.');
     } finally {
@@ -613,7 +620,8 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                 </div>
                 <p className="text-gray-500 text-xs mt-0.5 truncate">{p.group ? `${p.guests.length} people invited` : p.email}</p>
                 <p className="text-gray-400 text-xs mt-1 break-all">{p.link}</p>
-                <p className="text-gray-600 text-[11px] mt-0.5">Expires {fmt(p.expiresAt)} IST</p>
+                <p className="text-gray-400 text-[11px] mt-0.5">Expires {fmt(p.expiresAt)} IST</p>
+                <SentHistory emails={p.group ? p.guests : p.email ? [p.email] : []} history={history} />
               </div>
               <button onClick={() => copyPending(p)} className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
                 {copiedCode === p.code ? <Check size={12} /> : <Copy size={12} />} {copiedCode === p.code ? 'Copied' : 'Copy link'}
@@ -640,7 +648,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                   initialTemplate="booking"
                   initialBookingLink={p.link}
                   onClose={() => setEmailingCode(null)}
-                  onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingCode(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingCode(null); setTimeout(load, 1500); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 />
               )}
             </div>
@@ -691,6 +699,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                       </>
                     )}
                   </p>
+                  <SentHistory emails={b.group ? (b.attendees || []).map((a) => a.email) : b.email ? [b.email] : []} history={history} />
                 </div>
                 {(b.group || b.canAdd) && (
                   <button
@@ -728,7 +737,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                       meetLink: b.meetLink,
                     }}
                     onClose={() => setEmailingTo(null)}
-                    onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingTo(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingTo(null); setTimeout(load, 1500); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   />
                 )}
                 {addingTo === b.eventId && (

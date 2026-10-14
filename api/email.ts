@@ -140,7 +140,23 @@ export default async function handler(req: any, res: any) {
       const detail = [data?.name, data?.message].filter(Boolean).join(': ');
       return res.status(500).json({ error: `Resend ${r.status}${detail ? ` - ${detail}` : ''}` });
     }
-    await countUsage(String(req.headers?.authorization || ''), 'resend', list.length); // keeps Admin -> Campaigns usage honest
+    const auth = String(req.headers?.authorization || '');
+    await countUsage(auth, 'resend', list.length); // keeps Admin -> Campaigns usage honest
+    // Remember who got which email, so Admin -> Meetings can show it on each card. Never blocks the send.
+    try {
+      const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      if (url && anon) {
+        await fetch(`${url}/rest/v1/mail_log`, {
+          method: 'POST',
+          headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify(batch.map((b, i) => ({
+            email: b.to[0], template, subject: String(b.subject).slice(0, 300), provider: 'resend',
+            message_id: data?.data?.[i]?.id ? String(data.data[i].id).slice(0, 200) : null,
+          }))),
+        });
+      }
+    } catch (e) { console.error('mail_log insert failed', e); }
     return res.status(200).json({ sent: list.length });
   } catch (e) {
     console.error('resend request failed', e);
