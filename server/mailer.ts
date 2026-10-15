@@ -507,7 +507,37 @@ export async function checkProvider(id: ProviderId): Promise<{ ok: boolean; mess
       const match = senders.find((x) => String(x.email).toLowerCase() === from.email.toLowerCase());
       if (!match) return { ok: false, message: `Key works, but ${from.email} is not a sender in Brevo. Senders there: ${senders.map((x) => x.email).join(', ') || 'none'}. Set BREVO_FROM to one of them.` };
       if (match.active === false) return { ok: false, message: `${from.email} exists in Brevo but is not verified/active yet.` };
-      return { ok: true, message: `Key works and ${from.email} is an active sender (${acc.j?.email || 'account ok'}).` };
+      const lines: string[] = [`Sending as ${from.email} (active sender).`];
+      let ok = true;
+      // Is the From domain authenticated (DKIM + DMARC) in Brevo? If not, Gmail often drops or spams the mail.
+      const domain = from.email.split('@')[1] || '';
+      const d = await get(`https://api.brevo.com/v3/senders/domains/${encodeURIComponent(domain)}`, h);
+      if (d.r.ok) {
+        const auth = d.j?.authenticated === true;
+        if (!auth) ok = false;
+        lines.push(auth ? `Domain ${domain} is authenticated in Brevo.` : `Domain ${domain} is NOT authenticated in Brevo: mail is accepted but Gmail/Outlook may silently drop it. Use a sender on n1.cyberhx.com, or authenticate ${domain} in Brevo (Senders, domains → Authenticate).`);
+      } else {
+        ok = false;
+        lines.push(`Domain ${domain} is not added in Brevo (Senders, domains). Mail from it is likely to be dropped or spammed.`);
+      }
+      // What actually happened to the last emails (delivered / bounced / blocked …), newest first.
+      const ev = await get('https://api.brevo.com/v3/smtp/statistics/events?limit=40&days=3&sort=desc', h);
+      const events: any[] = Array.isArray(ev.j?.events) ? ev.j.events : [];
+      if (events.length) {
+        const bad = new Set(['hardBounces', 'softBounces', 'blocked', 'spam', 'invalid', 'deferred', 'error']);
+        const byMsg = new Map<string, any>();
+        for (const e of events) if (!byMsg.has(e.messageId) || bad.has(e.event)) byMsg.set(e.messageId, e); // keep the problem if there is one
+        const last = [...byMsg.values()].slice(0, 8);
+        if (last.some((e) => bad.has(e.event))) ok = false;
+        lines.push('Last emails:');
+        for (const e of last) {
+          const t = new Date(e.date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          lines.push(`• ${t} → ${e.email}: ${e.event}${e.reason ? ` (${String(e.reason).slice(0, 140)})` : ''}${e.from && e.from !== from.email ? ` [from ${e.from}]` : ''}`);
+        }
+      } else if (!ev.r.ok) {
+        lines.push(`Could not read the delivery log (${ev.r.status}).`);
+      }
+      return { ok, message: lines.join('\n') };
     }
     if (id === 'mailgun') {
       const domain = env('MAILGUN_DOMAIN') || 'n3.cyberhx.com';

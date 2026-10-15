@@ -217,7 +217,7 @@ function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; er
                           {checks[p.id] === '…' ? 'Checking…' : 'Check'}
                         </button>
                       )}
-                      {checks[p.id] && checks[p.id] !== '…' && <span className={`block mt-1 max-w-md whitespace-normal ${checks[p.id].startsWith('✓') ? 'text-[#a3e635]' : 'text-amber-300'}`}>{checks[p.id]}</span>}
+                      {checks[p.id] && checks[p.id] !== '…' && <span className={`block mt-1 max-w-xl whitespace-pre-line break-words ${checks[p.id].startsWith('✓') ? 'text-[#a3e635]' : 'text-amber-300'}`}>{checks[p.id]}</span>}
                     </td>
                   </tr>
                 ))}
