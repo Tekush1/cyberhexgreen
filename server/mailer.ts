@@ -5,7 +5,7 @@
 // When a provider is out of quota or fails as a whole (bad key, domain not verified, rate limited, down),
 // the remaining recipients move to the next provider in the lane.
 
-export type ProviderId = 'resend' | 'brevo' | 'sender' | 'mailjet' | 'mailgun' | 'mailtrap' | 'smtp2go' | 'maileroo' | 'ahasend';
+export type ProviderId = 'resend' | 'resend2' | 'brevo' | 'sender' | 'mailjet' | 'mailgun' | 'mailtrap' | 'smtp2go' | 'maileroo' | 'ahasend';
 export type Lane = 'event' | 'newsletter' | 'notification';
 
 export interface OutMsg {
@@ -105,6 +105,38 @@ async function perMessage(msgs: OutMsg[], concurrency: number, one: (m: OutMsg) 
   };
   await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, msgs.length)) }, worker));
   return out;
+}
+
+
+/** Resend batch sender for the account whose key is in `keyEnv`. */
+function resendSend(keyEnv: string): ProviderDef['send'] {
+  return async (msgs, from, replyTo) => {
+      const out: SendResult[] = [];
+      for (let i = 0; i < msgs.length; i += 100) {
+        const part = msgs.slice(i, i + 100);
+        if (out.some((x) => x.fatal)) { out.push(...part.map(() => ({ ok: false, fatal: true, error: 'skipped' }))); continue; }
+        let r: Response;
+        try {
+          r = await post('https://api.resend.com/emails/batch', { Authorization: `Bearer ${env(keyEnv)}` },
+            part.map((m) => ({
+              from: fmtAddr(from), to: [m.to], subject: m.subject, html: m.html, text: m.text,
+              ...(replyTo ? { reply_to: replyTo } : {}),
+              ...(hasHeaders(m.headers) ? { headers: m.headers } : {}),
+            })));
+        } catch (e) {
+          out.push(...part.map(() => ({ ok: false, fatal: true, error: e instanceof Error ? e.message : 'network error' })));
+          continue;
+        }
+        if (!r.ok) {
+          const e = await readErr(r);
+          out.push(...part.map(() => ({ ok: false, fatal: true, error: e }))); // batch is all-or-nothing
+          continue;
+        }
+        const j = await r.json().catch(() => ({}));
+        part.forEach((_, k) => out.push({ ok: true, id: j?.data?.[k]?.id }));
+      }
+      return out;
+  };
 }
 
 // ---------- providers ----------
@@ -295,33 +327,13 @@ const PROVIDERS: ProviderDef[] = [
     id: 'resend', label: 'Resend', env: ['RESEND_API_KEY'], defaultFrom: 'CyberHx <team@mail.cyberhx.com>',
     // Resend's free plan is 100/day, 3,000/month. Campaigns may use 70/day so interview emails always have room.
     day: 70, month: 2500, concurrency: 1, dashboard: 'https://resend.com/emails',
-    send: async (msgs, from, replyTo) => {
-      const out: SendResult[] = [];
-      for (let i = 0; i < msgs.length; i += 100) {
-        const part = msgs.slice(i, i + 100);
-        if (out.some((x) => x.fatal)) { out.push(...part.map(() => ({ ok: false, fatal: true, error: 'skipped' }))); continue; }
-        let r: Response;
-        try {
-          r = await post('https://api.resend.com/emails/batch', { Authorization: `Bearer ${env('RESEND_API_KEY')}` },
-            part.map((m) => ({
-              from: fmtAddr(from), to: [m.to], subject: m.subject, html: m.html, text: m.text,
-              ...(replyTo ? { reply_to: replyTo } : {}),
-              ...(hasHeaders(m.headers) ? { headers: m.headers } : {}),
-            })));
-        } catch (e) {
-          out.push(...part.map(() => ({ ok: false, fatal: true, error: e instanceof Error ? e.message : 'network error' })));
-          continue;
-        }
-        if (!r.ok) {
-          const e = await readErr(r);
-          out.push(...part.map(() => ({ ok: false, fatal: true, error: e }))); // batch is all-or-nothing
-          continue;
-        }
-        const j = await r.json().catch(() => ({}));
-        part.forEach((_, k) => out.push({ ok: true, id: j?.data?.[k]?.id }));
-      }
-      return out;
-    },
+    send: resendSend('RESEND_API_KEY'),
+  },
+  {
+    id: 'resend2', label: 'Resend · Pinaka', env: ['RESEND2_API_KEY'], defaultFrom: 'Pinaka CTF <mail@pinakactf.com>',
+    // Second Resend account (pinakactf.com). Used only when you send as Pinaka CTF; never in automatic mode.
+    day: 100, month: 3000, concurrency: 1, dashboard: 'https://resend.com/emails',
+    send: resendSend('RESEND2_API_KEY'),
   },
 ];
 
@@ -450,7 +462,8 @@ export async function route<R>(
     const chunk = pool.splice(0, granted);
     const fromAddr = parseFrom(info.from);
     if (fromName) fromAddr.name = fromName;
-    const results = await def.send(chunk.map(build), fromAddr, replyTo);
+    const rt = (pid === 'resend2' && env('RESEND2_REPLY_TO')) || replyTo;
+    const results = await def.send(chunk.map(build), fromAddr, rt);
 
     const retry: R[] = [];
     let unsent = 0;
@@ -505,8 +518,8 @@ export async function checkProvider(id: ProviderId): Promise<{ ok: boolean; mess
       const state = d.j?.domain?.state;
       return { ok: state === 'active', message: `Domain ${domain} is ${state || 'unknown'}${state === 'active' ? '' : ': finish DNS verification in Mailgun'}.` };
     }
-    if (id === 'resend') {
-      const d = await get('https://api.resend.com/domains', { Authorization: `Bearer ${env('RESEND_API_KEY')}` });
+    if (id === 'resend' || id === 'resend2') {
+      const d = await get('https://api.resend.com/domains', { Authorization: `Bearer ${env(id === 'resend' ? 'RESEND_API_KEY' : 'RESEND2_API_KEY')}` });
       if (!d.r.ok) return { ok: d.r.status === 401 ? false : true, message: d.r.status === 401 ? `Resend rejected the key: ${d.j?.message || ''}` : 'Key accepted (sending-only key cannot list domains).' };
       const dom = (d.j?.data || []).find((x: any) => from.email.endsWith('@' + x.name));
       return { ok: dom?.status === 'verified', message: dom ? `Domain ${dom.name} is ${dom.status}.` : `No Resend domain matches ${from.email}.` };

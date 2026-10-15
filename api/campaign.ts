@@ -11,7 +11,7 @@
 // Provider keys live only in Vercel env vars: see MAILING_SETUP.md.
 
 import {
-  CAMPAIGN_TEMPLATES, CAMPAIGN_FIELDS, CAMPAIGN_MAX, renderCampaign, missingField, senderName,
+  CAMPAIGN_TEMPLATES, CAMPAIGN_FIELDS, CAMPAIGN_MAX, renderCampaign, missingField, senderName, BRAND_SENDERS,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../shared/campaignTemplates.js';
 import { allProviders, checkProvider, isProviderId, LANES, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
@@ -104,6 +104,13 @@ export default async function handler(req: any, res: any) {
         const info = allProviders().find((p) => p.id === body.provider)!;
         if (!info.configured) return res.status(400).json({ error: `${info.label} is not connected yet (add ${info.missingEnv.join(' + ')} in Vercel).` });
         only = body.provider;
+      }
+      // Sending as another brand (e.g. Pinaka CTF) always uses that brand's own verified service.
+      const brandSender = BRAND_SENDERS[String(vars.sender ?? '')];
+      if (brandSender) {
+        const info = allProviders().find((p) => p.id === brandSender.provider);
+        if (!info?.configured) return res.status(400).json({ error: `${brandSender.label} is not connected yet: add ${info?.missingEnv.join(' + ') || 'its API key'} in Vercel, then redeploy.` });
+        only = brandSender.provider as ProviderId;
       }
       if (miss) return res.status(400).json({ error: `Fill in "${miss}" (links must start with https://).` });
 

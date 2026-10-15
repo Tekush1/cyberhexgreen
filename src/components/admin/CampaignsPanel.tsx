@@ -4,7 +4,7 @@ import {
   RotateCcw, Send, Server, Upload, Users, X, Save, FolderOpen, FilePlus, Copy, Trash2, Eye, Repeat,
 } from 'lucide-react';
 import {
-  CAMPAIGN_TEMPLATES, KIND_INFO, missingField, renderCampaign, SENDERS, DEFAULT_SENDER, senderName,
+  CAMPAIGN_TEMPLATES, KIND_INFO, missingField, renderCampaign, SENDERS, DEFAULT_SENDER, senderName, BRAND_SENDERS,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../../../shared/campaignTemplates';
 import { fmtDateTime, timeAgo } from './adminApi';
@@ -331,7 +331,10 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
   const recipients = aud === 'all' ? subsCount ?? 0 : aud === 'tag' ? tags.find(([t]) => t === tag)?.[1] ?? 0 : parsed.people.length;
   const lane = prov?.lanes[kind] || [];
   const connected = (prov?.providers || []).filter((p) => p.configured);
-  const viaInfo = via === 'auto' ? null : connected.find((p) => p.id === via) || null;
+  const brandSender = BRAND_SENDERS[String(vars.sender ?? '')];
+  const effVia = brandSender ? brandSender.provider : via;
+  const brandInfo = brandSender ? (prov?.providers || []).find((p) => p.id === brandSender.provider) || null : null;
+  const viaInfo = effVia === 'auto' ? null : connected.find((p) => p.id === effVia) || null;
   const autoOrder = lane.map((id) => connected.find((p) => p.id === id)).filter(Boolean) as Provider[];
   const capacity = viaInfo ? remainingToday(viaInfo) : autoOrder.reduce((a, p) => a + remainingToday(p), 0);
   const miss = missingField(tpl, vars);
@@ -389,7 +392,7 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
     setBusy('test'); setErr(''); setMsg('');
     try {
       try { localStorage.setItem('cx_test_email', testTo); } catch { /* private mode */ }
-      const r = await campaignApi<{ provider: string }>({ action: 'test', kind, template: tpl, vars, to: testTo, name: 'Aman Verma', provider: via });
+      const r = await campaignApi<{ provider: string }>({ action: 'test', kind, template: tpl, vars, to: testTo, name: 'Aman Verma', provider: effVia });
       say(`Test sent to ${testTo} through ${prov?.providers.find((p) => p.id === r.provider)?.label || r.provider}. Check the inbox (and Spam / Promotions).`);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Test failed.'); } finally { setBusy(''); }
   };
@@ -399,7 +402,7 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
     try {
       const audience = aud === 'all' ? { type: 'all' } : aud === 'tag' ? { type: 'tag', tag } : { type: 'list', rows: parsed.people, tag: cleanTag(listTag) || undefined };
       const r = await campaignApi<{ id: string; total: number; skipped: number }>({
-        action: 'create', kind, template: tpl, vars, audience, provider: via,
+        action: 'create', kind, template: tpl, vars, audience, provider: effVia,
         name: name.trim() || draftName || vars.eventName || vars.subject || info.label,
       });
       if (!r.total) { setErr(r.skipped ? `Nobody to send to: all ${r.skipped} people in this list unsubscribed.` : 'Nobody to send to.'); return; }
@@ -548,24 +551,32 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
           <Step n={5} title="From and send through">
             <p id={id('fromlbl')} className="text-xs text-gray-300 mb-2">From (a person's name lands in Primary more often)</p>
             <div role="radiogroup" aria-labelledby={id('fromlbl')} className="flex flex-wrap gap-2 mb-4">
-              {[...Object.keys(SENDERS), ''].map((key) => {
+              {[...Object.keys(SENDERS), '', ...Object.keys(BRAND_SENDERS)].map((key) => {
                 const cur = vars.sender === undefined ? DEFAULT_SENDER : vars.sender;
                 const on = cur === key;
+                const label = BRAND_SENDERS[key] ? BRAND_SENDERS[key].label : key ? `${SENDERS[key]} from CyberHx` : 'CyberHx';
                 return (
                   <button key={key || 'team'} role="radio" aria-checked={on} onClick={() => set('sender', key)}
-                    className={`px-3 py-1.5 text-sm ${choiceCls(on)} ${on ? 'text-[#a3e635]' : 'text-gray-200'}`}>
-                    {key ? `${SENDERS[key]} from CyberHx` : 'CyberHx'}
+                    className={`px-3 py-1.5 text-sm ${choiceCls(on)} ${on ? 'text-[#a3e635]' : 'text-gray-200'} ${BRAND_SENDERS[key] ? 'border-dashed' : ''}`}>
+                    {label}
                   </button>
                 );
               })}
             </div>
+            {brandSender ? (
+              <p className={`text-xs leading-5 p-3 rounded-xl border ${brandInfo?.configured ? 'border-white/10 text-gray-300' : 'border-amber-500/40 bg-amber-500/5 text-amber-200'}`}>
+                {brandInfo?.configured
+                  ? <>Sent as <b className="text-white">{brandSender.label}</b> through its own service ({brandInfo.label}, from <span className="font-mono">{brandInfo.from}</span>), with its own logo, footer and sign-off. {fmtN(remainingToday(brandInfo))} left today.</>
+                  : <>{brandSender.label} is not connected yet: add <b>{brandInfo?.missingEnv.join(' + ') || 'its API key'}</b> in Vercel → Environment Variables, then redeploy.</>}
+              </p>
+            ) : (<>
             <p id={id('vialbl')} className="text-xs text-gray-300 mb-2">Send through</p>
             <div role="radiogroup" aria-labelledby={id('vialbl')} className="flex flex-wrap gap-2">
               <button role="radio" aria-checked={via === 'auto'} onClick={() => setVia('auto')} className={`px-3 py-2 ${choiceCls(via === 'auto')}`}>
                 <span className={`block text-sm font-medium ${via === 'auto' ? 'text-[#a3e635]' : 'text-white'}`}>Automatic</span>
                 <span className="block text-xs text-gray-400">Recommended · switches when one is full</span>
               </button>
-              {connected.map((p) => {
+              {connected.filter((p) => p.id !== 'resend2').map((p) => {
                 const left = remainingToday(p);
                 return (
                   <button key={p.id} role="radio" aria-checked={via === p.id} onClick={() => setVia(p.id)} disabled={!left} className={`px-3 py-2 disabled:opacity-40 ${choiceCls(via === p.id)}`}>
@@ -582,6 +593,7 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
                   ? <>Order for {KIND_INFO[kind].label.toLowerCase()}: {autoOrder.map((p) => p.label).join(' → ')}</>
                   : 'No email service is connected yet.'}
             </p>
+            </>)}
           </Step>
 
           <Step n={6} title="Test and send">

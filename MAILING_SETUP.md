@@ -26,6 +26,7 @@ Supabase → SQL Editor → paste `supabase/mailing.sql` → **Run**.
 | SMTP2GO | 1,000 / month | Backup | `alerts@n6.cyberhx.com` | not set up |
 | AhaSend | 1,000 / month | Backup | `alerts@n7.cyberhx.com` | not set up |
 | Resend | 100 / day (campaigns use max 70) | Interview emails, last backup | `team@mail.cyberhx.com` | live |
+| Resend #2 (Pinaka) | 100 / day, 3,000 / month | Only when sending as **Pinaka CTF** | `mail@pinakactf.com` | add `RESEND2_API_KEY` |
 
 MailerLite (n4.cyberhx.com) is **not** used: its free plan does not allow sending through the API. Use it from its own dashboard if you like.
 
@@ -62,6 +63,7 @@ One account per service. Do not open several free accounts on the same service: 
 | `SMTP2GO_API_KEY` | SMTP2GO | Sending → API keys |
 | `AHASEND_API_KEY` + `AHASEND_ACCOUNT_ID` | AhaSend | API keys (needs `messages:send`), account ID from the dashboard |
 | `RESEND_API_KEY` | Resend | already set |
+| `RESEND2_API_KEY` (+ optional `RESEND2_FROM`, `RESEND2_REPLY_TO`) | Resend account #2 for pinakactf.com | Resend → API Keys (Sending access is enough) |
 
 Optional:
 

@@ -42,6 +42,13 @@ export const TEMPLATES: TemplateInfo[] = [
 
 export const MAX_FIELD = { name: 80, title: 120, note: 1500, subject: 150, body: 5000, link: 500 };
 
+/** Brands an email can be sent as. */
+export const BRANDS = {
+  cyberhx: { name: 'CyberHx', site: 'cyberhx.com', url: 'https://cyberhx.com', tagline: 'Global cybersecurity community', logo: ['cyber', 'hx'] },
+  pinaka: { name: 'Pinaka CTF', site: 'pinakactf.com', url: 'https://pinakactf.com', tagline: 'Capture The Flag', logo: ['Pinaka ', 'CTF'] },
+} as const;
+export type BrandId = keyof typeof BRANDS;
+
 const C = {
   page: '#05070c',
   card: '#0b111d',
@@ -91,6 +98,8 @@ export interface Layout {
   unsubscribeUrl?: string;
   /** Optional banner image (https) shown above the heading. */
   image?: string;
+  /** Which brand the email is from (logo, footer, sign-off). Default CyberHx. */
+  brand?: BrandId;
   /** Person signing the email, e.g. "Kush" (shown above Team CyberHx). */
   signer?: string;
   /** Simple, letter-style email (no card, button or images): Gmail puts these in Primary far more often. */
@@ -99,11 +108,12 @@ export interface Layout {
 
 /** Letter-style HTML: looks like a normal email someone typed, which is what inbox filters expect from a person. */
 function plainLayout(o: Layout) {
+  const B = BRANDS[o.brand || 'cyberhx'];
   const para = (t: string) => `<p style="margin:0 0 14px;">${esc(t).replace(/\n/g, '<br>')}</p>`;
   const details = (o.details || []).filter(([, v]) => v).map(([k, v]) => `${esc(k)}: <b>${esc(v)}</b>`).join('<br>');
   const link = o.cta && safeUrl(o.cta.url) ? `<p style="margin:0 0 14px;">${esc(o.cta.label)}: <a href="${esc(safeUrl(o.cta.url))}">${esc(safeUrl(o.cta.url))}</a></p>` : '';
   const unsub = safeUrl(o.unsubscribeUrl)
-    ? `<p style="margin:24px 0 0;font-size:12px;color:#777;">You are getting this because you joined CyberHx updates. <a href="${esc(safeUrl(o.unsubscribeUrl))}" style="color:#777;">Unsubscribe</a></p>`
+    ? `<p style="margin:24px 0 0;font-size:12px;color:#777;">You are getting this because you joined ${esc(B.name)} updates. <a href="${esc(safeUrl(o.unsubscribeUrl))}" style="color:#777;">Unsubscribe</a></p>`
     : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(o.heading)}</title></head>
 <body style="margin:0;padding:16px;background:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222;">
@@ -112,7 +122,7 @@ ${o.paragraphs.filter(Boolean).map(para).join('')}
 ${details ? `<p style="margin:0 0 14px;">${details}</p>` : ''}
 ${link}
 ${o.note?.trim() ? para(o.note.trim()) : ''}
-<p style="margin:18px 0 0;">Regards,<br>${o.signer ? `${esc(o.signer)}<br>` : ''}Team CyberHx<br><a href="https://cyberhx.com">cyberhx.com</a></p>
+<p style="margin:18px 0 0;">Regards,<br>${o.signer ? `${esc(o.signer)}<br>` : ''}Team ${esc(B.name)}<br><a href="${B.url}">${B.site}</a></p>
 ${unsub}
 </div>
 </body></html>`;
@@ -120,6 +130,7 @@ ${unsub}
 
 export function layout(o: Layout) {
   if (o.plain) return plainLayout(o);
+  const B = BRANDS[o.brand || 'cyberhx'];
   const p = o.paragraphs
     .filter(Boolean)
     .map((t) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${C.text};">${esc(t).replace(/\n/g, '<br>')}</p>`)
@@ -152,7 +163,7 @@ export function layout(o: Layout) {
 <tr><td align="center" style="padding:32px 16px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <tr><td style="padding:0 4px 20px;">
-      <span style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#ffffff;">cyber<span style="color:${C.lime};">hx</span></span>
+      <span style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#ffffff;">${esc(B.logo[0])}<span style="color:${C.lime};">${esc(B.logo[1])}</span></span>
     </td></tr>
     <tr><td style="background:${C.card};border:1px solid ${C.line};border-radius:16px;overflow:hidden;">
       <div style="height:4px;background:${C.lime};font-size:0;line-height:0;">&nbsp;</div>${
@@ -162,14 +173,14 @@ export function layout(o: Layout) {
         <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:${C.lime};">${esc(o.eyebrow)}</p>
         <h1 style="margin:0 0 20px;font-size:26px;line-height:1.2;font-weight:800;color:#ffffff;">${esc(o.heading)}</h1>
         ${p}${details}${cta}${note}
-        <p style="margin:8px 0 20px;font-size:15px;line-height:1.6;color:${C.text};">Regards,<br>${o.signer ? `<strong>${esc(o.signer)}</strong><br>Team CyberHx` : '<strong>Team CyberHx</strong>'}</p>
+        <p style="margin:8px 0 20px;font-size:15px;line-height:1.6;color:${C.text};">Regards,<br>${o.signer ? `<strong>${esc(o.signer)}</strong><br>Team ${esc(B.name)}` : `<strong>Team ${esc(B.name)}</strong>`}</p>
       </div>
     </td></tr>
     <tr><td style="padding:20px 8px 0;font-size:12px;line-height:1.6;color:${C.muted};text-align:center;">
-      CyberHx &middot; Global cybersecurity community &middot; <a href="https://cyberhx.com" style="color:${C.muted};">cyberhx.com</a><br>
+      ${esc(B.name)} &middot; ${esc(B.tagline)} &middot; <a href="${B.url}" style="color:${C.muted};">${B.site}</a><br>
       Questions? Just reply to this email.${
         safeUrl(o.unsubscribeUrl)
-          ? `<br>You are getting this because you joined CyberHx updates. <a href="${esc(safeUrl(o.unsubscribeUrl))}" style="color:${C.muted};text-decoration:underline;">Unsubscribe</a>`
+          ? `<br>You are getting this because you joined ${esc(B.name)} updates. <a href="${esc(safeUrl(o.unsubscribeUrl))}" style="color:${C.muted};text-decoration:underline;">Unsubscribe</a>`
           : ''
       }
     </td></tr>
@@ -180,6 +191,7 @@ export function layout(o: Layout) {
 }
 
 export function textVersion(o: Layout) {
+  const B = BRANDS[o.brand || 'cyberhx'];
   return [
     o.heading,
     '',
@@ -190,8 +202,8 @@ export function textVersion(o: Layout) {
     '',
     'Regards,',
     ...(o.signer ? [o.signer] : []),
-    'Team CyberHx',
-    'cyberhx.com',
+    `Team ${B.name}`,
+    B.site,
     safeUrl(o.unsubscribeUrl) ? `\nUnsubscribe: ${safeUrl(o.unsubscribeUrl)}` : '',
   ]
     .filter((l) => l !== undefined)

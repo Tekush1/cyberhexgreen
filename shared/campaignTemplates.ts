@@ -1,7 +1,7 @@
 // CyberHx campaign templates: event blasts, newsletters, notifications.
 // Used by api/campaign.ts (to send) and Admin -> Campaigns (to preview). No imports beyond the shared layout.
 
-import { layout, textVersion, firstName, safeUrl, type Layout } from './emailTemplates.js';
+import { layout, textVersion, firstName, safeUrl, BRANDS, type Layout, type BrandId } from './emailTemplates.js';
 
 export type CampaignKind = 'event' | 'newsletter' | 'notification';
 export type CampaignTemplateId = 'event_announce' | 'event_reminder' | 'event_live' | 'event_thanks' | 'newsletter' | 'notice';
@@ -30,9 +30,15 @@ export interface CampaignVars {
 /** People who can send campaigns. The email shows "Kush from CyberHx" and is signed by that person. */
 export const SENDERS: Record<string, string> = { kush: 'Kush', aman: 'Aman', rio: 'Rio' };
 export const DEFAULT_SENDER = 'kush';
+/** Other brands you can send as (each needs its own verified domain / service). */
+export const BRAND_SENDERS: Record<string, { label: string; brand: BrandId; provider: string }> = {
+  pinaka: { label: 'Pinaka CTF', brand: 'pinaka', provider: 'resend2' },
+};
+export const brandOf = (v: CampaignVars): BrandId => BRAND_SENDERS[String(v.sender ?? '')]?.brand || 'cyberhx';
 /** Display name for the From line, e.g. "Kush from CyberHx". */
 export const senderName = (v: CampaignVars) => {
   const key = v.sender === undefined || v.sender === null ? DEFAULT_SENDER : String(v.sender);
+  if (BRAND_SENDERS[key]) return BRAND_SENDERS[key].label;
   return SENDERS[key] ? `${SENDERS[key]} from CyberHx` : 'CyberHx';
 };
 
@@ -89,6 +95,7 @@ export function renderCampaign(
   const v: CampaignVars = {};
   for (const k of CAMPAIGN_FIELDS) v[k] = fill(String(raw[k] ?? '').slice(0, CAMPAIGN_MAX[k]), name).trim();
   const info = CAMPAIGN_TEMPLATES.find((t) => t.id === id) || CAMPAIGN_TEMPLATES[CAMPAIGN_TEMPLATES.length - 1];
+  const B = BRANDS[brandOf(raw)];
   const who = firstName(name);
   const hi = who ? `Hi ${who},` : 'Hi there,';
   const ev = v.eventName || 'our event';
@@ -149,10 +156,10 @@ export function renderCampaign(
       };
       break;
     case 'newsletter':
-      subject = v.subject || 'News from CyberHx';
+      subject = v.subject || `News from ${B.name}`;
       o = {
         preheader: paras[0]?.slice(0, 120) || subject,
-        eyebrow: 'CyberHx updates',
+        eyebrow: `${B.name} updates`,
         heading: v.heading || subject,
         image: v.image,
         paragraphs: [hi, ...paras],
@@ -162,7 +169,7 @@ export function renderCampaign(
       break;
     case 'notice':
     default:
-      subject = v.subject || 'A message from CyberHx';
+      subject = v.subject || `A message from ${B.name}`;
       o = {
         preheader: paras[0]?.slice(0, 120) || subject,
         eyebrow: 'Notification',
@@ -174,6 +181,7 @@ export function renderCampaign(
   }
   if (opts.unsubscribeUrl) o.unsubscribeUrl = opts.unsubscribeUrl;
   if (v.style !== 'designed') o.plain = true;
+  o.brand = brandOf(raw);
   const who2 = SENDERS[raw.sender === undefined ? DEFAULT_SENDER : String(raw.sender)];
   if (who2) o.signer = who2;
   return { subject: subject.slice(0, 200), html: layout(o), text: textVersion(o) };
