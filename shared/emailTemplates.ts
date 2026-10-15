@@ -122,7 +122,7 @@ ${o.paragraphs.filter(Boolean).map(para).join('')}
 ${details ? `<p style="margin:0 0 14px;">${details}</p>` : ''}
 ${link}
 ${o.note?.trim() ? para(o.note.trim()) : ''}
-<p style="margin:18px 0 0;">Regards,<br>${o.signer ? `${esc(o.signer)}<br>` : ''}Team ${esc(B.name)}<br><a href="${B.url}">${B.site}</a></p>
+<p style="margin:18px 0 0;">Regards,<br>${o.signer ? `${esc(o.signer)}<br>` : ''}Team ${esc(B.name)}<br>${B.site}</p>
 ${unsub}
 </div>
 </body></html>`;

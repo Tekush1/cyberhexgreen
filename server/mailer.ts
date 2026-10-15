@@ -191,6 +191,7 @@ const PROVIDERS: ProviderDef[] = [
               From: { Email: from.email, Name: from.name || 'CyberHx' },
               To: [{ Email: m.to, ...(m.name ? { Name: m.name } : {}) }],
               Subject: m.subject, TextPart: m.text, HTMLPart: m.html,
+              ...(m.tracking === false ? { TrackOpens: 'disabled', TrackClicks: 'disabled' } : {}),
               ...(replyTo ? { ReplyTo: { Email: parseFrom(replyTo).email, Name: parseFrom(replyTo).name } } : {}),
               ...(hasHeaders(m.headers) ? { Headers: m.headers } : {}),
             })),
@@ -344,6 +345,15 @@ export const LANES: Record<Lane, ProviderId[]> = {
   notification: ['mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'brevo', 'sender', 'resend'],
 };
 
+/**
+ * Order for "Simple (Primary inbox)" emails: services that send them untouched (no tracking pixel, no link
+ * rewriting) first. Brevo and Sender add tracking / marketing headers that push Gmail towards Promotions,
+ * so they are only used when the others are full.
+ */
+export const PRIMARY_LANE: ProviderId[] = ['mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend', 'brevo', 'sender'];
+/** Services that add tracking/marketing markup we can't switch off per email. */
+export const PROMO_PRONE: ProviderId[] = ['brevo', 'sender'];
+
 const limitFromEnv = (k: string, fallback: number | null): number | null => {
   const v = env(k).toLowerCase();
   if (!v) return fallback;
@@ -440,6 +450,8 @@ export async function route<R>(
   only?: ProviderId,
   /** Display name for the From line (the address stays the service's verified one). */
   fromName?: string,
+  /** Simple (Primary inbox) email: prefer services that don't add tracking. */
+  primary = false,
 ): Promise<{ done: RoutedResult<R>[]; leftover: R[]; providerErrors: Record<string, string>; anyConfigured: boolean }> {
   // Every reply goes to one inbox, whatever service or brand sent the email.
   const replyTo = DEFAULT_REPLY_TO;
@@ -448,7 +460,9 @@ export async function route<R>(
   let pool = rows.slice();
   let anyConfigured = false;
 
-  for (const pid of only ? [only] : LANES[lane]) {
+  /** Order to try when picking automatically. */
+  const order = only ? [only] : primary ? PRIMARY_LANE : LANES[lane];
+  for (const pid of order) {
     if (!pool.length) break;
     const def = PROVIDERS.find((p) => p.id === pid)!;
     const info = providerInfo(def);

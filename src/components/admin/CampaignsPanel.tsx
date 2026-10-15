@@ -15,7 +15,9 @@ interface Provider {
   id: string; label: string; configured: boolean; missingEnv: string[]; from: string;
   day: number | null; month: number | null; usedToday: number; usedMonth: number; dashboard: string;
 }
-interface ProvidersRes { providers: Provider[]; lanes: Record<CampaignKind, string[]>; site: string; tablesMissing?: boolean }
+interface ProvidersRes { providers: Provider[]; lanes: Record<CampaignKind, string[]>; primaryLane?: string[]; site: string; tablesMissing?: boolean }
+/** Services that add tracking / marketing markup we can't turn off: Gmail tends to file their mail under Promotions. */
+const PROMO_PRONE = ['brevo', 'sender'];
 interface Campaign {
   id: string; kind: CampaignKind; name: string; template: CampaignTemplateId; vars: CampaignVars; audience: any;
   status: 'sending' | 'paused' | 'done' | 'cancelled'; total: number; sent: number; failed: number; skipped: number;
@@ -329,7 +331,8 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
   const promo = KIND_INFO[kind].promo;
   const parsed = useMemo(() => parsePeople(listText), [listText]);
   const recipients = aud === 'all' ? subsCount ?? 0 : aud === 'tag' ? tags.find(([t]) => t === tag)?.[1] ?? 0 : parsed.people.length;
-  const lane = prov?.lanes[kind] || [];
+  const plain = vars.style !== 'designed';
+  const lane = (plain && prov?.primaryLane) || prov?.lanes[kind] || [];
   const connected = (prov?.providers || []).filter((p) => p.configured);
   const brandSender = BRAND_SENDERS[String(vars.sender ?? '')];
   const effVia = brandSender ? brandSender.provider : via;
@@ -480,6 +483,12 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
                 );
               })}
             </div>
+            {!plain && (
+              <p role="status" className="mb-4 text-xs leading-5 p-3 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-200">
+                Designed emails almost always land in <b>Promotions</b> in Gmail. For the main inbox pick <b>Simple (Primary inbox)</b>.{' '}
+                <button onClick={() => set('style', 'plain')} className={`underline text-amber-100 rounded ${focusRing}`}>Switch to Simple</button>
+              </p>
+            )}
             <div className="grid sm:grid-cols-2 gap-4">
               {info.fields.filter((f) => f !== 'image' || vars.style === 'designed').map((f) => {
                 const meta = FIELD[f];
@@ -582,15 +591,17 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
                   <button key={p.id} role="radio" aria-checked={via === p.id} onClick={() => setVia(p.id)} disabled={!left} className={`px-3 py-2 disabled:opacity-40 ${choiceCls(via === p.id)}`}>
                     <span className={`block text-sm font-medium ${via === p.id ? 'text-[#a3e635]' : 'text-white'}`}>{p.label}</span>
                     <span className="block text-xs text-gray-400 tabular-nums">{fmtN(left)} left {p.day !== null ? 'today' : 'this month'}</span>
+                    {PROMO_PRONE.includes(p.id) && <span className="block text-[11px] text-amber-300/90">often Promotions</span>}
                   </button>
                 );
               })}
             </div>
             <p className="mt-2 text-xs text-gray-400 leading-5">
               {viaInfo
-                ? <>Only <b className="text-gray-200">{viaInfo.label}</b> is used (from <span className="font-mono">{viaInfo.from}</span>). When its limit is reached, the campaign pauses until tomorrow.</>
+                ? <>Only <b className="text-gray-200">{viaInfo.label}</b> is used (from <span className="font-mono">{viaInfo.from}</span>). When its limit is reached, the campaign pauses until tomorrow.
+                    {PROMO_PRONE.includes(viaInfo.id) && <span className="block mt-1 text-amber-300">{viaInfo.label} adds tracking that Gmail treats as marketing, so these often go to Promotions. Pick Automatic for the main inbox.</span>}</>
                 : autoOrder.length
-                  ? <>Order for {KIND_INFO[kind].label.toLowerCase()}: {autoOrder.map((p) => p.label).join(' → ')}</>
+                  ? <>{plain ? 'Main-inbox order (services without tracking first)' : `Order for ${KIND_INFO[kind].label.toLowerCase()}`}: {autoOrder.map((p) => p.label).join(' → ')}</>
                   : 'No email service is connected yet.'}
             </p>
             </>)}
