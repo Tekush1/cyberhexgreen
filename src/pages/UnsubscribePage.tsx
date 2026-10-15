@@ -40,7 +40,7 @@ export default function UnsubscribePage() {
               CyberHx event and newsletter emails any more. Emails about something you signed up for (like an event you registered for) can still reach you.
             </p>
             <p className="mt-6 text-sm text-white/45">
-              Changed your mind? Write to <a href="mailto:support@cyberhx.com" className="text-lime hover:underline">support@cyberhx.com</a> from this address and we'll add you back.
+              Changed your mind? Write to <a href="mailto:mail@cyberhx.com" className="text-lime hover:underline">mail@cyberhx.com</a> from this address and we'll add you back.
             </p>
           </>
         ) : (

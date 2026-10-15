@@ -30,7 +30,7 @@ Supabase → SQL Editor → paste `supabase/mailing.sql` → **Run**.
 
 MailerLite (n4.cyberhx.com) is **not** used: its free plan does not allow sending through the API. Use it from its own dashboard if you like.
 
-All replies go to **support@cyberhx.com** (set `MAIL_REPLY_TO` to change).
+All replies go to **mail@cyberhx.com** (fixed in code: `DEFAULT_REPLY_TO` in server/mailer.ts).
 
 Order per type (unconnected services are skipped):
 
@@ -69,7 +69,7 @@ Optional:
 
 - `<SERVICE>_FROM` changes the sender, e.g. `BREVO_FROM="CyberHx <news@subscriber.cyberhx.com>"`. It must be on a domain verified in that service.
 - `<SERVICE>_DAILY_LIMIT` / `<SERVICE>_MONTHLY_LIMIT` change a limit (`none` = no limit), e.g. after upgrading a plan.
-- `MAIL_REPLY_TO`: where replies go. Default `CyberHx Support <support@cyberhx.com>`.
+- `MAIL_REPLY_TO`: where replies go. Default `CyberHx <mail@cyberhx.com>`.
 - `SITE_URL` (default `https://cyberhx.com`) for unsubscribe links.
 
 ## 5. Before a big event

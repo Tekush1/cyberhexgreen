@@ -40,8 +40,8 @@ const env = (k: string) => (process.env[k] || '').trim();
 /** Some services (Brevo) reject an empty headers object, so only send headers when there are any. */
 const hasHeaders = (h?: Record<string, string>) => !!h && Object.keys(h).length > 0;
 
-/** Every reply to any CyberHx email lands here (override with MAIL_REPLY_TO). */
-export const DEFAULT_REPLY_TO = 'CyberHx Support <support@cyberhx.com>';
+/** Every reply to any email sent from the site (meetings, campaigns, Pinaka) lands here. */
+export const DEFAULT_REPLY_TO = 'CyberHx <mail@cyberhx.com>';
 
 // ---------- helpers ----------
 export function parseFrom(s: string): Addr {
@@ -441,7 +441,8 @@ export async function route<R>(
   /** Display name for the From line (the address stays the service's verified one). */
   fromName?: string,
 ): Promise<{ done: RoutedResult<R>[]; leftover: R[]; providerErrors: Record<string, string>; anyConfigured: boolean }> {
-  const replyTo = env('MAIL_REPLY_TO') || DEFAULT_REPLY_TO;
+  // Every reply goes to one inbox, whatever service or brand sent the email.
+  const replyTo = DEFAULT_REPLY_TO;
   const done: RoutedResult<R>[] = [];
   const providerErrors: Record<string, string> = {};
   let pool = rows.slice();
@@ -462,8 +463,7 @@ export async function route<R>(
     const chunk = pool.splice(0, granted);
     const fromAddr = parseFrom(info.from);
     if (fromName) fromAddr.name = fromName;
-    const rt = (pid === 'resend2' && env('RESEND2_REPLY_TO')) || replyTo;
-    const results = await def.send(chunk.map(build), fromAddr, rt);
+    const results = await def.send(chunk.map(build), fromAddr, replyTo);
 
     const retry: R[] = [];
     let unsent = 0;
