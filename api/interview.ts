@@ -19,6 +19,7 @@
 // Required env vars: see INTERVIEW_BOOKING_SETUP.md
 
 import crypto from 'node:crypto';
+import { canAny } from '../server/staff.js';
 import zlib from 'node:zlib';
 
 // ---------- Config (edit to taste) ----------
@@ -300,25 +301,6 @@ const attendeesOf = (inv: TokenPayload): string[] => (inv.g && inv.g.length ? in
 
 class SlotTakenError extends Error {}
 
-// Admin = a Supabase Auth user listed in the `admins` table (see supabase/admin_security.sql).
-// We forward the user's own JWT to the is_admin() SQL function, so no service key is needed.
-async function isAdmin(req: any): Promise<boolean> {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  const auth = String(req.headers?.authorization || '');
-  if (!url || !anon || !auth.startsWith('Bearer ')) return false;
-  try {
-    const res = await fetch(`${url}/rest/v1/rpc/is_admin`, {
-      method: 'POST',
-      headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    return res.ok && (await res.json()) === true;
-  } catch {
-    return false;
-  }
-}
-
 // ---------- Google API ----------
 let cachedAccess: { token: string; exp: number } | null = null;
 
@@ -525,7 +507,7 @@ export default async function handler(req: any, res: any) {
       (req.method === 'GET' && req.query?.admin) ||
       (req.method === 'POST' && typeof req.body === 'object' && req.body?.action);
     if (wantsAdmin) {
-      if (!(await isAdmin(req))) return res.status(401).json({ error: 'Unauthorized' });
+      if (!(await canAny(String(req.headers?.authorization || ''), ['meetings']))) return res.status(401).json({ error: 'Unauthorized' });
 
       if (req.method === 'GET') {
         if (req.query?.admin === 'slots') {

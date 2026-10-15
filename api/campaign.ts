@@ -14,6 +14,7 @@ import {
   CAMPAIGN_TEMPLATES, CAMPAIGN_FIELDS, CAMPAIGN_MAX, renderCampaign, missingField, senderName, BRAND_SENDERS,
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../shared/campaignTemplates.js';
+import { canAny } from '../server/staff.js';
 import { allProviders, checkProvider, isProviderId, LANES, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,9 +22,6 @@ const KINDS: CampaignKind[] = ['event', 'newsletter', 'notification'];
 const BATCH = 40;
 const MAX_LIST = 20000;
 
-async function isAdmin(auth: string): Promise<boolean> {
-  try { return (await rpc<boolean>(auth, 'is_admin', {})) === true; } catch { return false; }
-}
 
 const site = () => (process.env.SITE_URL || 'https://cyberhx.com').replace(/\/+$/, '');
 
@@ -54,7 +52,8 @@ function summarizeErrors(errs: Record<string, string>) {
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   const auth = String(req.headers?.authorization || '');
-  if (!auth.startsWith('Bearer ') || !(await isAdmin(auth))) return res.status(401).json({ error: 'Unauthorized' });
+  // Campaign managers and event managers (public.can('campaigns')).
+  if (!(await canAny(auth, ['campaigns']))) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     // ---------- Provider status + usage ----------

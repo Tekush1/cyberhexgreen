@@ -91,11 +91,11 @@ const adminClient = () => {
   return adminClientCache.client;
 };
 
-/** True only when the stored login belongs to a user on the admins list. */
+/** True only when the stored login is staff allowed to manage the blog (owner or campaign/newsletter role). */
 export async function checkAdmin(): Promise<boolean> {
   if (!adminToken() || !isConfigured()) return false;
   try {
-    const { data, error } = await adminClient().rpc('is_admin');
+    const { data, error } = await adminClient().rpc('can', { p_area: 'blog' });
     return !error && data === true;
   } catch {
     return false;

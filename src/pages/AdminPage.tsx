@@ -7,6 +7,8 @@ import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
 import { EmailsPanel } from '../components/admin/EmailsPanel';
 import { CampaignsPanel } from '../components/admin/CampaignsPanel';
 import { SubscribersPanel } from '../components/admin/SubscribersPanel';
+import { TeamPanel } from '../components/admin/TeamPanel';
+import { ROLES, isRole, type Role, type TabId } from '../components/admin/roles';
 import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -37,8 +39,20 @@ async function adminSignIn(email: string, password: string): Promise<string> {
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${data.access_token}`, 'Content-Type': 'application/json' },
     body: '{}',
   });
-  if (!chk.ok || (await chk.json()) !== true) throw new Error('This account is not an admin.');
+  if (!chk.ok || (await chk.json()) !== true) throw new Error('This account has no admin access. Ask the owner to add you in Admin → Team.');
   return data.access_token as string;
+}
+
+/** Who is signed in and with which team role (owner / hr / campaign / event). */
+async function fetchMe(): Promise<{ role: Role | null; email: string }> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/staff_me`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  if (res.status === 401) return { role: null, email: '' };
+  const d = await res.json().catch(() => ({}));
+  return { role: isRole(d?.role) ? d.role : null, email: String(d?.email || '') };
 }
 
 // Session expired (JWT lives ~1h) → force re-login
@@ -110,10 +124,10 @@ const STATUS_COLORS = {
 };
 
 // ─── Login Screen ─────────────────────────────────────────────
-const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
+const LoginScreen = ({ onLogin, notice = '' }: { onLogin: () => void; notice?: string }) => {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(notice);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -137,11 +151,11 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
             <Shield size={32} className="text-[#a3e635]" />
           </div>
           <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-          <p className="text-gray-500 text-sm mt-1">CyberHx Security Blog</p>
+          <p className="text-gray-500 text-sm mt-1">CyberHx team sign-in</p>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-gray-400 text-xs font-medium mb-1.5 block">Admin Email</label>
+            <label className="text-gray-400 text-xs font-medium mb-1.5 block">Email</label>
             <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
               placeholder="admin@example.com" autoComplete="username"
               className="w-full bg-[#05080f] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#a3e635]/50 transition-colors" />
@@ -242,12 +256,13 @@ const SubmissionCard = ({ sub, onApprove, onReject, onDelete, loading }: {
   );
 };
 
-type TabId = 'inbox' | 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf' | 'availability' | 'emails' | 'campaigns' | 'subscribers';
 
 // ─── Main Admin Panel ─────────────────────────────────────────
 const AdminPage: React.FC = () => {
   const [authed, setAuthed] = useState(() => !!getAdminToken());
   const [tab, setTab] = useState<TabId>('inbox');
+  const [me, setMe] = useState<{ role: Role; email: string } | null>(null);
+  const [meErr, setMeErr] = useState('');
   const [newCounts, setNewCounts] = useState({ inbox: 0, applications: 0, ctf: 0 });
   const [prefill, setPrefill] = useState<MeetingPrefill | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -261,7 +276,13 @@ const AdminPage: React.FC = () => {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
+  const allowed = me ? ROLES[me.role].tabs : [];
+  const canBlog = allowed.includes('submissions');
+
+  const logout = () => { sessionStorage.removeItem(TOKEN_KEY); setMe(null); setAuthed(false); };
+
   const loadData = async () => {
+    if (!canBlog) { setLoading(false); return; }
     setLoading(true);
     try {
       const [subs, ps] = await Promise.all([
@@ -283,21 +304,36 @@ const AdminPage: React.FC = () => {
   };
 
   const loadCounts = async () => {
+    const has = (t: TabId) => allowed.includes(t);
     const [inbox, applications, ctf] = await Promise.all([
-      sbCount('form_submissions', { status: 'eq.new' }),
-      sbCount('job_applications', { status: 'eq.new' }),
-      sbCount('ctf_requests', { status: 'eq.new' }),
+      has('inbox') ? sbCount('form_submissions', { status: 'eq.new' }) : 0,
+      has('applications') ? sbCount('job_applications', { status: 'eq.new' }) : 0,
+      has('ctf') ? sbCount('ctf_requests', { status: 'eq.new' }) : 0,
     ]);
     setNewCounts({ inbox, applications, ctf });
   };
 
   const goSchedule = (name: string, email: string, kind: MeetingKind) => {
+    if (!allowed.includes('meetings')) return;
     setPrefill({ name, email, kind, nonce: Date.now() });
     setTab('meetings');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  useEffect(() => { if (authed) { loadData(); loadCounts(); } }, [authed]);
+  // After login: find out the role, then open the first tab that role can use.
+  useEffect(() => {
+    if (!authed) return;
+    let live = true;
+    fetchMe().then((m) => {
+      if (!live) return;
+      if (!m.role) { setMeErr('This account has no admin access any more. Ask the owner to add you in Admin → Team.'); logout(); return; }
+      setMe({ role: m.role, email: m.email });
+      setTab((t) => (ROLES[m.role!].tabs.includes(t) ? t : ROLES[m.role!].tabs[0]));
+    }).catch(() => live && setMeErr('Could not check your access. Refresh the page.'));
+    return () => { live = false; };
+  }, [authed]);
+
+  useEffect(() => { if (me) { loadData(); loadCounts(); } }, [me]);
 
   const handleApprove = async (id: string) => {
     setActionLoading(a => ({ ...a, [id]: 'approve' }));
@@ -340,7 +376,15 @@ const AdminPage: React.FC = () => {
     return matchStatus && matchSearch;
   });
 
-  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
+  if (!authed) return <LoginScreen onLogin={() => { setMeErr(''); setAuthed(true); }} notice={meErr} />;
+  if (!me) {
+    return (
+      <div className="min-h-screen bg-[#05080f] flex items-center justify-center" role="status" aria-live="polite">
+        {meErr ? <p className="text-red-400 text-sm">{meErr}</p> : <Loader2 size={32} className="text-[#a3e635] animate-spin" aria-label="Loading" />}
+      </div>
+    );
+  }
+  const go = (t: TabId) => (allowed.includes(t) ? t : null);
 
   return (
     <div className="min-h-screen bg-[#05080f] pt-14 sm:pt-16">
@@ -362,21 +406,24 @@ const AdminPage: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
               <Shield size={28} className="text-[#a3e635]" />Admin Panel
             </h1>
-            <p className="text-gray-500 text-sm mt-1">CyberHx Security Blog — Content Management</p>
+            <p className="text-gray-500 text-sm mt-1">
+              Signed in as <span className="text-gray-300">{me.email || 'staff'}</span>
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#a3e635]/10 text-[#a3e635] border border-[#a3e635]/25 align-middle">{ROLES[me.role].label}</span>
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={loadData} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0a0f1a] border border-white/8 text-gray-400 hover:text-white transition-colors text-sm">
+            <button onClick={() => { loadData(); loadCounts(); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0a0f1a] border border-white/8 text-gray-400 hover:text-white transition-colors text-sm">
               <RefreshCw size={15} />Refresh
             </button>
-            <button onClick={() => { sessionStorage.removeItem(TOKEN_KEY); setAuthed(false); }}
+            <button onClick={logout}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors text-sm">
               <LogOut size={15} />Logout
             </button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        {/* Stats (blog roles only) */}
+        {canBlog && <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total Submissions', value: stats.total, color: 'text-white', icon: <Newspaper size={18} /> },
             { label: 'Pending Review', value: stats.pending, color: 'text-yellow-400', icon: <Clock size={18} /> },
@@ -388,10 +435,10 @@ const AdminPage: React.FC = () => {
               <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
             </div>
           ))}
-        </div>
+        </div>}
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1">
+        {/* Tabs: only the ones this role can use */}
+        <div role="tablist" aria-label="Admin sections" className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1">
           {([
             { id: 'inbox', label: 'Inbox', badge: newCounts.inbox },
             { id: 'submissions', label: 'Blog submissions', badge: stats.pending },
@@ -403,8 +450,9 @@ const AdminPage: React.FC = () => {
             { id: 'emails', label: 'Emails', badge: 0 },
             { id: 'campaigns', label: 'Campaigns', badge: 0 },
             { id: 'subscribers', label: 'Subscribers', badge: 0 },
-          ] as { id: TabId; label: string; badge: number }[]).map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            { id: 'team', label: 'Team', badge: 0 },
+          ] as { id: TabId; label: string; badge: number }[]).filter(t => allowed.includes(t.id)).map(t => (
+            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap flex items-center gap-2 ${tab === t.id ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'}`}>
               {t.label}
               {t.badge > 0 && (
@@ -414,7 +462,7 @@ const AdminPage: React.FC = () => {
           ))}
         </div>
 
-        {tab === 'submissions' && (
+        {go(tab) === 'submissions' && (
           <div>
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -454,16 +502,18 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
-        {tab === 'meetings' && <MeetingsPanel prefill={prefill} />}
-        {tab === 'inbox' && <InboxPanel onSchedule={goSchedule} onChanged={loadCounts} />}
-        {tab === 'applications' && <ApplicationsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
-        {tab === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
-        {tab === 'availability' && <AvailabilityPanel />}
-        {tab === 'emails' && <EmailsPanel />}
-        {tab === 'campaigns' && <CampaignsPanel />}
-        {tab === 'subscribers' && <SubscribersPanel />}
+        {go(tab) === 'meetings' && <MeetingsPanel prefill={prefill} />}
+        {go(tab) === 'inbox' && <InboxPanel onSchedule={goSchedule} onChanged={loadCounts} />}
+        {go(tab) === 'applications' && <ApplicationsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
+        {go(tab) === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
+        {go(tab) === 'availability' && <AvailabilityPanel />}
+        {go(tab) === 'emails' && <EmailsPanel />}
+        {go(tab) === 'campaigns' && <CampaignsPanel />}
+        {go(tab) === 'subscribers' && <SubscribersPanel />}
 
-        {tab === 'posts' && (
+        {go(tab) === 'team' && <TeamPanel />}
+
+        {go(tab) === 'posts' && (
           <div>
             {loading ? (
               <div className="flex items-center justify-center py-24"><Loader2 size={32} className="text-[#a3e635] animate-spin" /></div>

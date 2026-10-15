@@ -14,34 +14,18 @@
 
 import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates.js';
 import { countUsage, DEFAULT_REPLY_TO } from '../server/mailer.js';
+import { canAny } from '../server/staff.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 100; // Resend batch limit
-
-// Admin = a Supabase Auth user listed in the `admins` table (same check as api/interview.ts).
-async function isAdmin(req: any): Promise<boolean> {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  const auth = String(req.headers?.authorization || '');
-  if (!url || !anon || !auth.startsWith('Bearer ')) return false;
-  try {
-    const res = await fetch(`${url}/rest/v1/rpc/is_admin`, {
-      method: 'POST',
-      headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    return res.ok && (await res.json()) === true;
-  } catch {
-    return false;
-  }
-}
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  if (!(await isAdmin(req))) return res.status(401).json({ error: 'Unauthorized' });
+  // HR (Emails tab) and anyone who handles meetings (email button on booking links / sent history) may use this.
+  if (!(await canAny(String(req.headers?.authorization || ''), ['emails', 'meetings']))) return res.status(401).json({ error: 'Unauthorized' });
 
   const key = process.env.RESEND_API_KEY;
   if (!key) return res.status(500).json({ error: 'Email is not set up yet: add RESEND_API_KEY in Vercel environment variables.' });
