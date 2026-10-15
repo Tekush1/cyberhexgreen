@@ -228,6 +228,11 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const emailOk = mode === 'group' ? guests.length > 0 && guests.length <= maxGuests : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const timeOk = when === 'link' || (when === 'now' && !!pickSlot) || (when === 'custom' && !!customDate && !!customTime && customDate >= istToday());
   const canGenerate = !busy && !!name.trim() && emailOk && !topicMissing && timeOk;
+  // Why the send button is greyed out, in plain words.
+  const blocker = busy ? '' : topicMissing ? 'Write the meeting topic first (you picked "Other").'
+    : !name.trim() ? (mode === 'group' ? 'Enter the meeting / group name.' : 'Enter their name.')
+    : !emailOk ? (mode === 'group' ? (guests.length ? `Too many emails: max ${maxGuests}.` : 'Add at least one email.') : 'Enter a valid email.')
+    : !timeOk ? (when === 'now' ? 'Pick a time slot.' : 'Pick a date and time (today or later).') : '';
 
   const createLink = async () => {
     setBusy(true);
@@ -400,12 +405,15 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
 
         {kind === 'other' && (
           <div className="mb-3">
-            <label className="text-gray-400 text-xs font-medium mb-1.5 block">Meeting topic (you write it)</label>
+            <label htmlFor="meeting-topic" className="text-gray-400 text-xs font-medium mb-1.5 block">Meeting topic (you write it) <span className="text-red-400">*</span></label>
             <input
+              id="meeting-topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value.slice(0, 80))}
               placeholder="e.g. Podcast guest chat, Workshop planning…"
-              className={input}
+              aria-required="true"
+              aria-invalid={topicMissing}
+              className={`${input} ${topicMissing && (guests.length > 0 || !!email.trim()) ? 'border-red-500/50' : ''}`}
             />
           </div>
         )}
@@ -538,6 +546,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
             {busy ? <Loader2 size={14} className="animate-spin" /> : <CalendarClock size={15} />}
             {when === 'link' ? 'Generate link' : 'Book & send invites'}
           </button>
+          {blocker && <p className="text-xs text-yellow-400 self-center" role="status">{blocker}</p>}
         </div>
 
         {okMsg && (
