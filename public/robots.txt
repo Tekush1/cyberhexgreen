@@ -1,14 +1,6 @@
+# Search engines: public pages only. Private links (bookings, unsubscribe, admin) also send noindex headers.
 User-agent: *
 Allow: /
-Allow: /blog
-Allow: /about
-Allow: /contact
-Allow: /gallery
-Allow: /responsible-disclosure
-Allow: /hall-of-fame
-Allow: /privacy
-Allow: /terms
-
 Disallow: /admin
 Disallow: /blog/write
 Disallow: /blog/edit
@@ -17,19 +9,7 @@ Disallow: /book-session
 Disallow: /become-mentor
 Disallow: /book-interview
 Disallow: /meet/
-
-# Google
-User-agent: Googlebot
-Allow: /
-Disallow: /admin
-
-# Bing
-User-agent: Bingbot
-Allow: /
-Disallow: /admin
-
-# Crawl delay for all other bots
-User-agent: *
-Crawl-delay: 10
+Disallow: /unsubscribe
+Disallow: /api/
 
 Sitemap: https://cyberhx.com/sitemap.xml

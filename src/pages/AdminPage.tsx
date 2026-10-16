@@ -280,7 +280,12 @@ const AdminPage: React.FC = () => {
   const allowed = me ? ROLES[me.role].tabs : [];
   const canBlog = allowed.includes('submissions');
 
-  const logout = () => { sessionStorage.removeItem(TOKEN_KEY); setMe(null); setAuthed(false); };
+  // Ends the session on Supabase too (all devices), so a copied token stops working right away.
+  const logout = () => {
+    const t = getAdminToken();
+    if (t) fetch(`${SUPABASE_URL}/auth/v1/logout?scope=global`, { method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${t}` } }).catch(() => undefined);
+    sessionStorage.removeItem(TOKEN_KEY); setMe(null); setAuthed(false);
+  };
 
   const loadData = async () => {
     if (!canBlog) { setLoading(false); return; }
@@ -550,7 +555,7 @@ const AdminPage: React.FC = () => {
                         Edit
                       </Link>
                       {post.status === 'published' && (
-                        <Link to={`/blog/${post.slug}`} target="_blank"
+                        <Link to={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer"
                           className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-white/5 text-gray-300 border-white/8 hover:text-white hover:border-white/20">
                           View
                         </Link>

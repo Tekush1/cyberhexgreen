@@ -46,7 +46,7 @@ export default async function handler(req: any, res: any) {
       if (order) {
         const reason = String(payment?.error_description || 'Payment failed').slice(0, 300);
         await log(order.ref, orderId, 'payment.failed', 'warn', { source: 'webhook', paymentId: payment?.id, reason, code: payment?.error_code || null });
-        await db('pay_update', { p_rzp_order: orderId, p_patch: { status: 'failed', failure_reason: reason } });
+        await db('pay_update', { p_rzp_order: orderId, p_patch: { status: 'failed', failure_reason: reason, release_promo: true } });
       }
     }
   } catch (e) {

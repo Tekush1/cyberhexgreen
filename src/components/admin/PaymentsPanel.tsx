@@ -219,7 +219,7 @@ function OrdersView({ orders, logs, loading }: { orders: Order[]; logs: LogRow[]
                     </ul>
                     <div className="flex flex-wrap gap-2">
                       {o.logo_path && <a href={logoUrl(o.logo_path)} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:text-white ${focusRing}`}>Logo <ExternalLink size={12} /></a>}
-                      <a href={`mailto:${o.email}?subject=${encodeURIComponent(`Your CTF ${o.event_name} (${o.ref})`)}`} className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:text-white ${focusRing}`}>Email buyer <Mail size={12} /></a>
+                      <a href={`mailto:${encodeURIComponent(o.email)}?subject=${encodeURIComponent(`Your CTF ${o.event_name} (${o.ref})`)}`} className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:text-white ${focusRing}`}>Email buyer <Mail size={12} /></a>
                       {o.razorpay_payment_id && !o.razorpay_payment_id.startsWith('promo:') && (
                         <a href={`https://dashboard.razorpay.com/app/payments/${o.razorpay_payment_id}`} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:text-white ${focusRing}`}>Open in Razorpay <ExternalLink size={12} /></a>
                       )}

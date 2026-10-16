@@ -29,12 +29,21 @@ function mdToHtml(md: string): string {
   };
   const inline = (t: string) =>
     t
-      .replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (_m, a, u) => (/^https?:\/\//.test(u) ? `<img src="${u}" alt="${a}" loading="lazy">` : ''))
-      .replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g, (_m, a, u) => (/^https?:\/\/|^\//.test(u) ? `<a href="${u}" rel="nofollow">${a}</a>` : a))
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
-      .replace(/_([^_]+)_/g, '<em>$1</em>');
+      // Images and links in ONE pass (generated HTML is never scanned again), and URLs can't contain
+      // quotes, brackets or escaped quotes, so nothing can break out of the src/href attribute.
+      .replace(/(!?)\[([^\]]*)\]\(([^\s()[\]<>"']+)[^)]*\)/g, (_m, bang, a, u) => {
+        if (/&(quot|#39|lt|gt);/.test(u)) return bang ? '' : a;
+        if (bang) return /^https?:\/\//.test(u) ? `<img src="${u}" alt="${a}" loading="lazy">` : '';
+        return /^https?:\/\/|^\//.test(u) && a ? `<a href="${u}" rel="nofollow">${a}</a>` : a;
+      })
+      // Bold/italic/code only in the text between tags, never inside a generated src/href.
+      .split(/(<[^>]+>)/)
+      .map((part) => (part.startsWith('<') ? part : part
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
+        .replace(/_([^_]+)_/g, '<em>$1</em>')))
+      .join('');
 
   for (const raw of lines) {
     const line = raw;

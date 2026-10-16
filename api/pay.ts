@@ -12,10 +12,11 @@ import crypto from 'node:crypto';
 import { applyPercent, formatMinor, MIN_MINOR, priceCart, usdToInrMinor, type PayCurrency, type Priced } from '../shared/ctfPricing.js';
 import { booking } from '../src/data/hosting.js';
 import {
-  checkoutSignatureOk, db, fulfill, fulfillFree, log, PayError, paymentsReady, razorpayKeyId, rzp, usdToInr,
+  allow, checkoutSignatureOk, clientIp, db, fulfill, fulfillFree, log, PayError, paymentsReady, razorpayKeyId, rzp, usdToInr,
 } from '../server/payments.js';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Strict: no spaces, ?, & or quotes (a crafted address must not add recipients to an admin's mailto reply).
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const LOGO_RE = /^logos\/[a-z0-9-]{8,80}\.(png|jpe?g|webp)$/;
 const FORMATS = ['Online', 'Offline', 'Hybrid'];
 
@@ -108,17 +109,26 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   const ready = paymentsReady();
 
-  // `missing` lists only the NAMES of env vars that are not set (never values), to help with setup.
-  if (req.method === 'GET') return res.status(200).json({ enabled: ready.ok, currency: defaultCurrency(req), ...(ready.ok ? {} : { missing: ready.missing }) });
+  if (req.method === 'GET') return res.status(200).json({ enabled: ready.ok, currency: defaultCurrency(req) });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!ready.ok) return res.status(503).json({ error: 'Online payment is not switched on yet.' });
 
   const body = typeof req.body === 'object' && req.body ? req.body : {};
   const action = String(body.action || '');
+  const ip = clientIp(req);
+  /** Per-IP limit for this action; throws 429 when it is exceeded. */
+  const limit = async (n: number, seconds: number) => {
+    if (!(await allow(`pay.${action}`, ip, n, seconds))) throw new PayError(429, 'Too many attempts. Please wait a few minutes and try again.');
+  };
   try {
-    if (action === 'quote') return res.status(200).json(quoteJson(await quote(req, body)));
+    if (action === 'quote') {
+      // Prices are public; only guessing promo codes is limited.
+      if (str(body.code, 40)) await limit(15, 600);
+      return res.status(200).json(quoteJson(await quote(req, body)));
+    }
 
     if (action === 'create') {
+      await limit(10, 600); // before anything reaches Razorpay
       if (body.acceptTerms !== true) throw new PayError(400, 'Please agree to the Terms of Service to continue.');
       const q = await quote(req, body);
       if (q.priced.quoted) throw new PayError(400, 'Custom challenges are priced by quote, so this order cannot be paid online.');
@@ -164,6 +174,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (action === 'verify') {
+      await limit(30, 600);
       const orderId = str(body.razorpay_order_id, 80);
       const paymentId = str(body.razorpay_payment_id, 80);
       const signature = str(body.razorpay_signature, 200);
@@ -177,16 +188,19 @@ export default async function handler(req: any, res: any) {
     }
 
     if (action === 'failed') {
+      await limit(30, 600);
       const orderId = str(body.razorpay_order_id, 80);
       if (!orderId) return res.status(200).json({ ok: true });
-      const order = await db<{ ref: string; status: string } | null>('pay_get', { p_rzp_order: orderId });
-      if (!order) return res.status(200).json({ ok: true });
+      const order = await db<{ ref: string; status: string; created_at: string } | null>('pay_get', { p_rzp_order: orderId });
+      // Only the buyer's own fresh checkout can be reported (order ids are only shown to the buyer).
+      if (!order || order.status === 'paid' || Date.now() - new Date(order.created_at).getTime() > 3 * 3_600_000) return res.status(200).json({ ok: true });
       const reason = str(body.reason, 300) || 'Payment failed';
       const dismissed = body.dismissed === true;
       await log(order.ref, orderId, dismissed ? 'checkout.closed' : 'payment.failed', dismissed ? 'info' : 'warn', {
         reason, code: str(body.code, 60) || null, step: str(body.step, 60) || null, paymentId: str(body.payment_id, 80) || null,
       });
-      if (!dismissed) await db('pay_update', { p_rzp_order: orderId, p_patch: { status: 'failed', failure_reason: reason } });
+      // Either way the reserved promo use goes back; a retry in the same window re-counts it when paid.
+      await db('pay_update', { p_rzp_order: orderId, p_patch: dismissed ? { release_promo: true } : { status: 'failed', failure_reason: reason, release_promo: true } });
       return res.status(200).json({ ok: true });
     }
 

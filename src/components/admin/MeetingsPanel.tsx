@@ -341,7 +341,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const mailto = useMemo(() => {
     const k = KINDS[linkKind];
     const group = linkTo.length > 1;
-    const to = group ? '?' : `${linkTo[0] || ''}?`;
+    const to = group ? '?' : `${encodeURIComponent(linkTo[0] || '')}?`;
     return `mailto:${to}subject=${encodeURIComponent(k.mailSubject(linkTopic))}&body=${encodeURIComponent(k.mailBody(group ? 'all' : linkName, link, linkTopic))}`;
   }, [linkKind, linkTopic, linkTo, linkName, link]);
 

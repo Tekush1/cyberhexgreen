@@ -30,6 +30,24 @@ export function paymentsReady(): { ok: boolean; missing: string[] } {
 }
 export const razorpayKeyId = () => env('RAZORPAY_KEY_ID');
 
+/** The visitor's IP: Cloudflare's header first (the site sits behind Cloudflare), then Vercel's. */
+export function clientIp(req: any): string {
+  const h = (k: string) => { const v = req.headers?.[k]; return String(Array.isArray(v) ? v[0] : v || '').split(',')[0].trim(); };
+  return (h('cf-connecting-ip') || h('x-real-ip') || h('x-forwarded-for') || 'unknown').slice(0, 64);
+}
+
+/**
+ * Fixed-window rate limit kept in the database (rate_hit). Fails OPEN if the database can't be reached,
+ * so a hiccup never blocks real buyers.
+ */
+export async function allow(bucket: string, key: string, limit: number, seconds: number): Promise<boolean> {
+  try {
+    return (await db<boolean>('rate_hit', { p_bucket: bucket, p_key: key, p_limit: limit, p_seconds: seconds })) !== false;
+  } catch {
+    return true;
+  }
+}
+
 // ---------- database (pay_* functions) ----------
 export async function db<T = unknown>(fn: string, args: Record<string, unknown>): Promise<T> {
   const { url, anon } = sb();
@@ -44,7 +62,7 @@ export async function db<T = unknown>(fn: string, args: Record<string, unknown>)
     try { j = JSON.parse(t); } catch { /* text */ }
     if (j?.code === 'PGRST202' || j?.code === '42883') throw new PayError(503, 'Payments are not set up yet (run supabase/payments.sql).');
     if (j?.code === '42501') throw new PayError(503, 'Payments are not set up yet (PAYMENTS_DB_SECRET does not match the database).');
-    if (j?.code === 'P0001') throw new PayError(429, String(j.message));
+    if (j?.code === 'P0001') throw new PayError(/^Too many/.test(String(j.message)) ? 429 : 400, String(j.message));
     throw new Error(`${fn}: ${(j?.message || t).slice(0, 300)}`);
   }
   return (t ? JSON.parse(t) : null) as T;

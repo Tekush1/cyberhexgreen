@@ -298,7 +298,7 @@ const RequestCard: React.FC<{
             <CalendarClock size={14} /> Schedule {cfg.kind === 'interview' ? 'interview' : 'call'}
           </button>
           <a
-            href={`mailto:${row.email}?subject=${encodeURIComponent(cfg.mailSubject(row))}`}
+            href={`mailto:${encodeURIComponent(row.email)}?subject=${encodeURIComponent(cfg.mailSubject(row))}`}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-sm"
           >
             <Mail size={14} /> Reply

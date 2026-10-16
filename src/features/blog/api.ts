@@ -282,7 +282,9 @@ export async function uploadFile(file: File, asAdmin: boolean): Promise<Uploaded
 
   const isWebp = body !== file && body.type === 'image/webp';
   const base = slugify(file.name.replace(/\.[^.]+$/, '')).slice(0, 40) || 'file';
-  const ext = isWebp ? 'webp' : (file.name.split('.').pop() || 'bin').toLowerCase();
+  // Extension from the checked file type, never from the file name (no x.html posing as an image).
+  const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'application/pdf': 'pdf' };
+  const ext = isWebp ? 'webp' : EXT[file.type] || 'bin';
   const d = new Date();
   const path = `${asAdmin ? 'posts' : 'submissions'}/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}-${base}.${ext}`;
 

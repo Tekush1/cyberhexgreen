@@ -5,6 +5,8 @@
 //   POST /api/subscribe?unsub=<token>                         -> one-click unsubscribe from the mail app (RFC 8058)
 //   GET  /api/subscribe?unsub=<token>                         -> redirects to the /unsubscribe page (never unsubscribes on GET)
 
+import { allow, clientIp } from '../server/payments.js';
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -50,6 +52,8 @@ export default async function handler(req: any, res: any) {
     }
 
     if (body.website) return res.status(200).json({ ok: true }); // bot filled the hidden field: pretend it worked
+    // Per visitor: at most 5 sign-ups per 10 minutes (the database also caps the total per hour).
+    if (!(await allow('subscribe', clientIp(req), 5, 600))) return res.status(429).json({ error: 'Too many sign-ups from your network. Please try again later.' });
     const email = String(body.email || '').trim().toLowerCase();
     if (!EMAIL_RE.test(email) || email.length > 200) return res.status(400).json({ error: 'Please enter a valid email address.' });
     const name = String(body.name || '').replace(/[\u0000-\u001f\u007f,;:<>"\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);

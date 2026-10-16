@@ -20,6 +20,7 @@
 
 import crypto from 'node:crypto';
 import { canAny } from '../server/staff.js';
+import { allow, clientIp } from '../server/payments.js';
 import zlib from 'node:zlib';
 
 // ---------- Config (edit to taste) ----------
@@ -300,6 +301,7 @@ function istToMs(date: string, time: string): number | null {
 const attendeesOf = (inv: TokenPayload): string[] => (inv.g && inv.g.length ? inv.g : [inv.e]);
 
 class SlotTakenError extends Error {}
+class AlreadyBookedError extends Error {}
 
 // ---------- Google API ----------
 let cachedAccess: { token: string; exp: number } | null = null;
@@ -444,6 +446,19 @@ async function createEvent(o: {
   if (lost) {
     await remove();
     throw new SlotTakenError();
+  }
+
+  // One link = one booking: if the same link was used in parallel, only the earliest event survives.
+  const same = await gcal(`/calendars/${cal}/events?${new URLSearchParams({
+    privateExtendedProperty: `inviteId=${o.inviteId}`, singleEvents: 'true', maxResults: '20',
+  })}`);
+  const older = (same.items || []).some(
+    (e: any) => e.id !== event.id && e.status !== 'cancelled' &&
+      ((e.created || '') < (event.created || '') || ((e.created || '') === (event.created || '') && e.id < event.id)),
+  );
+  if (older) {
+    await remove();
+    throw new AlreadyBookedError();
   }
 
   // we own the slot -> now invite everyone (this is the moment the invite emails go out)
@@ -668,6 +683,9 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'POST') {
+      if (!(await allow('interview.book', clientIp(req), 10, 600))) {
+        return res.status(429).json({ error: 'Too many attempts. Please wait a few minutes and try again.' });
+      }
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
       const invite = await verifyToken(String(body.t || ''));
       if (!invite) return res.status(401).json({ error: 'This link is invalid or has expired.' });
@@ -697,6 +715,7 @@ export default async function handler(req: any, res: any) {
         });
       } catch (e) {
         if (e instanceof SlotTakenError) return res.status(409).json({ error: 'Sorry, that slot was just taken. Please pick another.' });
+        if (e instanceof AlreadyBookedError) return res.status(409).json({ error: 'This link has already been used to book a slot.' });
         throw e;
       }
 
