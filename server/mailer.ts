@@ -573,3 +573,28 @@ export async function checkProvider(id: ProviderId): Promise<{ ok: boolean; mess
     return { ok: false, message: `Could not reach the service: ${e instanceof Error ? e.message : e}` };
   }
 }
+
+/**
+ * Send ONE email outside a campaign (e.g. a payment receipt), trying the services in `order`
+ * until one accepts it. No admin session is involved, so the daily counters are not used:
+ * keep this for low-volume mail.
+ */
+export async function sendDirect(order: ProviderId[], msg: OutMsg, fromName?: string): Promise<{ ok: boolean; provider?: ProviderId; id?: string; errors: Record<string, string> }> {
+  const errors: Record<string, string> = {};
+  for (const pid of order) {
+    const def = PROVIDERS.find((p) => p.id === pid);
+    if (!def) continue;
+    const info = providerInfo(def);
+    if (!info.configured) { errors[pid] = 'not connected'; continue; }
+    const from = parseFrom(info.from);
+    if (fromName) from.name = fromName;
+    try {
+      const [r] = await def.send([msg], from, DEFAULT_REPLY_TO);
+      if (r?.ok) return { ok: true, provider: pid, id: r.id ? String(r.id).slice(0, 200) : undefined, errors };
+      errors[pid] = r?.error || 'failed';
+    } catch (e) {
+      errors[pid] = e instanceof Error ? e.message : 'failed';
+    }
+  }
+  return { ok: false, errors };
+}

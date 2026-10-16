@@ -25,7 +25,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
     WHEN 'owner'    THEN true
     WHEN 'hr'       THEN p_area IN ('applications','meetings','availability','emails')
     WHEN 'campaign' THEN p_area IN ('campaigns','subscribers','blog')
-    WHEN 'event'    THEN p_area IN ('ctf','inbox','meetings','campaigns')
+    WHEN 'event'    THEN p_area IN ('ctf','inbox','meetings','campaigns','payments')
     ELSE false END;
 $$;
 

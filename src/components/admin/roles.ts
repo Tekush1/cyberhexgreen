@@ -4,14 +4,14 @@
 export type Role = 'owner' | 'hr' | 'campaign' | 'event';
 export type TabId =
   | 'inbox' | 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf'
-  | 'availability' | 'emails' | 'campaigns' | 'subscribers' | 'team';
+  | 'availability' | 'emails' | 'campaigns' | 'subscribers' | 'payments' | 'team';
 
 export const ROLES: Record<Role, { label: string; short: string; about: string; tabs: TabId[] }> = {
   owner: {
     label: 'Owner',
     short: 'Owner',
     about: 'Everything, plus adding and removing team members.',
-    tabs: ['inbox', 'submissions', 'posts', 'meetings', 'applications', 'ctf', 'availability', 'emails', 'campaigns', 'subscribers', 'team'],
+    tabs: ['inbox', 'submissions', 'posts', 'meetings', 'applications', 'ctf', 'payments', 'availability', 'emails', 'campaigns', 'subscribers', 'team'],
   },
   hr: {
     label: 'HR',
@@ -28,8 +28,8 @@ export const ROLES: Record<Role, { label: string; short: string; about: string; 
   event: {
     label: 'Event manager',
     short: 'Events',
-    about: 'CTF requests, the contact inbox, meetings and event campaigns.',
-    tabs: ['ctf', 'inbox', 'meetings', 'campaigns'],
+    about: 'CTF requests and payments, the contact inbox, meetings and event campaigns.',
+    tabs: ['ctf', 'payments', 'inbox', 'meetings', 'campaigns'],
   },
 };
 

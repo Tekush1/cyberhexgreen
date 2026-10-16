@@ -10,14 +10,17 @@ import { plans, builderCategories, builderPricing, booking, type Tier } from "..
 import { DatePicker, addDays, fromISO, prettyDate } from "../components/shared/DatePicker";
 import { Seo } from "../features/seo/Seo";
 import { submitForm } from "../lib/forms";
+import { LogoField, PayFooter, type PaidInfo } from "../components/checkout/CtfPayment";
+import { payConfig, type Cart, type PayCurrency } from "../lib/ctfPay";
 
 /* =============================================================
    HOST YOUR CTF — build your CTF like a PC.
    Prices live in src/data/hosting.ts (builderCategories, builderPricing).
    A build is one round, or a qualifier plus a grand finale; each round
    has its own hosting, hours, player count and challenges.
-   Checkout places the order via Web3Forms; payment is collected
-   afterwards with a link sent to the buyer.
+   Checkout takes payment with Razorpay (api/pay.ts) when it is switched
+   on; orders with quoted custom challenges (or with payments off) are
+   placed via Web3Forms and paid later with a link.
 ============================================================= */
 
 const P = builderPricing;
@@ -131,6 +134,8 @@ type Order = {
   finaleHours: number;
   /** Players already chosen in the builder (0 = ask in the form). */
   players: number;
+  /** What the server prices for online payment. */
+  cart: Cart;
 };
 
 const SOUND_FOR: Partial<Record<ShopFrame, ShopSound>> = {
@@ -299,7 +304,7 @@ const dashboardFeatures: { icon: IconName; title: string; description: string }[
 const steps = [
   { n: "01", title: "Pick a package", text: "Choose Beginner, Pro or Max, or build a custom CTF." },
   { n: "02", title: "Check out", text: "Tell us your event name, date and theme." },
-  { n: "03", title: "Pay and confirm", text: "We email a payment link and lock your date." },
+  { n: "03", title: "Pay and confirm", text: "We email a payment link and lock your date.", online: "Pay securely at checkout; we confirm your date." },
   { n: "04", title: "Go live", text: "We build every challenge, you run it from the dashboard." },
 ];
 
@@ -351,11 +356,11 @@ const compareRows: CompareRow[] = [
 ];
 
 /* ---------- why CyberHx (facts from our own offer, no made-up stats) ---------- */
-const whyPoints: { icon: IconName; title: string; text: string }[] = [
+const whyPoints: { icon: IconName; title: string; text: string; onlineTitle?: string; online?: string }[] = [
   { icon: "code", title: "Challenges included, not just a platform", text: "Most hosting gives you an empty scoreboard. Our packages ship with 25 to 40 challenges already built and tested." },
   { icon: "trophy", title: "Our own chained challenge", text: "Pro and Max include the CyberHx chained challenge: OSINT, Forensics and Crypto linked into one run." },
   { icon: "gauge", title: "Clear prices up front", text: `Packages from $${plans[0].usd}. Hosting from $${P.hosting.usd}. Every add-on is priced on this page.` },
-  { icon: "lock-key", title: "No payment to order", text: "Place the order, we confirm your date, then email a secure payment link. Nothing is charged at checkout." },
+  { icon: "lock-key", title: "No payment to order", text: "Place the order, we confirm your date, then email a secure payment link. Nothing is charged at checkout.", onlineTitle: "Secure checkout", online: "Pay at checkout with UPI, cards or netbanking through Razorpay. You get a receipt by email straight away." },
   { icon: "hacker-team" as IconName, title: "Scales with your event", text: `${P.hosting.players.toLocaleString("en-US")} players included. Need more? There is no upper limit: add players in blocks of 1,000 for $${P.extraPlayersUsd} each.` },
   { icon: "podium", title: "Run it yourself on the day", text: "Live scoreboard, team management, challenge control and certificates from one dashboard." },
 ];
@@ -371,7 +376,7 @@ const altRows: { label: string; cells: Cell[] }[] = [
 ];
 
 const faqs = [
-  { q: "Do I pay when I place the order?", a: "No. We confirm your event date first, then email a secure payment link. All prices are charged in USD; the amount shown in your currency is an estimate." },
+  { q: "Do I pay when I place the order?", a: "No. We confirm your event date first, then email a secure payment link. All prices are charged in USD; the amount shown in your currency is an estimate.", online: "Yes. You pay securely at checkout through Razorpay, in rupees (UPI, cards, netbanking, wallets) or US dollars (international cards), and get a receipt by email. Orders with custom challenges are priced by quote and paid later with a link." },
   { q: "Is there a limit on players?", a: `No. Every package includes ${P.hosting.players.toLocaleString("en-US")} players, and you can add as many more as you need at $${P.extraPlayersUsd} per additional 1,000.` },
   { q: "Do you work with teams outside our country?", a: "Yes. We host CTFs for universities, companies and communities worldwide, fully online, in any time zone." },
   { q: "Which package should I pick?", a: "A first event for a club or class: Beginner. A competitive event with a serious leaderboard: Pro. Your own theme, website and custom challenges: Max." },
@@ -492,6 +497,12 @@ export default function HostYourCTF() {
   const [error, setError] = React.useState(false);
   const [orderId, setOrderId] = React.useState("");
   const [placed, setPlaced] = React.useState<{ date: string; time: string; zone: string; email: string } | null>(null);
+  /* ---------- online payment (Razorpay) ---------- */
+  const [payCfg, setPayCfg] = React.useState<{ enabled: boolean; currency: PayCurrency }>({ enabled: false, currency: "USD" });
+  const [logoPath, setLogoPath] = React.useState("");
+  const [logoErr, setLogoErr] = React.useState("");
+  const [paid, setPaid] = React.useState<PaidInfo | null>(null);
+  React.useEffect(() => { payConfig().then(setPayCfg); }, []);
   const currency = useLocalCurrency();
   /* ---------- shop mascot: one character that acts out the purchase ---------- */
   const [frame, setFrame] = React.useState<ShopFrame>("idle");
@@ -640,7 +651,7 @@ export default function HostYourCTF() {
     const was = lastDrawer.current;
     lastDrawer.current = drawer;
     if (drawer === "checkout" && order) {
-      act("bill", `Total ${money(order.total)}${order.quoted ? " + quote" : ""}. No payment now: we confirm your date first.`);
+      act("bill", `Total ${money(order.total)}${order.quoted ? " + quote" : ""}. ${payCfg.enabled && !order.quoted ? "Pay securely when you're ready." : "No payment now: we confirm your date first."}`);
     } else if (drawer === "done") {
       // Let "pressing BUY" be seen for a moment even when the order is instant.
       const wait = Math.max(0, 900 - (Date.now() - buyAt.current));
@@ -800,6 +811,13 @@ export default function HostYourCTF() {
       hours: build.rounds[roundIds[0]].hours,
       finaleHours: build.rounds.finale.hours,
       players: Math.max(...roundIds.map((id) => build.rounds[id].players)),
+      cart: {
+        kind: "build",
+        format: build.format,
+        rounds: Object.fromEntries(roundIds.map((id) => [id, build.rounds[id]])),
+        website3d: build.website3d,
+        custom: build.custom,
+      },
     });
     setError(false);
     setDrawer("checkout");
@@ -819,6 +837,7 @@ export default function HostYourCTF() {
       hours: P.hosting.hours,
       finaleHours: 0,
       players: 0,
+      cart: { kind: "prebuilt", planId: p.id },
     });
     setError(false);
     setDrawer("checkout");
@@ -836,6 +855,7 @@ export default function HostYourCTF() {
       hours: P.hosting.hours,
       finaleHours: 0,
       players: 0,
+      cart: { kind: "hosting" },
     });
     setError(false);
     setDrawer("checkout");
@@ -850,20 +870,46 @@ export default function HostYourCTF() {
     setField(e.target.name as keyof FormState, e.target.value);
   const minDate = order ? addDays(startOfToday(), order.leadDays) : startOfToday();
 
+  const canPay = payCfg.enabled && !!order && !order.quoted;
+  const playersFor = (o: Order) => (o.players ? `${players(o.players)} (from the build)` : form.participants);
+
+  /** Shows field errors (and the missing logo when paying online); true when the form is complete. */
+  const checkForm = (needLogo: boolean): boolean => {
+    if (!order) return false;
+    const problems = validate(form, order, minDate);
+    setFieldErrors(problems);
+    const logoMissing = needLogo && !logoPath;
+    setLogoErr(logoMissing ? "Upload your CTF logo." : "");
+    const firstBad = FIELD_ORDER.find((k) => problems[k]);
+    const n = Object.keys(problems).length + (logoMissing ? 1 : 0);
+    if (!n) return true;
+    act("bill", `Almost there: ${n} field${n === 1 ? "" : "s"} need${n === 1 ? "s" : ""} a look.`, 3200);
+    const el = firstBad
+      ? document.querySelector<HTMLElement>(`[aria-label="Checkout"] [name="${firstBad}"]`)
+      : document.querySelector<HTMLElement>(`[aria-label="Checkout"] [data-field="logo"]`);
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    (firstBad ? el : document.getElementById("co-logo"))?.focus({ preventScroll: true });
+    return false;
+  };
+
+  const onPaid = (info: PaidInfo) => {
+    if (!order) return;
+    setPaid(info);
+    setOrderId(info.ref);
+    setPlaced({ date: form.eventDate, time: form.startTime, zone: form.timeZone, email: form.email.trim() });
+    setForm(emptyForm);
+    setFieldErrors({});
+    setLogoPath("");
+    setLogoErr("");
+    if (order.title.startsWith("Custom CTF build")) reset(true);
+    setDrawer("done");
+  };
+
   const placeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order || submitting) return;
-    const problems = validate(form, order, minDate);
-    setFieldErrors(problems);
-    const firstBad = FIELD_ORDER.find((k) => problems[k]);
-    if (firstBad) {
-      const n = Object.keys(problems).length;
-      act("bill", `Almost there: ${n} field${n === 1 ? "" : "s"} need${n === 1 ? "s" : ""} a look.`, 3200);
-      const el = document.querySelector<HTMLElement>(`[aria-label="Checkout"] [name="${firstBad}"]`);
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
-      el?.focus({ preventScroll: true });
-      return;
-    }
+    if (canPay) return; // paying online: the Pay button handles it
+    if (!checkForm(false)) return;
     setSubmitting(true);
     setError(false);
     const id = `CHX-${Date.now().toString(36).toUpperCase().slice(-6)}`;
@@ -912,6 +958,7 @@ export default function HostYourCTF() {
       });
       if (!result.ok) throw new Error("failed");
       setOrderId(id);
+      setPaid(null);
       setPlaced({ date: form.eventDate, time: form.startTime, zone: form.timeZone, email: form.email.trim() });
       setForm(emptyForm);
       setFieldErrors({});
@@ -1043,7 +1090,7 @@ export default function HostYourCTF() {
           Check out this build <ArrowRight size={16} />
         </button>
         <p className="mt-2.5 text-center text-[11px] text-muted">
-          Charged in USD. Local amounts are estimates. No payment now.
+          {payCfg.enabled ? "Pay in ₹ or $ at checkout. Local amounts are estimates." : "Charged in USD. Local amounts are estimates. No payment now."}
         </p>
       </div>
     </div>
@@ -1097,7 +1144,7 @@ export default function HostYourCTF() {
               only after we confirm it.
             </p>
             <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
-              {["No payment to order", "Challenges included", "Unlimited players", "Worldwide"].map((t) => (
+              {[payCfg.enabled ? "Secure checkout" : "No payment to order", "Challenges included", "Unlimited players", "Worldwide"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Check size={15} className="text-lime" /> {t}
                 </li>
@@ -1178,7 +1225,7 @@ export default function HostYourCTF() {
             Buy hosting only
           </button>
         </div>
-        <p className="mt-6 text-center text-xs text-muted">You won't be charged at checkout. We confirm your date, then email a secure payment link.</p>
+        <p className="mt-6 text-center text-xs text-muted">{payCfg.enabled ? "Pay securely at checkout with Razorpay. You get a receipt by email right away." : "You won't be charged at checkout. We confirm your date, then email a secure payment link."}</p>
       </section>
 
       {/* Compare */}
@@ -1269,8 +1316,8 @@ export default function HostYourCTF() {
             <div key={w.title} className="card-ob flex gap-4 p-5">
               <SiteIcon name={w.icon} size={44} alt="" />
               <div>
-                <h3 className="font-semibold">{w.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-muted">{w.text}</p>
+                <h3 className="font-semibold">{payCfg.enabled && w.onlineTitle ? w.onlineTitle : w.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-muted">{payCfg.enabled && w.online ? w.online : w.text}</p>
               </div>
             </div>
           ))}
@@ -1613,7 +1660,7 @@ export default function HostYourCTF() {
             <li key={s.n} className="bg-[#080c18] p-6">
               <span className="font-mono text-sm text-lime">{s.n}</span>
               <h3 className="mt-3 font-semibold">{s.title}</h3>
-              <p className="mt-1.5 text-sm leading-6 text-muted">{s.text}</p>
+              <p className="mt-1.5 text-sm leading-6 text-muted">{payCfg.enabled && "online" in s && s.online ? s.online : s.text}</p>
             </li>
           ))}
         </ol>
@@ -1626,7 +1673,7 @@ export default function HostYourCTF() {
                   {f.q}
                   <ChevronDown size={16} className="shrink-0 text-muted transition group-open:rotate-180" />
                 </summary>
-                <p className="mt-2 text-sm leading-6 text-muted">{f.a}</p>
+                <p className="mt-2 text-sm leading-6 text-muted">{payCfg.enabled && "online" in f && f.online ? f.online : f.a}</p>
               </details>
             ))}
           </div>
@@ -1687,7 +1734,7 @@ export default function HostYourCTF() {
                     <ArrowLeft size={18} />
                   </button>
                 )}
-                <h2 className="font-display text-lg">{drawer === "checkout" ? "Checkout" : "Order placed"}</h2>
+                <h2 className="font-display text-lg">{drawer === "checkout" ? "Checkout" : paid ? "Payment received" : "Order placed"}</h2>
               </div>
               <button type="button" onClick={() => setDrawer("closed")} className="rounded p-1 text-muted hover:text-white" aria-label="Close">
                 <X size={20} />
@@ -1743,6 +1790,7 @@ export default function HostYourCTF() {
                           <Field k="eventName" error={err.eventName} label="Event name *">
                             <input id="co-eventName" name="eventName" value={form.eventName} onChange={onField} aria-invalid={inv("eventName")} placeholder="e.g. Spring Security CTF 2027" className={inputCls} />
                           </Field>
+                          {canPay && <LogoField path={logoPath} onChange={(p) => { setLogoPath(p); if (p) setLogoErr(""); }} error={logoErr} required />}
                           <div className="col-span-2">
                             <DatePicker
                               name="eventDate"
@@ -1833,22 +1881,37 @@ export default function HostYourCTF() {
                     );
                   })()}
                 </div>
+                {canPay ? (
+                  <PayFooter
+                    cart={order.cart}
+                    defaultCurrency={payCfg.currency}
+                    usdTotal={money(order.total)}
+                    buyer={{ name: form.name, email: form.email, phone: form.phone }}
+                    validate={() => checkForm(true)}
+                    getForm={() => ({ ...form, participants: playersFor(order), logoPath })}
+                    onPaid={onPaid}
+                    onStep={(st) => (st === "paying" ? act("bill", "Opening a secure payment window…", 2600) : act("arrive", "No charge was made. Try again when you're ready.", 3200, "sad"))}
+                  />
+                ) : (
                 <footer className="border-t border-line px-5 py-5">
                   {error && <p className="mb-3 text-sm text-red-300">Could not place the order. Try again or email us.</p>}
                   <button type="submit" disabled={submitting} className="btn btn-lime w-full disabled:opacity-60">
                     {submitting ? "Placing order..." : `Place order · ${money(order.total)}${order.quoted ? " +" : ""}`}
                   </button>
                   <p className="mt-2.5 text-center text-xs text-muted">
-                    You won't be charged now. We confirm your date and email a secure payment link in USD.
+                    {order.quoted && payCfg.enabled
+                      ? "Custom challenges are priced by quote, so nothing is charged now. We confirm your date and send a secure payment link."
+                      : "You won't be charged now. We confirm your date and email a secure payment link in USD."}
                   </p>
                 </footer>
+                )}
               </form>
             )}
 
             {drawer === "done" && (
               <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 text-center">
                 <img src="/mascots/shop/success.webp" width={480} height={480} alt="" className="w-36 sm:w-44" />
-                <h3 className="font-display mt-5 text-2xl">Your CTF is in the queue.</h3>
+                <h3 className="font-display mt-5 text-2xl">{paid ? "Payment received. Your CTF is booked." : "Your CTF is in the queue."}</h3>
                 <p className="mt-2 text-sm text-muted">
                   Order <span className="font-mono text-lime">{orderId}</span>
                   {placed && (
@@ -1859,11 +1922,18 @@ export default function HostYourCTF() {
                   .
                 </p>
                 <ol className="mt-6 w-full max-w-xs space-y-3 text-left text-sm">
-                  {[
-                    ["01", `We confirm your date${placed ? ` by email to ${placed.email}` : ""} within one business day.`],
-                    ["02", "You get a secure payment link in USD. Nothing is charged until then."],
-                    ["03", "We build and test your challenges and send your host dashboard login."],
-                  ].map(([n, t]) => (
+                  {(paid
+                    ? [
+                        ["01", `Your receipt${paid.amountLabel !== "Free" ? ` for ${paid.amountLabel}` : ""} is on its way${placed ? ` to ${placed.email}` : ""}.`],
+                        ["02", "We confirm your date within one business day."],
+                        ["03", "We build and test your challenges and send your host dashboard login."],
+                      ]
+                    : [
+                        ["01", `We confirm your date${placed ? ` by email to ${placed.email}` : ""} within one business day.`],
+                        ["02", "You get a secure payment link in USD. Nothing is charged until then."],
+                        ["03", "We build and test your challenges and send your host dashboard login."],
+                      ]
+                  ).map(([n, t]) => (
                     <li key={n} className="flex gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
                       <span className="font-mono text-xs text-lime">{n}</span>
                       <span className="text-white/80">{t}</span>

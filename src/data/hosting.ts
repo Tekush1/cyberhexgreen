@@ -1,4 +1,4 @@
-import type { IconName } from '../components/shared/SiteIcon';
+import type { IconName } from '../components/shared/iconNames.js';
 
 /* =============================================================
    HOSTING STORE DATA — edit prices / copy here.

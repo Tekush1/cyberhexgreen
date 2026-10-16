@@ -8,6 +8,7 @@ import { EmailsPanel } from '../components/admin/EmailsPanel';
 import { CampaignsPanel } from '../components/admin/CampaignsPanel';
 import { SubscribersPanel } from '../components/admin/SubscribersPanel';
 import { TeamPanel } from '../components/admin/TeamPanel';
+import { PaymentsPanel } from '../components/admin/PaymentsPanel';
 import { ROLES, isRole, type Role, type TabId } from '../components/admin/roles';
 import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -446,6 +447,7 @@ const AdminPage: React.FC = () => {
             { id: 'meetings', label: 'Meetings', badge: 0 },
             { id: 'applications', label: 'Applications', badge: newCounts.applications },
             { id: 'ctf', label: 'CTF Requests', badge: newCounts.ctf },
+            { id: 'payments', label: 'Payments', badge: 0 },
             { id: 'availability', label: 'Availability', badge: 0 },
             { id: 'emails', label: 'Emails', badge: 0 },
             { id: 'campaigns', label: 'Campaigns', badge: 0 },
@@ -512,6 +514,7 @@ const AdminPage: React.FC = () => {
         {go(tab) === 'subscribers' && <SubscribersPanel />}
 
         {go(tab) === 'team' && <TeamPanel />}
+        {go(tab) === 'payments' && <PaymentsPanel />}
 
         {go(tab) === 'posts' && (
           <div>

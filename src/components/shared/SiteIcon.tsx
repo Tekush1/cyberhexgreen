@@ -1,38 +1,5 @@
-export type IconName =
-  | 'code'
-  | 'code-light'
-  | 'target'
-  | 'swords'
-  | 'user'
-  | 'network'
-  | 'gear'
-  | 'shield'
-  | 'ctf-orange'
-  | 'ctf-green'
-  | 'docker'
-  | 'eyes'
-  | 'ghost'
-  | 'podium'
-  | 'podium-flat'
-  | 'trophy'
-  | 'hexagon'
-  | 'lock-key'
-  | 'padlock'
-  | 'cloud'
-  | 'bug'
-  | 'windows'
-  | 'linux'
-  | 'exit'
-  | 'bell'
-  | 'bell-dot'
-  | 'toolbox'
-  | 'receipt'
-  | 'gauge'
-  | 'ring'
-  | 'calendar-fire'
-  | 'hacker-team'
-  | 'hacker-climb'
-  | 'satellite';
+import type { IconName } from './iconNames';
+export type { IconName } from './iconNames';
 
 interface SiteIconProps {
   name: IconName;
