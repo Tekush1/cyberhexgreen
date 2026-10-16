@@ -108,7 +108,8 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   const ready = paymentsReady();
 
-  if (req.method === 'GET') return res.status(200).json({ enabled: ready.ok, currency: defaultCurrency(req) });
+  // `missing` lists only the NAMES of env vars that are not set (never values), to help with setup.
+  if (req.method === 'GET') return res.status(200).json({ enabled: ready.ok, currency: defaultCurrency(req), ...(ready.ok ? {} : { missing: ready.missing }) });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!ready.ok) return res.status(503).json({ error: 'Online payment is not switched on yet.' });
 
