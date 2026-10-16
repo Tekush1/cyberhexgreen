@@ -123,7 +123,11 @@ export default async function handler(req: any, res: any) {
   try {
     if (action === 'quote') {
       // Prices are public; only guessing promo codes is limited.
-      if (str(body.code, 40)) await limit(15, 600);
+      if (str(body.code, 40)) {
+        await limit(15, 600);
+        // Also a site-wide cap, for guessers that rotate IP addresses.
+        if (!(await allow('pay.code.all', '*', 200, 600))) throw new PayError(429, 'Too many attempts. Please wait a few minutes and try again.');
+      }
       return res.status(200).json(quoteJson(await quote(req, body)));
     }
 
