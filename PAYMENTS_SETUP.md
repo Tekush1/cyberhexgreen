@@ -18,13 +18,14 @@ Until the steps below are done, the checkout keeps working the old way ("Place o
 
 Orders with *custom challenges* are priced by quote, so they still use "Place order" and get a payment link later.
 
-Promo codes: Admin → Payments → Promo codes. At checkout they hide behind a small **Have a code?** link under the Pay button.
+Promo codes: Admin → Payments → Promo codes (table `ctf_promo_codes`; the old pentestlab `promo_codes` table is not used). At checkout they hide behind a small **Have a code?** link under the Pay button.
 A 100% code confirms the order without any payment.
 
 ## Setup (once)
 
-1. **Database**: Supabase → SQL Editor → paste `supabase/payments.sql` → Run.
-   The last result row is a long secret: copy it.
+1. **Database**: already applied (17 Oct). To get the server secret, run this in Supabase → SQL Editor and copy the value:
+   `select value from public.app_secrets where name = 'payments';`
+   (On a fresh project, run `supabase/payments.sql` instead; its last row prints the same secret.)
 2. **Vercel → Settings → Environment Variables** (Production):
 
    | Name | Value |

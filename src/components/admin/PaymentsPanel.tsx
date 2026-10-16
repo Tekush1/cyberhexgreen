@@ -292,7 +292,7 @@ function PromoView() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setCodes((await sbRows<Promo>('promo_codes?select=*&order=created_at.desc')).rows); setErr(''); }
+    try { setCodes((await sbRows<Promo>('ctf_promo_codes?select=*&order=created_at.desc')).rows); setErr(''); }
     catch (e) { setErr(niceErr(e)); }
     setLoading(false);
   }, []);
@@ -308,7 +308,7 @@ function PromoView() {
     if (max !== null && !(max > 0)) { setErr('Max uses must be a positive number, or empty for unlimited.'); return; }
     setBusy(true); setErr(''); setMsg('');
     try {
-      await sbInsert('promo_codes', { code, percent_off: pct, max_uses: max, expires_at: f.expires ? new Date(`${f.expires}T23:59:59`).toISOString() : null, note: f.note.trim() });
+      await sbInsert('ctf_promo_codes', { code, percent_off: pct, max_uses: max, expires_at: f.expires ? new Date(`${f.expires}T23:59:59`).toISOString() : null, note: f.note.trim() });
       setMsg(`${code} created: ${pct}% off${pct === 100 ? ' (free order, no payment)' : ''}.`);
       setF({ code: '', percent: '10', maxUses: '', expires: '', note: '' });
       await load();
@@ -320,7 +320,7 @@ function PromoView() {
   };
 
   const toggle = async (p: Promo) => {
-    try { await sbWrite('PATCH', `promo_codes?id=eq.${p.id}`, { active: !p.active }); await load(); }
+    try { await sbWrite('PATCH', `ctf_promo_codes?id=eq.${p.id}`, { active: !p.active }); await load(); }
     catch (x) { setErr(niceErr(x)); }
   };
 

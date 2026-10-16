@@ -3,7 +3,7 @@
 --
 --   ctf_orders     every checkout: created → paid / failed. A paid order also becomes a
 --                  "scheduled" row in CTF Requests and an entry in the team calendar.
---   promo_codes    percent-off codes, managed in Admin → Payments.
+--   ctf_promo_codes    percent-off codes, managed in Admin → Payments.
 --   payment_logs   everything that happened (order created, paid, failed, receipt mailed …).
 --   ctf-logos      storage bucket for the CTF logo the buyer uploads at checkout.
 --
@@ -43,7 +43,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
 $$;
 
 -- ---------- tables ----------
-CREATE TABLE IF NOT EXISTS public.promo_codes (
+CREATE TABLE IF NOT EXISTS public.ctf_promo_codes (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   code        text NOT NULL UNIQUE CHECK (code = upper(code) AND code ~ '^[A-Z0-9_-]{3,40}$'),
   percent_off numeric(5,2) NOT NULL CHECK (percent_off > 0 AND percent_off <= 100),
@@ -107,15 +107,15 @@ ALTER TABLE public.ctf_requests ADD COLUMN IF NOT EXISTS order_total text;
 ALTER TABLE public.ctf_requests ADD COLUMN IF NOT EXISTS order_items text;
 
 -- ---------- who can read what ----------
-ALTER TABLE public.promo_codes  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ctf_promo_codes  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ctf_orders   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_logs ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS promo_codes_admin  ON public.promo_codes;
+DROP POLICY IF EXISTS promo_codes_admin  ON public.ctf_promo_codes;
 DROP POLICY IF EXISTS ctf_orders_admin_r ON public.ctf_orders;
 DROP POLICY IF EXISTS ctf_orders_admin_u ON public.ctf_orders;
 DROP POLICY IF EXISTS payment_logs_admin ON public.payment_logs;
-CREATE POLICY promo_codes_admin  ON public.promo_codes  FOR ALL    TO authenticated USING ((SELECT public.can('payments'))) WITH CHECK ((SELECT public.can('payments')));
+CREATE POLICY promo_codes_admin  ON public.ctf_promo_codes  FOR ALL    TO authenticated USING ((SELECT public.can('payments'))) WITH CHECK ((SELECT public.can('payments')));
 CREATE POLICY ctf_orders_admin_r ON public.ctf_orders   FOR SELECT TO authenticated USING ((SELECT public.can('payments')));
 CREATE POLICY ctf_orders_admin_u ON public.ctf_orders   FOR UPDATE TO authenticated USING ((SELECT public.can('payments'))) WITH CHECK ((SELECT public.can('payments')));
 CREATE POLICY payment_logs_admin ON public.payment_logs FOR SELECT TO authenticated USING ((SELECT public.can('payments')));
@@ -133,10 +133,10 @@ END $$;
 -- Is this promo code usable right now? Never lists codes.
 CREATE OR REPLACE FUNCTION public.pay_promo(p_secret text, p_code text)
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
-DECLARE c promo_codes;
+DECLARE c ctf_promo_codes;
 BEGIN
   PERFORM pay_check(p_secret);
-  SELECT * INTO c FROM promo_codes WHERE code = upper(trim(coalesce(p_code, '')));
+  SELECT * INTO c FROM ctf_promo_codes WHERE code = upper(trim(coalesce(p_code, '')));
   IF NOT FOUND OR NOT c.active THEN RETURN jsonb_build_object('ok', false, 'error', 'That code is not valid.'); END IF;
   IF c.expires_at IS NOT NULL AND c.expires_at < now() THEN RETURN jsonb_build_object('ok', false, 'error', 'That code has expired.'); END IF;
   IF c.max_uses IS NOT NULL AND c.uses >= c.max_uses THEN RETURN jsonb_build_object('ok', false, 'error', 'That code has been fully used.'); END IF;
@@ -200,7 +200,7 @@ BEGIN
   UPDATE ctf_orders SET status = 'paid', razorpay_payment_id = p_payment, payment_method = left(p_method, 40),
          paid_at = now(), failure_reason = NULL, ctf_request_id = req
    WHERE id = o.id RETURNING * INTO o;
-  IF o.promo_code IS NOT NULL THEN UPDATE promo_codes SET uses = uses + 1 WHERE code = o.promo_code; END IF;
+  IF o.promo_code IS NOT NULL THEN UPDATE ctf_promo_codes SET uses = uses + 1 WHERE code = o.promo_code; END IF;
   RETURN jsonb_build_object('first', true, 'order', to_jsonb(o));
 END $$;
 
