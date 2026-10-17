@@ -73,10 +73,15 @@ export async function submitForm(opts: {
   // Pretend success for bots so they don't retry, but store nothing.
   if (opts.honeypot) return { ok: true, stored: false, emailed: false };
 
-  const [stored, emailed] = await Promise.all([
-    store(opts.table, opts.row),
-    sendEmail(opts.subject, opts.email ?? opts.row, opts.replyTo),
-  ]);
+  // Save first, so the team email can say loudly if the admin panel did NOT get it
+  // (otherwise a database problem stays invisible: the visitor still sees "sent").
+  const stored = await store(opts.table, opts.row);
+  const fields = opts.email ?? opts.row;
+  const emailed = await sendEmail(
+    stored ? opts.subject : `⚠ NOT SAVED IN ADMIN · ${opts.subject}`,
+    stored ? fields : { admin_panel_warning: 'This was NOT saved in the admin panel. Keep this email; tell the developer.', ...fields },
+    opts.replyTo,
+  );
   return { ok: stored || emailed, stored, emailed };
 }
 

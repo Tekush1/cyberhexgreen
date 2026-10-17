@@ -23,3 +23,8 @@ ALTER TABLE public.rate_hits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ctf_orders ADD COLUMN IF NOT EXISTS promo_reserved boolean NOT NULL DEFAULT false;
 -- (rate_hit, pay_promo, pay_create_order, pay_mark_paid, pay_update: see the migration in the dashboard
 --  under Database -> Migrations, or `select pg_get_functiondef('public.pay_create_order(text,jsonb)'::regprocedure)`.)
+
+-- 17 Oct evening FIX: admin_notes defaults to '' on job_applications and form_submissions, so the
+-- 14 Oct rule "admin_notes IS NULL" rejected every public application and contact message (14–17 Oct).
+-- All three public insert rules now use coalesce(admin_notes, '') = ''. (Applied live as
+-- migration fix_public_form_insert_admin_notes.)
