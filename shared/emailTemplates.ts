@@ -1,7 +1,7 @@
 // CyberHx email templates. Used by api/email.ts (to send) and the admin panel (to preview).
 // Plain TypeScript with no imports, so it runs the same in the browser and in a Vercel function.
 
-export type TemplateId = 'booking' | 'confirmation' | 'reminder' | 'reschedule' | 'shortlisted' | 'followup' | 'custom';
+export type TemplateId = 'booking' | 'confirmation' | 'reminder' | 'reschedule' | 'shortlisted' | 'followup' | 'custom' | 'moved' | 'cancelled';
 
 export interface EmailVars {
   /** Recipient's name; empty for group emails ("Hi there"). */
@@ -11,6 +11,8 @@ export interface EmailVars {
   start?: string | null; // ISO
   end?: string | null; // ISO
   meetLink?: string | null;
+  /** Old start time (ISO), for the "meeting moved" email. */
+  previousStart?: string | null;
   /** Booking / rescheduling link, used by reschedule and shortlisted. */
   bookingLink?: string;
   /** Optional personal note shown in its own box. */
@@ -28,6 +30,8 @@ export interface TemplateInfo {
   usesBookingLink?: boolean;
   /** Show subject + message fields in the composer. */
   isCustom?: boolean;
+  /** Sent automatically by Reschedule / Cancel; not offered in the composer. */
+  auto?: boolean;
 }
 
 export const TEMPLATES: TemplateInfo[] = [
@@ -38,6 +42,8 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: 'shortlisted', label: 'Shortlisted', hint: 'Next round for a candidate', usesBookingLink: true },
   { id: 'followup', label: 'Thank you', hint: 'Follow-up after the call' },
   { id: 'custom', label: 'Custom message', hint: 'Write your own', isCustom: true },
+  { id: 'moved', label: 'Meeting moved', hint: 'Sent when you move a meeting', auto: true },
+  { id: 'cancelled', label: 'Meeting cancelled', hint: 'Sent when you cancel a meeting', auto: true },
 ];
 
 export const MAX_FIELD = { name: 80, title: 120, note: 1500, subject: 150, body: 5000, link: 500 };
@@ -287,6 +293,39 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
           booking ? 'Please pick a new time that works for you:' : 'Please reply with two or three times that suit you and we will send a new invite.',
         ],
         cta: booking ? { label: 'Pick a new time', url: booking } : undefined,
+        note: v.note,
+      };
+      break;
+    case 'moved': {
+      const was = v.previousStart ? fmtWhen(v.previousStart, null) : null;
+      subject = date ? `New time: your ${subj} is now ${date} at ${time}` : `New time for your ${subj}`;
+      o = {
+        preheader: `Moved to ${date ? `${date}, ${time}` : 'a new time'}`,
+        eyebrow: 'Meeting moved',
+        heading: who ? `${who}, your meeting has a new time.` : 'Your meeting has a new time.',
+        paragraphs: [
+          hi,
+          `We have moved your ${title}${was?.date ? ` from ${was.date} at ${was.time}` : ''} to the new time below. Your calendar invite has been updated, and the Google Meet link stays the same.`,
+          'If the new time does not work for you, just reply to this email.',
+        ],
+        details,
+        cta: meet ? { label: 'Join Google Meet', url: meet } : undefined,
+        note: v.note,
+      };
+      break;
+    }
+    case 'cancelled':
+      subject = date ? `Cancelled: your ${subj} on ${date}` : `Cancelled: your ${subj}`;
+      o = {
+        preheader: `${Title}${date ? ` on ${date}` : ''} is cancelled`,
+        eyebrow: 'Meeting cancelled',
+        heading: 'Your meeting is cancelled.',
+        paragraphs: [
+          hi,
+          `Your ${title}${date ? ` on ${date} at ${time}` : ''} has been cancelled and removed from your calendar. Sorry for any inconvenience.`,
+          booking ? 'You can book a new time here:' : 'If you would like a new time, just reply to this email.',
+        ],
+        cta: booking ? { label: 'Book a new time', url: booking } : undefined,
         note: v.note,
       };
       break;

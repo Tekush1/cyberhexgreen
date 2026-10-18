@@ -7,6 +7,7 @@ import { TOKEN_KEY } from './adminApi';
 import { GuestInput } from './GuestInput';
 import { SentHistory, loadHistory, type History } from './SentHistory';
 import { EmailComposer } from './EmailComposer';
+import { CancelBox, RescheduleBox } from './RescheduleBox';
 
 export type MeetingKind = 'interview' | 'partnership' | 'ctf' | 'other';
 
@@ -132,6 +133,8 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const [addGuestsList, setAddGuestsList] = useState<string[]>([]);
   const [addBusy, setAddBusy] = useState(false);
   const [emailingTo, setEmailingTo] = useState<string | null>(null);
+  /** Which booked meeting has the Reschedule or Cancel box open. */
+  const [box, setBox] = useState<{ id: string; kind: 'resched' | 'cancel' } | null>(null);
   const [emailingCode, setEmailingCode] = useState<string | null>(null);
   const [history, setHistory] = useState<History | null>(null);
   const [emailsCopied, setEmailsCopied] = useState(false);
@@ -300,17 +303,6 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
       setError(e instanceof Error ? e.message : 'Failed.');
     } finally {
       setAddBusy(false);
-    }
-  };
-
-  const cancel = async (b: Booking) => {
-    if (!confirm(`Cancel ${b.name}'s meeting? They will get a cancellation email and can book again.`)) return;
-    try {
-      await api({ method: 'POST', body: JSON.stringify({ action: 'cancel', eventId: b.eventId }) });
-      setItems((prev) => prev.filter((x) => x.eventId !== b.eventId));
-      if (when === 'now') loadSlotPicker();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed.');
     }
   };
 
@@ -732,9 +724,27 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                 >
                   <Mail size={12} /> Email
                 </button>
-                <button onClick={() => cancel(b)} className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Cancel meeting">
+                <button
+                  onClick={() => { setBox(box?.id === b.eventId && box.kind === 'resched' ? null : { id: b.eventId, kind: 'resched' }); setEmailingTo(null); setAddingTo(null); }}
+                  aria-expanded={box?.id === b.eventId && box.kind === 'resched'}
+                  className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
+                    box?.id === b.eventId && box.kind === 'resched' ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <CalendarClock size={12} /> Reschedule
+                </button>
+                <button
+                  onClick={() => { setBox(box?.id === b.eventId && box.kind === 'cancel' ? null : { id: b.eventId, kind: 'cancel' }); setEmailingTo(null); setAddingTo(null); }}
+                  aria-expanded={box?.id === b.eventId && box.kind === 'cancel'}
+                  className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Cancel meeting" aria-label={`Cancel meeting with ${b.name}`}
+                >
                   <Trash2 size={14} />
                 </button>
+                {box?.id === b.eventId && (
+                  box.kind === 'resched'
+                    ? <RescheduleBox b={b} api={api} onClose={() => setBox(null)} onDone={(msg) => { setBox(null); setOkMsg({ text: msg, meet: null }); load(); if (when === 'now') loadSlotPicker(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+                    : <CancelBox b={b} api={api} onClose={() => setBox(null)} onDone={(msg) => { setBox(null); setOkMsg({ text: msg, meet: null }); setItems((prev) => prev.filter((x) => x.eventId !== b.eventId)); if (when === 'now') loadSlotPicker(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+                )}
                 {emailingTo === b.eventId && (
                   <EmailComposer
                     target={{
@@ -746,6 +756,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
                       meetLink: b.meetLink,
                     }}
                     onClose={() => setEmailingTo(null)}
+                    onReschedule={() => { setEmailingTo(null); setBox({ id: b.eventId, kind: 'resched' }); }}
                     onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingTo(null); setTimeout(load, 1500); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   />
                 )}

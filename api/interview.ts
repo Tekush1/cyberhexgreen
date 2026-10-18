@@ -21,6 +21,7 @@
 import crypto from 'node:crypto';
 import { canAny } from '../server/staff.js';
 import { allow, clientIp } from '../server/payments.js';
+import { sendMeetingMail, type Rcpt } from '../server/meetingMail.js';
 import zlib from 'node:zlib';
 
 // ---------- Config (edit to taste) ----------
@@ -44,6 +45,30 @@ const KIND_TITLE: Record<Kind, string> = {
   ctf: 'CyberHx CTF Hosting Call',
   other: 'CyberHx Meeting',
 };
+/** How a meeting is named inside emails (same words as the admin panel). */
+const MAIL_TITLE: Record<Kind, string> = { interview: 'interview', partnership: 'partnership call', ctf: 'CTF hosting call', other: 'meeting' };
+
+/** Who and what a booked calendar event is about, for emails and new links. */
+function meetingOf(ev: any) {
+  const priv = ev.extendedProperties?.private || {};
+  const kind: Kind = KINDS.includes(priv.kind) ? priv.kind : 'interview';
+  const guests = (ev.attendees || []).filter((a: any) => !a.self && !a.organizer && a.email);
+  const group = priv.group === '1' || guests.length > 1;
+  const rcpts: Rcpt[] = guests.map((a: any) => ({ email: String(a.email).toLowerCase(), name: group ? '' : String(priv.name || a.displayName || '') }));
+  const startMs = Date.parse(ev.start?.dateTime || '');
+  const endMs = Date.parse(ev.end?.dateTime || '');
+  return {
+    priv, kind, group, rcpts,
+    topic: String(priv.topic || ''),
+    name: String(priv.name || guests[0]?.displayName || ev.summary || ''),
+    title: kind === 'other' && priv.topic ? String(priv.topic) : MAIL_TITLE[kind],
+    hide: ev.guestsCanSeeOtherGuests === false,
+    startMs, endMs,
+    mins: Number.isFinite(startMs) && Number.isFinite(endMs) ? Math.round((endMs - startMs) / 60_000) : 30,
+    meetLink: ev.hangoutLink || null,
+  };
+}
+
 function eventTitle(kind: Kind, topic: string, name: string) {
   return kind === 'other' && topic ? `CyberHx: ${topic} - ${name}` : `${KIND_TITLE[kind]} - ${name}`;
 }
@@ -650,6 +675,10 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json({ added: fresh.length, skipped: add.length - fresh.length });
       }
 
+      const auth = String(req.headers.authorization || '');
+      const note = String(req.body.note || '').trim().slice(0, 1500);
+      const notify = req.body.notify !== false;
+
       if (action === 'cancel') {
         const id = String(eventId || '');
         const cal = encodeURIComponent(CALENDAR_ID);
@@ -657,8 +686,92 @@ export default async function handler(req: any, res: any) {
         if (!ev.extendedProperties?.private?.inviteId) {
           return res.status(400).json({ error: 'Not an interview booking.' });
         }
+        const m = meetingOf(ev);
+        // Google removes it from their calendar (and tells them); our email explains it in CyberHx words.
         await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}?sendUpdates=all`, { method: 'DELETE' });
-        return res.status(200).json({ ok: true });
+        const mail = notify
+          ? await sendMeetingMail(auth, 'cancelled', { title: m.title, start: new Date(m.startMs).toISOString(), end: new Date(m.endMs).toISOString(), note }, m.rcpts)
+          : { sent: 0 };
+        return res.status(200).json({ ok: true, emailed: mail.sent, emailError: mail.error || null });
+      }
+
+      // Move a booked meeting to a new time you choose: same Meet link, calendar invite updated for everyone,
+      // plus a CyberHx "new time" email.
+      if (action === 'reschedule') {
+        const id = String(eventId || '');
+        const cal = encodeURIComponent(CALENDAR_ID);
+        const ev = await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}`);
+        if (!ev.extendedProperties?.private?.inviteId) return res.status(400).json({ error: 'Not a booking made here.' });
+        const m = meetingOf(ev);
+        const av = await loadAvailability();
+        const mins = Number(dur) > 0 ? cleanDur(dur, av.slotMinutes) : m.mins > 0 ? m.mins : av.slotMinutes;
+
+        let startMs: number;
+        if (custom && typeof custom === 'object') {
+          const t = istToMs(String(custom.date || ''), String(custom.time || ''));
+          if (t === null) return res.status(400).json({ error: 'Please choose a valid date and time.' });
+          if (t < Date.now()) return res.status(400).json({ error: 'That date/time is in the past.' });
+          startMs = t;
+          if (!force) {
+            const busy = await busyRanges(new Date(startMs), new Date(startMs + mins * 60_000));
+            // The meeting's own current slot does not count as a clash.
+            const clash = busy.some(([bs, be]) => startMs < be && startMs + mins * 60_000 > bs && !(bs >= m.startMs && be <= m.endMs));
+            if (clash) return res.status(409).json({ conflict: true, error: 'You already have something booked at that time.' });
+          }
+        } else {
+          startMs = Date.parse(String(start || ''));
+          if (Number.isNaN(startMs)) return res.status(400).json({ error: 'Pick a new date and time first.' });
+          if (!(await slotState(new Date(), av, mins)).free.includes(startMs)) {
+            return res.status(409).json({ error: 'That slot is no longer free. Pick another.' });
+          }
+        }
+        if (startMs === m.startMs && mins === m.mins) return res.status(400).json({ error: 'That is the same time as now.' });
+
+        const endMs = startMs + mins * 60_000;
+        const done = await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}?conferenceDataVersion=1&sendUpdates=all`, {
+          method: 'PATCH',
+          body: JSON.stringify({ start: { dateTime: new Date(startMs).toISOString() }, end: { dateTime: new Date(endMs).toISOString() } }),
+        });
+        const meetLink = done.hangoutLink || m.meetLink;
+        const mail = notify
+          ? await sendMeetingMail(auth, 'moved', {
+              title: m.title, start: new Date(startMs).toISOString(), end: new Date(endMs).toISOString(),
+              meetLink, previousStart: new Date(m.startMs).toISOString(), note,
+            }, m.rcpts)
+          : { sent: 0 };
+        return res.status(200).json({ start: new Date(startMs).toISOString(), end: new Date(endMs).toISOString(), meetLink, emailed: mail.sent, emailError: mail.error || null });
+      }
+
+      // Let them choose the new time: a fresh booking link for the same people, the old meeting removed,
+      // and a CyberHx "please pick a new time" email with the link.
+      if (action === 'reschedule-link') {
+        const id = String(eventId || '');
+        const cal = encodeURIComponent(CALENDAR_ID);
+        const ev = await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}`);
+        if (!ev.extendedProperties?.private?.inviteId) return res.status(400).json({ error: 'Not a booking made here.' });
+        const m = meetingOf(ev);
+        if (!m.rcpts.length) return res.status(400).json({ error: 'This meeting has no guests to send a link to.' });
+        const validDays = Math.min(Math.max(Number(days) || 7, 1), 60);
+        const payload: TokenPayload = {
+          id: crypto.randomUUID(),
+          n: m.name.slice(0, 80) || 'Guest',
+          e: m.rcpts[0].email,
+          x: Math.floor(Date.now() / 1000) + validDays * 86400,
+          k: m.kind,
+          ...(m.kind === 'other' && m.topic ? { tp: m.topic.slice(0, 80) } : {}),
+          ...(m.group ? { g: m.rcpts.map((r) => r.email).slice(0, MAX_LINK_GUESTS), hg: m.hide } : {}),
+          ...(m.mins > 0 ? { d: cleanDur(m.mins, 0) || undefined } : {}),
+        };
+        const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
+        const code = await storeShortLink(auth, payload);
+        const link = code ? `${origin}/meet/${code}` : `${origin}/book-interview?t=${signToken(payload)}`;
+        await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}?sendUpdates=all`, { method: 'DELETE' });
+        const mail = notify
+          ? await sendMeetingMail(auth, 'reschedule', {
+              title: m.title, start: new Date(m.startMs).toISOString(), end: new Date(m.endMs).toISOString(), bookingLink: link, note,
+            }, m.rcpts)
+          : { sent: 0 };
+        return res.status(200).json({ link, emailed: mail.sent, emailError: mail.error || null });
       }
 
       return res.status(400).json({ error: 'Unknown action.' });

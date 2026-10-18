@@ -46,7 +46,9 @@ export const EmailComposer: React.FC<{
   /** Standalone mode: name, meeting, date/time and Meet link are typed in by hand. */
   editable?: boolean;
   heading?: string;
-}> = ({ target, onClose, onSent, initialTemplate = 'confirmation', initialBookingLink = '', editable = false, heading = 'Send an email' }) => {
+  /** On a booked meeting: opens the real Reschedule (moves the calendar event too). */
+  onReschedule?: () => void;
+}> = ({ target, onClose, onSent, initialTemplate = 'confirmation', initialBookingLink = '', editable = false, heading = 'Send an email', onReschedule }) => {
   const [template, setTemplate] = useState<TemplateId>(initialTemplate);
   const [to, setTo] = useState<string[]>(target.emails);
   const [note, setNote] = useState('');
@@ -125,7 +127,7 @@ export const EmailComposer: React.FC<{
           <div>
             <p className="text-gray-400 text-xs font-medium mb-2">Template</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {TEMPLATES.map((t) => {
+              {TEMPLATES.filter((t) => !t.auto).map((t) => {
                 const active = template === t.id;
                 return (
                   <button
@@ -144,6 +146,16 @@ export const EmailComposer: React.FC<{
               })}
             </div>
           </div>
+
+          {template === 'reschedule' && onReschedule && (
+            <div role="note" className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-xs leading-5 text-amber-100">
+              This template only sends an email; the meeting stays where it is. To really move it (calendar updated for everyone,
+              plus the email), use <b>Reschedule</b>.
+              <button type="button" onClick={onReschedule} className="mt-2 block rounded-lg bg-[#a3e635] px-3 py-1.5 text-xs font-semibold text-[#05080f]">
+                Open Reschedule
+              </button>
+            </div>
+          )}
 
           {editable ? (
             <div>
