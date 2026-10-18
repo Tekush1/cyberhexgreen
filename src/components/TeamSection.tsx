@@ -119,7 +119,7 @@ function Badge({ m, id, tier, label, i }: { m: TeamMember; id: number; tier: Tea
 const grids: Record<TeamTier, string> = {
   lead: 'mx-auto grid max-w-[20rem] gap-6 sm:max-w-3xl sm:grid-cols-2 sm:gap-8',
   core: 'team-row',
-  mentor: 'team-row',
+  team: 'team-row',
   crew: 'team-row',
 };
 

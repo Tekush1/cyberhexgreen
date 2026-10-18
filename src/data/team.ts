@@ -5,7 +5,7 @@
    or set `anonymous: true` for a question-mark avatar.
 ============================================================= */
 
-export type TeamTier = 'lead' | 'core' | 'mentor' | 'crew';
+export type TeamTier = 'lead' | 'core' | 'team' | 'crew';
 export type TeamMember = {
   name: string;
   role: string;
@@ -34,7 +34,16 @@ export const teamGroups: { tier: TeamTier; title: string; eyebrow: string; badge
       { name: 'Kjss Srivatsav', role: 'Trainer & Sales', image: 'https://i.ibb.co/KpRM8cTV/Screenshot-from-2026-06-05-18-45-45.png' },
       { name: 'Mithun M Achary', role: 'Management', image: 'https://i.ibb.co/DgWyfDyg/Whats-App-Image-2026-06-21-at-12-34-09-AM.jpg' },
       { name: 'Prasad Chinchore', role: 'Challenge Author', image: 'https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg' },
-      { name: 'Sathwika Putrevu', role: 'Security Researcher', image: 'https://i.ibb.co/MkQzktLz/IMG-3647-Sathwika-Putrevu.jpg' },
+    ],
+  },
+  {
+    tier: 'team',
+    title: 'Team',
+    eyebrow: 'Building with us',
+    badge: 'TEAM',
+    members: [
+      { name: 'Ritesh Ekbote', role: 'Security Researcher', anonymous: true },
+      { name: 'Sathwika Putrevu', role: 'Team Member', image: 'https://i.ibb.co/MkQzktLz/IMG-3647-Sathwika-Putrevu.jpg' },
     ],
   },
   {
