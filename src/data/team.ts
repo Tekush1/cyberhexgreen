@@ -33,18 +33,8 @@ export const teamGroups: { tier: TeamTier; title: string; eyebrow: string; badge
     members: [
       { name: 'Kjss Srivatsav', role: 'Trainer & Sales', image: 'https://i.ibb.co/KpRM8cTV/Screenshot-from-2026-06-05-18-45-45.png' },
       { name: 'Mithun M Achary', role: 'Management', image: 'https://i.ibb.co/DgWyfDyg/Whats-App-Image-2026-06-21-at-12-34-09-AM.jpg' },
-      { name: 'Samit Pal', role: 'Event Lead', image: 'https://i.ibb.co/nsr49BLB/Chat-GPT-Image-Jun-13-2026-01-39-04-AM.png' },
-      { name: 'Ritesh Ekbote', role: 'Security Researcher', anonymous: true },
-    ],
-  },
-  {
-    tier: 'mentor',
-    title: 'Mentors',
-    eyebrow: 'Guiding our players',
-    badge: 'MENTOR',
-    members: [
-      { name: 'Prasad Chinchore', role: 'Mentor', image: 'https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg' },
-      { name: 'Sathwika Putrevu', role: 'Mentor', image: 'https://i.ibb.co/MkQzktLz/IMG-3647-Sathwika-Putrevu.jpg' },
+      { name: 'Prasad Chinchore', role: 'Challenge Author', image: 'https://i.ibb.co/kg13yFGG/Prasad-Photo-Prasad-Chinchore.jpg' },
+      { name: 'Sathwika Putrevu', role: 'Security Researcher', image: 'https://i.ibb.co/MkQzktLz/IMG-3647-Sathwika-Putrevu.jpg' },
     ],
   },
   {
@@ -52,6 +42,9 @@ export const teamGroups: { tier: TeamTier; title: string; eyebrow: string; badge
     title: 'Volunteers',
     eyebrow: 'Making our events happen',
     badge: 'CREW',
-    members: [{ name: 'Sejal Tiwari', role: 'Volunteer', image: 'https://i.ibb.co/0pCqJfQY/Whats-App-Image-2025-04-29-at-8-31-07-PM.jpg' }],
+    members: [
+      { name: 'Samit Pal', role: 'Volunteer', image: 'https://i.ibb.co/nsr49BLB/Chat-GPT-Image-Jun-13-2026-01-39-04-AM.png' },
+      { name: 'Sejal Tiwari', role: 'Volunteer', image: 'https://i.ibb.co/0pCqJfQY/Whats-App-Image-2025-04-29-at-8-31-07-PM.jpg' },
+    ],
   },
 ];

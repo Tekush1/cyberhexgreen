@@ -159,13 +159,10 @@ export const TeamSection = ({ heading = true }: { heading?: boolean }) => {
           <div>
             <h3 className="font-display text-2xl text-white sm:text-3xl">Want a badge of your own?</h3>
             <p className="mt-2 max-w-md text-sm leading-6 text-muted">
-              We're always looking for mentors, trainers and people who love running great events.
+              We're always looking for trainers, challenge authors and people who love running great events.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link to="/become-mentor" className="btn-glow">
-              Become a mentor
-            </Link>
             <Link to="/contact" className="btn-arrow">
               Work with us
               <span className="btn-arrow-dot" aria-hidden="true">
