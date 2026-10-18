@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Check, Download, Loader2, RefreshCw, Search, Trash2, Upload, UserMinus, UserPlus, Users } from 'lucide-react';
-import { fmtDateTime, timeAgo } from './adminApi';
+import { timeAgo } from './adminApi';
+
+/** Exact time in IST, e.g. "18 Oct 2026, 5:42 pm IST". */
+const istStamp = (d: string) =>
+  `${new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })} IST`;
 import { cleanTag, downloadCsv, parsePeople, sbRows, sbRpc, sbWrite } from './mailingApi';
 
 interface Contact {
@@ -129,8 +133,8 @@ export const SubscribersPanel: React.FC = () => {
         if (r.rows.length < 1000) break;
       }
       downloadCsv(`cyberhx-contacts-${new Date().toISOString().slice(0, 10)}.csv`, [
-        ['email', 'name', 'status', 'tags', 'source', 'added'],
-        ...all.map((c) => [c.email, c.name, c.subscribed ? 'subscribed' : 'unsubscribed', c.tags.join(' '), c.source, c.created_at]),
+        ['email', 'name', 'status', 'tags', 'source', 'subscribed_on_ist'],
+        ...all.map((c) => [c.email, c.name, c.subscribed ? 'subscribed' : 'unsubscribed', c.tags.join(' '), c.source, istStamp(c.created_at)]),
       ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not export.');
@@ -200,7 +204,7 @@ export const SubscribersPanel: React.FC = () => {
                   <th className="px-4 py-3 font-medium">Person</th>
                   <th className="px-4 py-3 font-medium">Tags</th>
                   <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">Added</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Subscribed on</th>
                   <th className="px-4 py-3 font-medium"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -221,9 +225,15 @@ export const SubscribersPanel: React.FC = () => {
                     <td className="px-4 py-3">
                       {c.subscribed
                         ? <span className="text-[11px] px-2 py-0.5 rounded-full border border-[#a3e635]/40 text-[#a3e635] bg-[#a3e635]/10 whitespace-nowrap">Subscribed</span>
-                        : <span className="text-[11px] px-2 py-0.5 rounded-full border border-amber-500/40 text-amber-300 bg-amber-500/10 whitespace-nowrap" title={c.unsubscribed_at ? fmtDateTime(c.unsubscribed_at) : ''}>Unsubscribed</span>}
+                        : <>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full border border-amber-500/40 text-amber-300 bg-amber-500/10 whitespace-nowrap">Unsubscribed</span>
+                            {c.unsubscribed_at && <span className="block mt-1 text-[11px] text-gray-500 whitespace-nowrap">{istStamp(c.unsubscribed_at)}</span>}
+                          </>}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap" title={`${fmtDateTime(c.created_at)} · from ${c.source}`}>{timeAgo(c.created_at)}<span className="block text-[11px] text-gray-600">{c.source}</span></td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <time dateTime={c.created_at} className="text-gray-300 tabular-nums">{istStamp(c.created_at)}</time>
+                      <span className="block text-[11px] text-gray-500">{timeAgo(c.created_at)} · {c.source}</span>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button onClick={() => toggle(c)} disabled={busyId === c.id} title={c.subscribed ? 'Unsubscribe' : 'Subscribe again'}
