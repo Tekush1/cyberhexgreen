@@ -12,7 +12,7 @@ interface Member {
   last_sign_in: string | null;
 }
 
-const ASSIGNABLE: Role[] = ['hr', 'campaign', 'event', 'owner'];
+const ASSIGNABLE: Role[] = ['hr', 'campaign', 'event', 'outreach', 'owner'];
 const PROJECT_USERS = 'https://supabase.com/dashboard/project/bqdegvtqnqcmzvrohbow/auth/users';
 const focusRing = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a3e635]/70';
 
@@ -72,8 +72,8 @@ export function TeamPanel() {
       {/* What each role can open */}
       <section aria-labelledby="roles-h" className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5">
         <h2 id="roles-h" className="text-white font-semibold flex items-center gap-2"><ShieldCheck size={18} className="text-[#a3e635]" />Roles</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {(['hr', 'campaign', 'event', 'owner'] as Role[]).map((r) => (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {ASSIGNABLE.map((r) => (
             <div key={r} className="rounded-xl border border-white/8 bg-[#05080f] p-4">
               <p className="text-sm font-semibold text-white">{ROLES[r].label}</p>
               <p className="mt-1 text-xs leading-5 text-gray-400">{ROLES[r].about}</p>
