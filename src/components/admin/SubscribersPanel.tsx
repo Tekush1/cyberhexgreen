@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Check, Download, Loader2, RefreshCw, Search, Trash2, Upload, UserMinus, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, Download, Loader2, RefreshCw, Search, SlidersHorizontal, Trash2, Upload, UserMinus, UserPlus, Users } from 'lucide-react';
+import { AudienceFilter, describeFilter, filterToQs, isEmptyFilter, type AudFilter } from './AudienceFilter';
 import { timeAgo } from './adminApi';
 
 /** Exact time in IST, e.g. "18 Oct 2026, 5:42 pm IST". */
@@ -16,6 +17,11 @@ interface Contact {
   source: string;
   created_at: string;
   unsubscribed_at: string | null;
+  gender: string;
+  college: string;
+  city: string;
+  state: string;
+  country: string;
 }
 
 type Status = 'all' | 'subscribers' | 'unsubscribed';
@@ -36,16 +42,21 @@ export const SubscribersPanel: React.FC = () => {
   const [tags, setTags] = useState<[string, number][]>([]);
   const [showImport, setShowImport] = useState(false);
   const [busyId, setBusyId] = useState('');
+  const [aud, setAud] = useState<AudFilter>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const audKey = JSON.stringify(aud);
 
   const filterQs = useCallback(() => {
     const p: string[] = [];
     if (status === 'subscribers') p.push('subscribed=eq.true', 'tags=cs.{subscriber}');
     if (status === 'unsubscribed') p.push('subscribed=eq.false');
     if (tag) p.push(`tags=cs.{${encodeURIComponent(`"${tag}"`)}}`);
+    p.push(...filterToQs(aud));
     const s = q.trim().replace(/[,()*]/g, ' ').trim();
     if (s) p.push(`or=(email.ilike.*${encodeURIComponent(s)}*,name.ilike.*${encodeURIComponent(s)}*)`);
     return p.join('&');
-  }, [status, tag, q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, tag, q, audKey]);
 
   const load = useCallback(async (more = false) => {
     setLoading(true);
@@ -85,7 +96,7 @@ export const SubscribersPanel: React.FC = () => {
     const t = setTimeout(() => load(false), q ? 300 : 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, tag, q]);
+  }, [status, tag, q, audKey]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
   const refresh = () => { load(false); loadStats(); };
@@ -133,8 +144,8 @@ export const SubscribersPanel: React.FC = () => {
         if (r.rows.length < 1000) break;
       }
       downloadCsv(`cyberhx-contacts-${new Date().toISOString().slice(0, 10)}.csv`, [
-        ['email', 'name', 'status', 'tags', 'source', 'subscribed_on_ist'],
-        ...all.map((c) => [c.email, c.name, c.subscribed ? 'subscribed' : 'unsubscribed', c.tags.join(' '), c.source, istStamp(c.created_at)]),
+        ['email', 'name', 'gender', 'college', 'city', 'state', 'country', 'status', 'tags', 'source', 'subscribed_on_ist'],
+        ...all.map((c) => [c.email, c.name, c.gender, c.college, c.city, c.state, c.country, c.subscribed ? 'subscribed' : 'unsubscribed', c.tags.join(' '), c.source, istStamp(c.created_at)]),
       ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not export.');
@@ -171,6 +182,28 @@ export const SubscribersPanel: React.FC = () => {
         {showImport && <ImportBox tags={tags.map(([t]) => t)} onDone={() => { refresh(); }} />}
       </div>
 
+      {/* Filters: gender, country, state, college */}
+      <div className="bg-[#0a0f1a] border border-white/8 rounded-2xl">
+        <button onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters} className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left">
+          <span className="flex items-center gap-3 min-w-0">
+            <SlidersHorizontal size={17} className="text-[#a3e635] shrink-0" />
+            <span className="min-w-0">
+              <span className="block text-white font-medium">Filter by gender, country, state, college</span>
+              <span className="block text-xs text-gray-500 truncate">{isEmptyFilter(aud) ? 'Showing everyone' : describeFilter(aud)}</span>
+            </span>
+          </span>
+          <span className="flex items-center gap-3 shrink-0">
+            {!isEmptyFilter(aud) && !showFilters && <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setAud({}); }} onKeyDown={(e) => e.key === 'Enter' && setAud({})} className="text-[14px] text-[#0A84FF]">Clear</span>}
+            <ChevronDown size={18} className={`text-gray-500 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </span>
+        </button>
+        {showFilters && (
+          <div className="border-t border-white/[0.06] px-5 pb-5 pt-4">
+            <AudienceFilter value={aud} onChange={setAud} title="Subscribed people matching" />
+          </div>
+        )}
+      </div>
+
       {/* List */}
       <div>
         <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -202,6 +235,7 @@ export const SubscribersPanel: React.FC = () => {
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wider text-gray-500 border-b border-white/8">
                   <th className="px-4 py-3 font-medium">Person</th>
+                  <th className="px-4 py-3 font-medium">Details</th>
                   <th className="px-4 py-3 font-medium">Tags</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">Subscribed on</th>
@@ -214,6 +248,10 @@ export const SubscribersPanel: React.FC = () => {
                     <td className="px-4 py-3 max-w-[18rem]">
                       <p className="text-gray-200 truncate">{c.email}</p>
                       {c.name && <p className="text-gray-500 text-xs truncate">{c.name}</p>}
+                    </td>
+                    <td className="px-4 py-3 max-w-[16rem]">
+                      {c.college && <p className="text-gray-300 text-xs truncate" title={c.college}>{c.college}</p>}
+                      <p className="text-gray-500 text-[11px] truncate">{[c.gender && c.gender[0].toUpperCase() + c.gender.slice(1), [c.city, c.state, c.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || '—'}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1 max-w-[16rem]">

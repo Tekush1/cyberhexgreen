@@ -1,0 +1,12 @@
+-- ============================================================
+-- Subscribers / Campaigns: filter people by gender, country, state, college and list (tag).
+-- Applied as migrations "contacts_profile_fields" and "mail_audience_filters" (21 Oct 2026).
+--   mail_contacts: + gender, college, city, state, country (text, '' when unknown)
+--   public.mail_filter_ok(contact, filter jsonb)       -- {gender:[], country:[], state:[], college:[], tag:''}; empty list = any
+--   public.mail_audience_facets(filter, college_q)     -- live counts for the filter UI (campaigns / subscribers roles)
+--   public.mail_create_campaign(..., audience)         -- audience {type:'filter', filter:{...}} added
+-- Data: the two Unstop registration CSVs (events 1698744 and 1683151) filled these fields for 5,208 existing contacts
+-- (matched by email, nobody added). Country comes from the candidate's location, else the phone country code;
+-- state from the location, else from the college name when it names a state or a well-known city.
+-- The one-off loader public.contacts_enrich is locked (secret rotated, EXECUTE revoked).
+-- ============================================================
