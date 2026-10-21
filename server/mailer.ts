@@ -565,8 +565,10 @@ export async function checkProvider(id: ProviderId): Promise<{ ok: boolean; mess
     if (id === 'resend' || id === 'resend2') {
       const d = await get('https://api.resend.com/domains', { Authorization: `Bearer ${env(id === 'resend' ? 'RESEND_API_KEY' : 'RESEND2_API_KEY')}` });
       if (!d.r.ok) return { ok: d.r.status === 401 ? false : true, message: d.r.status === 401 ? `Resend rejected the key: ${d.j?.message || ''}` : 'Key accepted (sending-only key cannot list domains).' };
-      const dom = (d.j?.data || []).find((x: any) => from.email.endsWith('@' + x.name));
-      return { ok: dom?.status === 'verified', message: dom ? `Domain ${dom.name} is ${dom.status}.` : `No Resend domain matches ${from.email}.` };
+      const all: any[] = d.j?.data || [];
+      const dom = all.find((x: any) => from.email.endsWith('@' + x.name));
+      const list = all.map((x: any) => `${x.name} (${x.status})`).join(', ');
+      return { ok: dom?.status === 'verified', message: `${dom ? `Domain ${dom.name} is ${dom.status}.` : `No Resend domain matches ${from.email}.`}${list ? ` All domains in this Resend account: ${list}.` : ''}` };
     }
     return { ok: true, message: 'Key is set. This service has no check here: use Send test.' };
   } catch (e) {
