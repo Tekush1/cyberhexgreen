@@ -14,8 +14,8 @@ import { ROLES, isRole, type Role, type TabId } from '../components/admin/roles'
 import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Shield, CheckCircle, XCircle, Clock, Eye, Search,
-  RefreshCw, LogIn, LogOut, Newspaper, Users, TrendingUp,
+  CheckCircle, XCircle, Clock, Eye, Search,
+  LogIn, Newspaper, Users, TrendingUp,
   ChevronDown, ChevronUp, Loader2, AlertTriangle,
   Trash2
 } from 'lucide-react';
@@ -149,10 +149,7 @@ const LoginScreen = ({ onLogin, notice = '' }: { onLogin: () => void; notice?: s
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-[#0a0f1a] border border-white/10 rounded-2xl p-8 w-full max-w-sm shadow-2xl">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-[#a3e635]/10 rounded-2xl flex items-center justify-center mb-4 border border-[#a3e635]/20">
-            <Shield size={32} className="text-[#a3e635]" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-white">Sign in</h1>
           <p className="text-gray-500 text-sm mt-1">CyberHx team sign-in</p>
         </div>
         <div className="space-y-4">
@@ -408,23 +405,22 @@ const AdminPage: React.FC = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div className="flex items-start justify-between mb-8 gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-              <Shield size={28} className="text-[#a3e635]" />Admin Panel
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-[-0.02em] text-white">Admin</h1>
             <p className="text-gray-500 text-sm mt-1">
               Signed in as <span className="text-gray-300">{me.email || 'staff'}</span>
               <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#a3e635]/10 text-[#a3e635] border border-[#a3e635]/25 align-middle">{ROLES[me.role].label}</span>
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => { loadData(); loadCounts(); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0a0f1a] border border-white/8 text-gray-400 hover:text-white transition-colors text-sm">
-              <RefreshCw size={15} />Refresh
-            </button>
-            <button onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors text-sm">
-              <LogOut size={15} />Logout
+            {allowed.length > 1 && (
+              <button onClick={() => { loadData(); loadCounts(); }} className="px-3 py-2 rounded-full text-[15px] text-[#0A84FF] hover:bg-white/5 transition-colors">
+                Refresh
+              </button>
+            )}
+            <button onClick={logout} className="px-3 py-2 rounded-full text-[15px] text-[#FF453A] hover:bg-white/5 transition-colors">
+              Sign Out
             </button>
           </div>
         </div>
@@ -445,7 +441,7 @@ const AdminPage: React.FC = () => {
         </div>}
 
         {/* Tabs: only the ones this role can use */}
-        <div role="tablist" aria-label="Admin sections" className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1">
+        <div role="tablist" aria-label="Admin sections" className={`${allowed.length < 2 ? 'hidden' : 'flex'} gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1`}>
           {([
             { id: 'inbox', label: 'Inbox', badge: newCounts.inbox },
             { id: 'submissions', label: 'Blog submissions', badge: stats.pending },

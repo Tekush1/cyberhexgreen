@@ -1,7 +1,6 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import {
-  BellRing, CalendarClock, Check, ChevronDown, Copy, ExternalLink, Loader2, Mail, MessageCircle, Phone, Plus, RefreshCw,
-  Search, Send, Sparkles, Target, Trophy, X,
+  AtSign, Bell, Check, ChevronDown, Compass, Copy, Flag, Loader2, Mail, MessageCircle, Phone, Plus, RotateCw, Search, Send, X,
 } from 'lucide-react';
 import { sbInsert, sbRows, sbWrite } from './mailingApi';
 
@@ -36,20 +35,20 @@ const glass = 'bg-white/[0.045] backdrop-blur-2xl backdrop-saturate-150 border b
 const ring = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/80 focus-visible:ring-offset-0';
 const field = `w-full rounded-xl bg-white/[0.06] border border-white/[0.08] px-3.5 py-2.5 text-[15px] text-white placeholder:text-white/30 ${ring} focus:border-[#0A84FF]/60 transition-colors`;
 
-function GlassIcon({ children, tint, size = 40 }: { children: ReactNode; tint: string; size?: number }) {
+function Dot({ children, color, size = 36 }: { children: ReactNode; color: string; size?: number }) {
   return (
-    <span
-      aria-hidden
-      className="relative inline-flex shrink-0 items-center justify-center overflow-hidden text-white"
-      style={{
-        width: size, height: size, borderRadius: size * 0.3,
-        background: `linear-gradient(145deg, ${tint}cc 0%, ${tint}55 55%, ${tint}33 100%)`,
-        boxShadow: `inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.25), 0 6px 18px -6px ${tint}aa`,
-        border: '0.5px solid rgba(255,255,255,.28)',
-      }}
-    >
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent" />
-      <span className="relative drop-shadow-[0_1px_1px_rgba(0,0,0,.35)]">{children}</span>
+    <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-full text-white" style={{ width: size, height: size, background: color }}>
+      {children}
+    </span>
+  );
+}
+
+/** Contacts-style avatar: grey gradient circle with initials */
+function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+  return (
+    <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-full text-white font-medium"
+      style={{ width: size, height: size, fontSize: size * 0.38, background: 'linear-gradient(180deg,#A5A5AA 0%,#78787E 100%)' }}>
+      {initials(name)}
     </span>
   );
 }
@@ -89,8 +88,6 @@ const emailsOf = (s: string) => s.split(/[,;\s]+/).filter((e) => /^[^\s@]+@[^\s@
 const firstPhone = (s: string) => (s.match(/\+?\d[\d\s-]{8,}\d/) || [''])[0].replace(/[\s-]/g, '');
 const initials = (s: string) => s.replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '•';
 const isDue = (l: Lead) => { const d = daysTo(l.next_followup); return d !== null && d <= 0 && !CLOSED.includes(l.status); };
-const TINTS = ['#0A84FF', '#5E5CE6', '#BF5AF2', '#FF375F', '#FF9F0A', '#30D158', '#64D2FF'];
-const tintOf = (s: string) => TINTS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length];
 
 const pitchFor = (l: Pick<Lead, 'event' | 'organizer'>) => ({
   subject: `Hosting partner for ${l.event}: Cyber HX`,
@@ -215,7 +212,6 @@ export function OutreachPanel() {
       {/* Title */}
       <header className="mb-5 flex items-end justify-between gap-3">
         <div className="flex items-center gap-3.5">
-          <GlassIcon tint="#0A84FF" size={52}><Target size={26} strokeWidth={2.2} /></GlassIcon>
           <div>
             <h2 className="text-[28px] sm:text-[34px] font-semibold tracking-[-0.02em] text-white leading-none">Outreach</h2>
             <p className="mt-1.5 text-[13px] text-white/50">CTF organisers with no platform · {leads.length} leads</p>
@@ -223,7 +219,7 @@ export function OutreachPanel() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={load} aria-label="Refresh" className={`h-10 w-10 rounded-full ${glass} flex items-center justify-center text-white/80 hover:text-white ${ring}`}>
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
           <button onClick={() => setAdding(true)} className={`h-10 rounded-full bg-[#0A84FF] px-4 text-[14px] font-semibold text-white shadow-[0_6px_20px_-6px_#0A84FF,inset_0_1px_0_rgba(255,255,255,.3)] hover:bg-[#409CFF] active:scale-95 transition flex items-center gap-1.5 ${ring}`}>
             <Plus size={17} strokeWidth={2.5} /><span className="hidden sm:inline">Add lead</span>
@@ -234,13 +230,13 @@ export function OutreachPanel() {
       {/* Widgets */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {([
-          { k: 'todo', label: 'To contact', n: stats.c.todo, tint: '#0A84FF', icon: <Send size={18} />, go: () => { setView('open'); setStatus('todo'); } },
-          { k: 'due', label: 'Follow-ups due', n: stats.due, tint: '#FF9F0A', icon: <BellRing size={18} />, go: () => { setView('due'); setStatus(''); } },
-          { k: 'talk', label: 'In talks', n: stats.c.replied + stats.c.meeting, tint: '#BF5AF2', icon: <MessageCircle size={18} />, go: () => { setView('open'); setStatus(stats.c.meeting && !stats.c.replied ? 'meeting' : 'replied'); } },
-          { k: 'won', label: 'Won', n: stats.c.won, tint: '#30D158', icon: <Trophy size={18} />, go: () => { setView('won'); setStatus(''); } },
+          { k: 'todo', label: 'To contact', n: stats.c.todo, tint: '#0A84FF', icon: <Send size={17} />, go: () => { setView('open'); setStatus('todo'); } },
+          { k: 'due', label: 'Follow-ups due', n: stats.due, tint: '#FF9F0A', icon: <Bell size={17} />, go: () => { setView('due'); setStatus(''); } },
+          { k: 'talk', label: 'In talks', n: stats.c.replied + stats.c.meeting, tint: '#BF5AF2', icon: <MessageCircle size={17} />, go: () => { setView('open'); setStatus(stats.c.meeting && !stats.c.replied ? 'meeting' : 'replied'); } },
+          { k: 'won', label: 'Won', n: stats.c.won, tint: '#30D158', icon: <Flag size={17} />, go: () => { setView('won'); setStatus(''); } },
         ]).map((w) => (
           <button key={w.k} onClick={w.go} className={`${glass} rounded-[22px] p-3 sm:p-4 text-left flex items-center gap-3 sm:block transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98] ${ring}`}>
-            <GlassIcon tint={w.tint} size={36}>{w.icon}</GlassIcon>
+            <Dot color={w.tint}>{w.icon}</Dot>
             <span className="block min-w-0">
             <p className="sm:mt-3 text-[24px] sm:text-[28px] font-semibold tracking-tight text-white leading-none tabular-nums">{w.n}</p>
             <p className="mt-0.5 sm:mt-1 text-[12px] sm:text-[12.5px] text-white/55 truncate">{w.label}</p>
@@ -305,8 +301,7 @@ export function OutreachPanel() {
         <div className={`${glass} rounded-[22px] p-10 flex justify-center`}><Loader2 className="animate-spin text-white/60" /></div>
       ) : !shown.length ? (
         <div className={`${glass} rounded-[22px] px-6 py-12 text-center`}>
-          <div className="mx-auto w-fit"><GlassIcon tint="#636366" size={48}><Search size={22} /></GlassIcon></div>
-          <p className="mt-4 text-white font-medium">No results</p>
+          <p className="text-white font-medium">No results</p>
           <p className="mt-1 text-[13px] text-white/50">Try another word, or reset the filters.</p>
         </div>
       ) : (
@@ -344,17 +339,17 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
     <li className={`transition-colors ${expanded ? 'bg-white/[0.035]' : ''} ${l.status === 'skip' || l.status === 'lost' ? 'opacity-55' : ''}`}>
       <button onClick={() => onToggle(expanded ? null : l.id)} aria-expanded={expanded} aria-controls={bodyId}
         className={`w-full flex items-center gap-3 sm:gap-4 px-3.5 sm:px-5 py-3.5 text-left hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors ${ring}`}>
-        <GlassIcon tint={tintOf(l.event)} size={44}><span className="text-[15px] font-semibold tracking-tight">{initials(l.event)}</span></GlassIcon>
+        <Avatar name={l.event} size={42} />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-[15.5px] font-semibold text-white tracking-[-0.01em]">
             <span className="truncate"><Highlight text={l.event} q={q} /></span>
-            {l.priority === 'target' && <span title="No platform" className="shrink-0 rounded-full bg-[#30D158]/15 px-1.5 py-px text-[10px] font-semibold text-[#30D158]">NO PLATFORM</span>}
+
           </p>
           <p className="truncate text-[13px] text-white/50"><Highlight text={l.organizer} q={q} /></p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-white/40">
-            <CalendarClock size={12} />{l.event_date}
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12px] text-white/40">
+            {l.event_date}{l.priority === 'maybe' && <span>· Maybe</span>}
             {d !== null && d >= 0 && d <= 7 && <span className="text-[#FF9F0A]">· {d === 0 ? 'today' : `in ${d}d`}</span>}
-            {due && <span className="text-[#FF9F0A] flex items-center gap-0.5">· <BellRing size={11} /> follow up</span>}
+            {due && <span className="text-[#FF9F0A]">· Follow up</span>}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -392,10 +387,10 @@ function LeadDetails({ l, onSave, onToast }: { l: Lead; onSave: (id: string, p: 
       {/* Actions */}
       <div className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:-ml-1">
         {mailto && <Action icon={<Mail size={19} />} label="Email" href={mailto} />}
-        <Action icon={<Sparkles size={19} />} label="Copy pitch" tint="#BF5AF2" onClick={() => copy(`Subject: ${pitch.subject}\n\n${pitch.body}`, 'Pitch copied')} />
-        {mails.length > 0 && <Action icon={<Copy size={18} />} label="Copy email" tint="#64D2FF" onClick={() => copy(mails.join(', '), 'Email copied')} />}
-        {phone && <Action icon={<Phone size={18} />} label="Call" tint="#30D158" href={`tel:${phone}`} />}
-        {l.link && <Action icon={<ExternalLink size={18} />} label="Event" tint="#FF9F0A" href={l.link} external />}
+        <Action icon={<Copy size={18} />} label="Copy pitch" onClick={() => copy(`Subject: ${pitch.subject}\n\n${pitch.body}`, 'Pitch copied')} />
+        {mails.length > 0 && <Action icon={<AtSign size={18} />} label="Copy email" onClick={() => copy(mails.join(', '), 'Email copied')} />}
+        {phone && <Action icon={<Phone size={18} />} label="Call" href={`tel:${phone}`} />}
+        {l.link && <Action icon={<Compass size={18} />} label="Event" href={l.link} external />}
       </div>
 
       {/* Status */}
@@ -420,7 +415,7 @@ function LeadDetails({ l, onSave, onToast }: { l: Lead; onSave: (id: string, p: 
       <dl className="rounded-2xl bg-white/[0.04] border border-white/[0.06] divide-y divide-white/[0.06] text-[14px]">
         <Info k="Emails">{mails.length ? <span className="font-mono text-[13px] break-all select-all text-white/85">{mails.join(', ')}</span> : <span className="text-white/35">Not published</span>}</Info>
         {l.phones && <Info k="Phone"><span className="select-all break-all text-white/85">{l.phones}</span></Info>}
-        <Info k="Platform"><span className="text-white/70">{l.platform || '—'}</span></Info>
+        <Info k="Platform"><span className="text-white/70">{l.priority === 'target' ? 'None found · ' : 'Ask first · '}{l.platform || '—'}</span></Info>
         <Info k="Event date"><span className="text-white/70">{l.event_date}</span></Info>
       </dl>
 
