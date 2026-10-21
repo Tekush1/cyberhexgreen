@@ -174,7 +174,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink }
               inputMode="email" placeholder={to.length ? '' : 'name@college.edu'} aria-label="Add recipient"
               className="min-w-[140px] flex-1 bg-transparent py-1 text-[15px] text-white placeholder:text-white/25 focus:outline-none" />
           </div>
-          <p className="py-1.5 text-[11.5px] text-white/35">All addresses get the same email. Replies come to mail@cyberhx.com and to you.</p>
+          <p className="py-1.5 text-[11.5px] text-white/35">Sent from mail@cyberhx.com. All addresses get the same email; replies come to mail@cyberhx.com and to you.</p>
           {/* Subject */}
           <div className="flex items-center gap-2 border-b border-white/[0.07] py-2.5">
             <span className="text-[15px] text-white/45">Subject:</span>

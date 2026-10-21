@@ -9,7 +9,7 @@
 //        Parses the reply and hands it to public.outreach_inbound(), which keeps it only if it came from a lead.
 //        See supabase/outreach_replies.sql and scripts/cloudflare-email-worker.js.
 //
-// Env: RESEND_API_KEY (+ optional RESEND_FROM), SUPABASE_URL / SUPABASE_ANON_KEY. Never commit keys.
+// Env: RESEND_API_KEY / SENDER_API_KEY (+ optional OUTREACH_FROM, default mail@cyberhx.com; RESEND_FROM = fallback), SUPABASE_URL / SUPABASE_ANON_KEY. Never commit keys.
 
 import { canAny } from '../server/staff.js';
 import { countUsage, DEFAULT_REPLY_TO, rpc } from '../server/mailer.js';
@@ -70,7 +70,7 @@ export default async function handler(req: any, res: any) {
   const auth = String(req.headers?.authorization || '');
   if (!(await canAny(auth, ['outreach']))) return res.status(401).json({ error: 'Unauthorized' });
   const key = process.env.RESEND_API_KEY;
-  if (!key) return res.status(500).json({ error: 'Email is not set up yet: add RESEND_API_KEY in Vercel.' });
+  if (!key && !process.env.SENDER_API_KEY) return res.status(500).json({ error: 'Email is not set up yet: add RESEND_API_KEY in Vercel.' });
 
   // ----- delivery status of sent emails -----
   if (req.method === 'GET') {
@@ -105,28 +105,62 @@ export default async function handler(req: any, res: any) {
   try { me = String((await rpc<{ email?: string }>(auth, 'staff_me', {}))?.email || '').toLowerCase(); } catch { /* optional */ }
   if (!(await allow('outreach.send', me || 'anon', 60, 3600))) return res.status(429).json({ error: 'Too many emails this hour. Try again later.' });
 
-  const from = process.env.RESEND_FROM || 'CyberHx <team@mail.cyberhx.com>';
+  // From address: mail@cyberhx.com (the inbox the panel reads). Tried in order:
+  //   1. Resend as OUTREACH_FROM (works once cyberhx.com is verified in Resend → Domains)
+  //   2. Sender as OUTREACH_FROM (cyberhx.com is already authenticated there)
+  //   3. Resend as team@mail.cyberhx.com (always works) — replies still go to mail@cyberhx.com
+  const want = process.env.OUTREACH_FROM || 'CyberHx <mail@cyberhx.com>';
+  const safe = process.env.RESEND_FROM || 'CyberHx <team@mail.cyberhx.com>';
   const replyTo = [DEFAULT_REPLY_TO, ...(EMAIL_RE.test(me) ? [me] : [])];
-  let id = '';
-  try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from, to, subject, html: toHtml(body), text: body, reply_to: replyTo,
-        ...(inReplyTo ? { headers: { 'In-Reply-To': inReplyTo, References: inReplyTo } } : {}), // keeps the thread together in their inbox
-      }),
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const detail = [d?.name, d?.message].filter(Boolean).join(': ');
-      return res.status(500).json({ error: `Resend ${r.status}${detail ? ` - ${detail}` : ''}` });
+  const threadHeaders = inReplyTo ? { 'In-Reply-To': inReplyTo, References: inReplyTo } : undefined; // keeps the thread together in their inbox
+  const errors: string[] = [];
+
+  const viaResend = async (from: string) => {
+    if (!key) { errors.push('Resend: no key'); return ''; }
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to, subject, html: toHtml(body), text: body, reply_to: replyTo, ...(threadHeaders ? { headers: threadHeaders } : {}) }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.id) return String(d.id);
+      errors.push(`Resend ${r.status}: ${[d?.name, d?.message].filter(Boolean).join(' - ')}`);
+    } catch { errors.push('Resend: unreachable'); }
+    return '';
+  };
+  const viaSender = async (from: string) => {
+    const sk = process.env.SENDER_API_KEY;
+    if (!sk) { errors.push('Sender: no key'); return ''; }
+    const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+    const addr = { email: (m ? m[2] : from).trim(), name: (m ? m[1] : '').replace(/^"|"$/g, '') || 'CyberHx' };
+    const ids: string[] = [];
+    for (const rcpt of to) { // Sender sends one recipient per call
+      try {
+        const r = await fetch('https://api.sender.net/v2/message/send', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${sk}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ from: addr, to: { email: rcpt }, subject, html: toHtml(body), text: body, headers: { ...(threadHeaders || {}), 'Reply-To': replyTo.join(', ') } }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d?.success === false) { errors.push(`Sender ${r.status}: ${String(d?.message || '').slice(0, 200)}`); return ids.length ? ids.join(',') : ''; }
+        ids.push(String(d?.emailId || 'ok'));
+      } catch { errors.push('Sender: unreachable'); return ids.join(','); }
     }
-    id = String(d?.id || '');
-  } catch {
-    return res.status(500).json({ error: 'Could not reach the email service. Try again.' });
+    return ids.join(',');
+  };
+
+  let id = '', provider = '', sentFrom = '';
+  for (const [p, f] of [['resend', want], ['sender', want], ['resend', safe]] as const) {
+    if (p === 'resend' && f === safe && f === want) continue;
+    id = p === 'resend' ? await viaResend(f) : await viaSender(f);
+    if (id) { provider = p; sentFrom = f; break; }
   }
-  await countUsage(auth, 'resend', 1);
+  if (!id) {
+    console.error('outreach send failed', errors);
+    return res.status(500).json({ error: `Could not send. ${errors.slice(-1)[0] || ''}`.trim(), errors });
+  }
+  await countUsage(auth, provider as any, provider === 'sender' ? to.length : 1);
 
   // Keep a copy (with the sender's own session, so RLS applies). Never blocks the send.
   let mail: unknown = null;
@@ -137,12 +171,12 @@ export default async function handler(req: any, res: any) {
       const r = await fetch(`${url}/rest/v1/outreach_mails`, {
         method: 'POST',
         headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-        body: JSON.stringify({ lead_id: UUID_RE.test(leadId) ? leadId : null, to_emails: to, subject, body, booking_link: bookingLink, message_ids: id ? [id] : [], provider: 'resend' }),
+        body: JSON.stringify({ lead_id: UUID_RE.test(leadId) ? leadId : null, to_emails: to, subject, body, booking_link: bookingLink, message_ids: id ? id.split(',') : [], provider }),
       });
       if (r.ok) mail = (await r.json())?.[0] || null;
       else console.error('outreach_mails insert failed', r.status, await r.text().catch(() => ''));
     }
   } catch (e) { console.error('outreach_mails insert error', e); }
 
-  return res.status(200).json({ ok: true, id, mail });
+  return res.status(200).json({ ok: true, id, mail, provider, from: sentFrom });
 }
