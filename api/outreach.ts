@@ -106,6 +106,7 @@ export default async function handler(req: any, res: any) {
   if (!(await allow('outreach.send', me || 'anon', 60, 3600))) return res.status(429).json({ error: 'Too many emails this hour. Try again later.' });
 
   // From address: mail@cyberhx.com (the inbox the panel reads). Tried in order:
+  //   0. Mailjet as OUTREACH_FROM (cyberhx.com verified in Mailjet → Senders & Domains)
   //   1. Resend as OUTREACH_FROM (works once cyberhx.com is verified in Resend → Domains)
   //   2. Sender as OUTREACH_FROM (cyberhx.com is already authenticated there)
   //   3. Resend as team@mail.cyberhx.com (always works) — replies still go to mail@cyberhx.com
@@ -127,6 +128,30 @@ export default async function handler(req: any, res: any) {
       if (r.ok && d?.id) return String(d.id);
       errors.push(`Resend ${r.status}: ${[d?.name, d?.message].filter(Boolean).join(' - ')}`);
     } catch { errors.push('Resend: unreachable'); }
+    return '';
+  };
+  const viaMailjet = async (from: string) => {
+    const pk = process.env.MAILJET_API_KEY, sk = process.env.MAILJET_SECRET_KEY;
+    if (!pk || !sk) { errors.push('Mailjet: no key'); return ''; }
+    const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+    try {
+      const r = await fetch('https://api.mailjet.com/v3.1/send', {
+        method: 'POST',
+        headers: { Authorization: 'Basic ' + Buffer.from(`${pk}:${sk}`).toString('base64'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Messages: [{
+          From: { Email: (m ? m[2] : from).trim(), Name: (m ? m[1] : '').replace(/^"|"$/g, '') || 'CyberHx' },
+          To: to.map((Email) => ({ Email })),
+          ReplyTo: { Email: 'mail@cyberhx.com', Name: 'CyberHx' }, // Mailjet takes one reply-to
+          Subject: subject, TextPart: body, HTMLPart: toHtml(body),
+          ...(threadHeaders ? { Headers: threadHeaders } : {}),
+        }] }),
+      });
+      const d: any = await r.json().catch(() => ({}));
+      const msg = d?.Messages?.[0];
+      if (r.ok && msg?.Status === 'success') return (msg.To || []).map((x: any) => String(x.MessageUUID || x.MessageID)).join(',') || 'ok';
+      const err = msg?.Errors?.[0]?.ErrorMessage || d?.ErrorMessage || '';
+      errors.push(`Mailjet ${r.status}: ${String(err).slice(0, 200)}`);
+    } catch { errors.push('Mailjet: unreachable'); }
     return '';
   };
   const viaSender = async (from: string) => {
@@ -151,16 +176,16 @@ export default async function handler(req: any, res: any) {
   };
 
   let id = '', provider = '', sentFrom = '';
-  for (const [p, f] of [['resend', want], ['sender', want], ['resend', safe]] as const) {
+  for (const [p, f] of [['mailjet', want], ['resend', want], ['sender', want], ['resend', safe]] as const) {
     if (p === 'resend' && f === safe && f === want) continue;
-    id = p === 'resend' ? await viaResend(f) : await viaSender(f);
+    id = p === 'mailjet' ? await viaMailjet(f) : p === 'resend' ? await viaResend(f) : await viaSender(f);
     if (id) { provider = p; sentFrom = f; break; }
   }
   if (!id) {
     console.error('outreach send failed', errors);
     return res.status(500).json({ error: `Could not send. ${errors.slice(-1)[0] || ''}`.trim(), errors });
   }
-  await countUsage(auth, provider as any, provider === 'sender' ? to.length : 1);
+  await countUsage(auth, provider as any, provider === 'resend' ? 1 : to.length);
 
   // Keep a copy (with the sender's own session, so RLS applies). Never blocks the send.
   let mail: unknown = null;
