@@ -83,7 +83,7 @@ const validWins = (ws: unknown): Win[] =>
     ? ws.filter((w) => w && /^\d{2}:\d{2}$/.test(w.s) && /^\d{2}:\d{2}$/.test(w.e) && toMin(w.e) > toMin(w.s))
     : [];
 
-async function loadAvailability(): Promise<Availability> {
+async function loadAvailability(row: 1 | 2 = 1): Promise<Availability> {
   const fallback: Availability = {
     slotMinutes: CONFIG.slotMinutes,
     daysAhead: CONFIG.daysAhead,
@@ -100,7 +100,7 @@ async function loadAvailability(): Promise<Availability> {
     return fallback;
   }
   try {
-    const res = await fetch(`${url}/rest/v1/meeting_availability?id=eq.1&select=config`, {
+    const res = await fetch(`${url}/rest/v1/meeting_availability?id=eq.${row}&select=config`, {
       headers: { apikey: anon, Authorization: `Bearer ${anon}` },
       cache: 'no-store',
     });
@@ -109,6 +109,7 @@ async function loadAvailability(): Promise<Availability> {
       return fallback;
     }
     const c = (await res.json())?.[0]?.config;
+    if ((!c || !c.weekly) && row === 2) return loadAvailability(1);
     if (!c || !c.weekly) return fallback;
     const weekly: Record<string, Win[]> = {};
     for (let d = 0; d < 7; d++) weekly[String(d)] = validWins(c.weekly[String(d)]);
@@ -129,6 +130,8 @@ async function loadAvailability(): Promise<Availability> {
     return fallback;
   }
 }
+/** CTF hosting calls use their own hours (Admin → Availability, row 2, set by the Outreach role); everything else uses row 1. */
+const availabilityFor = (k?: string) => loadAvailability(k === 'ctf' ? 2 : 1);
 const CALENDAR_ID = process.env.INTERVIEW_CALENDAR_ID || 'primary';
 
 // ---------- Token ----------
@@ -547,11 +550,18 @@ export default async function handler(req: any, res: any) {
       (req.method === 'GET' && req.query?.admin) ||
       (req.method === 'POST' && typeof req.body === 'object' && req.body?.action);
     if (wantsAdmin) {
-      if (!(await canAny(String(req.headers?.authorization || ''), ['meetings']))) return res.status(401).json({ error: 'Unauthorized' });
+      const authz = String(req.headers?.authorization || '');
+      const fullMeetings = await canAny(authz, ['meetings']);
+      // The Outreach role only handles "CTF hosting call" links: see free slots, list, create and delete them.
+      const outreachOnly = !fullMeetings && (await canAny(authz, ['outreach']));
+      if (!fullMeetings && !outreachOnly) return res.status(401).json({ error: 'Unauthorized' });
+      if (outreachOnly && req.method === 'POST' && !['create-link', 'delete-link'].includes(String(req.body?.action))) {
+        return res.status(403).json({ error: 'Not allowed for the Outreach role.' });
+      }
 
       if (req.method === 'GET') {
         if (req.query?.admin === 'slots') {
-          const av = await loadAvailability();
+          const av = await availabilityFor(outreachOnly ? 'ctf' : String(req.query?.kind || ''));
           const dur = cleanDur(req.query?.dur, av.slotMinutes);
           const st = await slotState(new Date(), av, dur);
           return res.status(200).json({
@@ -560,7 +570,8 @@ export default async function handler(req: any, res: any) {
             taken: st.taken.map((s) => new Date(s).toISOString()),
           });
         }
-        const items = await listBookings();
+        const all = await listBookings();
+        const items = outreachOnly ? all.filter((i: any) => i.kind === 'ctf') : all;
         const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
         const pending = await listPendingLinks(String(req.headers.authorization), origin, new Set(items.map((i: any) => i.inviteId)));
         return res.status(200).json({ items, pending });
@@ -577,7 +588,7 @@ export default async function handler(req: any, res: any) {
         if (!cleanName || !EMAIL_RE.test(cleanEmail)) {
           return res.status(400).json({ error: isGroup ? 'Meeting title and at least one valid email are required.' : 'Valid name and email are required.' });
         }
-        const cleanKind: Kind = KINDS.includes(kind) ? kind : 'interview';
+        const cleanKind: Kind = outreachOnly ? 'ctf' : KINDS.includes(kind) ? kind : 'interview';
         const cleanTopic = cleanKind === 'other' ? String(topic || '').trim().slice(0, 80) : '';
         if (cleanKind === 'other' && !cleanTopic) {
           return res.status(400).json({ error: 'Please write a topic for this meeting.' });
@@ -611,7 +622,7 @@ export default async function handler(req: any, res: any) {
         const cleanTopic = cleanKind === 'other' ? String(topic || '').trim().slice(0, 80) : '';
         if (!cleanName || !guestList.length) return res.status(400).json({ error: 'Name/title and at least one valid email are required.' });
         if (cleanKind === 'other' && !cleanTopic) return res.status(400).json({ error: 'Please write a topic for this meeting.' });
-        const av = await loadAvailability();
+        const av = await availabilityFor(cleanKind);
         const mins = cleanDur(dur, av.slotMinutes);
 
         let startMs: number;
@@ -703,7 +714,7 @@ export default async function handler(req: any, res: any) {
         const ev = await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}`);
         if (!ev.extendedProperties?.private?.inviteId) return res.status(400).json({ error: 'Not a booking made here.' });
         const m = meetingOf(ev);
-        const av = await loadAvailability();
+        const av = await availabilityFor(m.kind);
         const mins = Number(dur) > 0 ? cleanDur(dur, av.slotMinutes) : m.mins > 0 ? m.mins : av.slotMinutes;
 
         let startMs: number;
@@ -785,7 +796,7 @@ export default async function handler(req: any, res: any) {
       const booked = await existingBooking(invite.id);
       if (booked) return res.status(200).json({ name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', groupSize, booked });
 
-      const av = await loadAvailability();
+      const av = await availabilityFor(invite.k);
       const mins = cleanDur(invite.d, av.slotMinutes);
       const st = await slotState(new Date(), av, mins);
       return res.status(200).json({
@@ -811,7 +822,7 @@ export default async function handler(req: any, res: any) {
       }
 
       // Re-validate: slot must be one we offer AND still free right now.
-      const av = await loadAvailability();
+      const av = await availabilityFor(invite.k);
       const mins = cleanDur(invite.d, av.slotMinutes);
       const free = (await slotState(new Date(), av, mins)).free;
       if (!free.includes(startMs)) {

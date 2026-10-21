@@ -3,7 +3,7 @@
 //   owner -> everything · hr -> applications, meetings, availability, emails
 //   campaign -> campaigns, subscribers, blog · event -> ctf, inbox, meetings, campaigns
 
-export type Area = 'applications' | 'meetings' | 'availability' | 'emails' | 'campaigns' | 'subscribers' | 'blog' | 'ctf' | 'inbox' | 'team';
+export type Area = 'applications' | 'meetings' | 'availability' | 'emails' | 'campaigns' | 'subscribers' | 'blog' | 'ctf' | 'inbox' | 'team' | 'outreach';
 
 export async function canAny(authHeader: string, areas: Area[]): Promise<boolean> {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;

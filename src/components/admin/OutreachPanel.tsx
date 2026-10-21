@@ -3,6 +3,7 @@ import {
   AtSign, Bell, Check, ChevronDown, Compass, Copy, Flag, Loader2, Mail, MessageCircle, Phone, Plus, RotateCw, Search, Send, X,
 } from 'lucide-react';
 import { sbInsert, sbRows, sbWrite } from './mailingApi';
+import { CallsView, ComposeSheet, MailTimeline, SentList, type OutMail } from './OutreachMail';
 
 /* =============================================================
    Admin → Outreach: CTF organisers to pitch Cyber HX hosting to.
@@ -105,6 +106,21 @@ Best,
 Cyber HX Team`,
 });
 
+/** Second email, when the first one got no answer. */
+const followupFor = (l: Pick<Lead, 'event' | 'organizer'>, first?: OutMail) => ({
+  subject: first ? `Re: ${first.subject.replace(/^Re:\s*/i, '')}` : `Following up: ${l.event}`,
+  body: `Hi ${l.organizer.split(',')[0]} team,
+
+Just following up on my earlier note about ${l.event}. If you're still deciding how to run the CTF (platform, challenges, scoreboard, support on the day), Cyber HX can take that off your plate.
+
+Details: https://cyberhx.com/host-your-ctf
+
+Would a short call this week or next help?
+
+Best,
+Cyber HX Team`,
+});
+
 async function copyText(text: string) {
   try { await navigator.clipboard.writeText(text); return true; } catch {
     try {
@@ -137,14 +153,21 @@ export function OutreachPanel() {
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [adding, setAdding] = useState(false);
+  const [section, setSection] = useState<'leads' | 'sent' | 'calls'>('leads');
+  const [mails, setMails] = useState<OutMail[]>([]);
+  const [compose, setCompose] = useState<Lead | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const toastT = useRef<number>();
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
     try {
-      const { rows } = await sbRows<Lead>('outreach_leads?select=*&order=sort_date.asc.nullslast');
+      const [{ rows }, sent] = await Promise.all([
+        sbRows<Lead>('outreach_leads?select=*&order=sort_date.asc.nullslast'),
+        sbRows<OutMail>('outreach_mails?select=*&order=sent_at.desc&limit=1000').catch(() => ({ rows: [] as OutMail[] })),
+      ]);
       setLeads(rows);
+      setMails(sent.rows);
     } catch (e) {
       const m = e instanceof Error ? e.message : 'Could not load.';
       setErr(/missing|does not exist/i.test(m) ? 'Outreach table is missing: run supabase/outreach.sql in Supabase.' : m);
@@ -198,6 +221,21 @@ export function OutreachPanel() {
     return { c, due: leads.filter(isDue).length };
   }, [leads]);
 
+  const mailsByLead = useMemo(() => {
+    const m = new Map<string, OutMail[]>();
+    mails.forEach((x) => { if (x.lead_id) m.set(x.lead_id, [...(m.get(x.lead_id) || []), x]); });
+    return m;
+  }, [mails]);
+  const leadMap = useMemo(() => new Map(leads.map((l) => [l.id, l])), [leads]);
+  const openLead = useCallback((id: string) => { setSection('leads'); setQ(''); setView('all'); setStatus(''); setPri('all'); setOpen(id); }, []);
+  const onSent = (l: Lead, m: OutMail | null) => {
+    setCompose(null);
+    if (m) setMails((ms) => [m, ...ms]);
+    if (l.status === 'todo') save(l.id, { status: 'contacted', next_followup: l.next_followup || addDays(4) });
+    else if (!l.next_followup) save(l.id, { next_followup: addDays(4) });
+    setTimeout(() => notify('Email sent'), 50);
+  };
+
   const filtersOn = !!(dq || status || pri !== 'all' || view !== 'open');
 
   return (
@@ -227,6 +265,15 @@ export function OutreachPanel() {
         </div>
       </header>
 
+      <div className="mb-5">
+        <Segmented label="Section" value={section} onChange={setSection}
+          options={[{ v: 'leads', t: 'Leads' }, { v: 'sent', t: `Sent${mails.length ? ` · ${mails.length}` : ''}` }, { v: 'calls', t: 'Calls' }]} />
+      </div>
+
+      {section === 'sent' && <SentList mails={mails} leads={leadMap} onOpenLead={openLead} />}
+      {section === 'calls' && <CallsView onToast={notify} />}
+
+      {section === 'leads' && <>
       {/* Widgets */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {([
@@ -308,9 +355,16 @@ export function OutreachPanel() {
         <ul className={`${glass} rounded-[22px] overflow-hidden divide-y divide-white/[0.06]`}>
           {shown.map((l) => (
             <LeadRow key={l.id} l={l} q={dq.split(/\s+/)[0] || ''} expanded={open === l.id} saving={saving === l.id}
-              onToggle={setOpen} onSave={save} onToast={notify} />
+              onToggle={setOpen} onSave={save} onToast={notify} mails={mailsByLead.get(l.id)} onCompose={setCompose} />
           ))}
         </ul>
+      )}
+      </>}
+
+      {compose && (
+        <ComposeSheet lead={compose}
+          pitch={mailsByLead.get(compose.id)?.length ? followupFor(compose, mailsByLead.get(compose.id)!.slice(-1)[0]) : pitchFor(compose)}
+          onClose={() => setCompose(null)} onSent={(m) => onSent(compose, m)} />
       )}
 
       {adding && <AddLeadSheet onClose={() => setAdding(false)} onAdded={(l) => { setLeads((ls) => [...ls, l]); setAdding(false); setOpen(l.id); notify('Lead added'); }} />}
@@ -326,9 +380,11 @@ export function OutreachPanel() {
 /* =============================================================
    One lead: compact row, tap to expand
 ============================================================= */
-const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast }: {
+const NO_MAILS: OutMail[] = [];
+const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast, mails = NO_MAILS, onCompose }: {
   l: Lead; q: string; expanded: boolean; saving: boolean;
   onToggle: (id: string | null) => void; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void;
+  mails?: OutMail[]; onCompose: (l: Lead) => void;
 }) {
   const d = daysTo(l.sort_date);
   const due = isDue(l);
@@ -350,6 +406,7 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
             {l.event_date}{l.priority === 'maybe' && <span>· Maybe</span>}
             {d !== null && d >= 0 && d <= 7 && <span className="text-[#FF9F0A]">· {d === 0 ? 'today' : `in ${d}d`}</span>}
             {due && <span className="text-[#FF9F0A]">· Follow up</span>}
+            {mails.length > 0 && <span>· {mails.length} email{mails.length > 1 ? 's' : ''} sent</span>}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -364,29 +421,28 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
 
       {/* Smooth expand (grid rows 0fr → 1fr); details only mount when opened */}
       <div id={bodyId} className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} />}</div>
+        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} mails={mails} onCompose={onCompose} />}</div>
       </div>
     </li>
   );
 });
 
-function LeadDetails({ l, onSave, onToast }: { l: Lead; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void }) {
+function LeadDetails({ l, onSave, onToast, mails: sent, onCompose }: {
+  l: Lead; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void; mails: OutMail[]; onCompose: (l: Lead) => void;
+}) {
   const [notes, setNotes] = useState(l.notes);
   useEffect(() => setNotes(l.notes), [l.notes]);
   const mails = emailsOf(l.emails);
   const phone = firstPhone(l.phones);
   const pitch = pitchFor(l);
   const fu = daysTo(l.next_followup);
-  const mailto = mails.length
-    ? `mailto:${encodeURIComponent(mails[0])}?${mails.length > 1 ? `cc=${encodeURIComponent(mails.slice(1).join(','))}&` : ''}subject=${encodeURIComponent(pitch.subject)}&body=${encodeURIComponent(pitch.body)}`
-    : '';
   const copy = async (t: string, m: string) => onToast((await copyText(t)) ? m : 'Copy failed');
 
   return (
     <div className="px-3.5 sm:px-5 pb-5 pt-1 sm:pl-[84px] space-y-4">
       {/* Actions */}
       <div className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:-ml-1">
-        {mailto && <Action icon={<Mail size={19} />} label="Email" href={mailto} />}
+        <Action icon={<Mail size={19} />} label={sent.length ? 'Follow up' : 'Email'} onClick={() => onCompose(l)} />
         <Action icon={<Copy size={18} />} label="Copy pitch" onClick={() => copy(`Subject: ${pitch.subject}\n\n${pitch.body}`, 'Pitch copied')} />
         {mails.length > 0 && <Action icon={<AtSign size={18} />} label="Copy email" onClick={() => copy(mails.join(', '), 'Email copied')} />}
         {phone && <Action icon={<Phone size={18} />} label="Call" href={`tel:${phone}`} />}
@@ -408,7 +464,7 @@ function LeadDetails({ l, onSave, onToast }: { l: Lead; onSave: (id: string, p: 
             );
           })}
         </div>
-        {l.status === 'todo' && <p className="mt-1.5 text-[12px] text-white/40">Tip: after emailing, tap <span className="text-[#0A84FF]">Contacted</span>. A follow-up is set 4 days later.</p>}
+        {l.status === 'todo' && <p className="mt-1.5 text-[12px] text-white/40">Tap <span className="text-[#0A84FF]">Email</span> to send the pitch. After it's sent this changes to Contacted, with a follow-up 4 days later.</p>}
       </div>
 
       {/* Info group, iOS Settings style */}
@@ -418,6 +474,8 @@ function LeadDetails({ l, onSave, onToast }: { l: Lead; onSave: (id: string, p: 
         <Info k="Platform"><span className="text-white/70">{l.priority === 'target' ? 'None found · ' : 'Ask first · '}{l.platform || '—'}</span></Info>
         <Info k="Event date"><span className="text-white/70">{l.event_date}</span></Info>
       </dl>
+
+      <MailTimeline mails={sent} />
 
       {/* Notes + follow-up */}
       <div className="grid gap-3 sm:grid-cols-[1fr_200px]">

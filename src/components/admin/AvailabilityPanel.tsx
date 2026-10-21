@@ -92,7 +92,9 @@ const WindowsEditor: React.FC<{ windows: Win[]; onChange: (w: Win[]) => void }> 
   </div>
 );
 
-export const AvailabilityPanel: React.FC = () => {
+/** row 1 = interviews & other meetings, row 2 = CTF hosting calls (the Outreach role edits only row 2). */
+export const AvailabilityPanel: React.FC<{ row?: 1 | 2; canSwitch?: boolean }> = ({ row: fixedRow, canSwitch = false }) => {
+  const [row, setRow] = useState<1 | 2>(fixedRow || 1);
   const [cfg, setCfg] = useState<Config>(DEFAULT_CONFIG);
   const [savedJson, setSavedJson] = useState(JSON.stringify(DEFAULT_CONFIG));
   const [loading, setLoading] = useState(true);
@@ -110,7 +112,7 @@ export const AvailabilityPanel: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    const res = await sbSelect<{ config: Partial<Config> }>('meeting_availability', { select: 'config', id: 'eq.1' });
+    const res = await sbSelect<{ config: Partial<Config> }>('meeting_availability', { select: 'config', id: `eq.${row}` });
     if (!res.ok) {
       setMissing(res.missingTable);
       setError(res.error);
@@ -128,7 +130,7 @@ export const AvailabilityPanel: React.FC = () => {
       setSavedJson(JSON.stringify(next));
     }
     setLoading(false);
-  }, []);
+  }, [row]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -150,7 +152,7 @@ export const AvailabilityPanel: React.FC = () => {
     }
     const next: Config = { slotMinutes: cfg.slotMinutes, daysAhead: cfg.daysAhead, minNoticeHours: cfg.minNoticeHours, weekly, dates };
     setSaving(true);
-    const res = await sbUpsert('meeting_availability', { id: 1, config: next, updated_at: new Date().toISOString() });
+    const res = await sbUpsert('meeting_availability', { id: row, config: next, updated_at: new Date().toISOString() });
     setSaving(false);
     if (!res.ok) { setMissing(res.missingTable); return setError(res.error); }
     setCfg(next);
@@ -200,14 +202,24 @@ export const AvailabilityPanel: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-24">
+      {canSwitch && (
+        <div role="radiogroup" aria-label="Which hours" className="inline-flex rounded-xl bg-white/[0.06] p-1 border border-white/[0.06]">
+          {([[1, 'Interviews & meetings'], [2, 'CTF hosting calls']] as const).map(([r, t]) => (
+            <button key={r} role="radio" aria-checked={row === r} disabled={dirty && row !== r}
+              title={dirty && row !== r ? 'Save or undo your changes first' : undefined}
+              onClick={() => { setRow(r); setSelected(''); }}
+              className={`px-4 py-1.5 rounded-lg text-sm transition ${row === r ? 'bg-white/15 text-white' : 'text-gray-400 hover:text-white disabled:opacity-40'}`}>{t}</button>
+          ))}
+        </div>
+      )}
       {toast && <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-[#0a0f1a] border border-[#a3e635]/30 text-[#a3e635] px-5 py-2.5 rounded-xl text-sm font-medium z-50 shadow-xl">{toast}</div>}
 
       <div className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h3 className="text-white font-medium flex items-center gap-2"><Clock size={16} className="text-[#a3e635]" /> When are you available?</h3>
+            <h3 className="text-white font-medium flex items-center gap-2"><Clock size={16} className="text-[#a3e635]" /> {row === 2 ? 'When can you take CTF hosting calls?' : 'When are you available?'}</h3>
             <p className="text-gray-500 text-xs mt-1 max-w-xl">
-              People can only book inside these times (all times are <b className="text-gray-300">IST</b>). Slots that clash with something already on your Google Calendar are hidden automatically.
+              {row === 2 ? 'CTF organisers who get a booking link from Outreach can only pick a time inside these hours' : 'People can only book inside these times'} (all times are <b className="text-gray-300">IST</b>). Slots that clash with something already on your Google Calendar are hidden automatically.
             </p>
           </div>
           <div className="flex gap-3 flex-wrap">

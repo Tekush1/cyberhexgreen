@@ -414,12 +414,12 @@ const AdminPage: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {allowed.length > 1 && (
+            {me.role !== 'outreach' && allowed.length > 1 && (
               <button onClick={() => { loadData(); loadCounts(); }} className="px-3 py-2 rounded-full text-[15px] text-[#0A84FF] hover:bg-white/5 transition-colors">
                 Refresh
               </button>
             )}
-            <button onClick={logout} className="px-3 py-2 rounded-full text-[15px] text-[#FF453A] hover:bg-white/5 transition-colors">
+            <button onClick={logout} className="px-3 py-2 rounded-full text-[15px] text-[#FF453A] hover:bg-white/5 transition-colors whitespace-nowrap">
               Sign Out
             </button>
           </div>
@@ -450,13 +450,13 @@ const AdminPage: React.FC = () => {
             { id: 'applications', label: 'Applications', badge: newCounts.applications },
             { id: 'ctf', label: 'CTF Requests', badge: newCounts.ctf },
             { id: 'payments', label: 'Payments', badge: 0 },
-            { id: 'availability', label: 'Availability', badge: 0 },
+            { id: 'availability', label: me?.role === 'outreach' ? 'Call hours' : 'Availability', badge: 0 },
             { id: 'emails', label: 'Emails', badge: 0 },
             { id: 'campaigns', label: 'Campaigns', badge: 0 },
             { id: 'subscribers', label: 'Subscribers', badge: 0 },
             { id: 'outreach', label: 'Outreach', badge: 0 },
             { id: 'team', label: 'Team', badge: 0 },
-          ] as { id: TabId; label: string; badge: number }[]).filter(t => allowed.includes(t.id)).map(t => (
+          ] as { id: TabId; label: string; badge: number }[]).filter(t => allowed.includes(t.id)).sort((a, b) => allowed.indexOf(a.id) - allowed.indexOf(b.id)).map(t => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap flex items-center gap-2 ${tab === t.id ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'}`}>
               {t.label}
@@ -511,7 +511,7 @@ const AdminPage: React.FC = () => {
         {go(tab) === 'inbox' && <InboxPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {go(tab) === 'applications' && <ApplicationsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {go(tab) === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
-        {go(tab) === 'availability' && <AvailabilityPanel />}
+        {go(tab) === 'availability' && (me.role === 'outreach' ? <AvailabilityPanel row={2} /> : <AvailabilityPanel canSwitch={me.role === 'owner'} />)}
         {go(tab) === 'emails' && <EmailsPanel />}
         {go(tab) === 'campaigns' && <CampaignsPanel />}
         {go(tab) === 'subscribers' && <SubscribersPanel />}

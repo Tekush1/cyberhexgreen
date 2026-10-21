@@ -34,8 +34,8 @@ export const ROLES: Record<Role, { label: string; short: string; about: string; 
   outreach: {
     label: 'Outreach',
     short: 'Outreach',
-    about: 'Only the Outreach list: CTF organisers to contact, their status and notes.',
-    tabs: ['outreach'],
+    about: 'Outreach only: CTF organiser leads, pitch emails and their history, CTF-call booking links and the hours for those calls.',
+    tabs: ['outreach', 'availability'],
   },
 };
 
