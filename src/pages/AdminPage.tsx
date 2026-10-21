@@ -447,7 +447,7 @@ const AdminPage: React.FC = () => {
 
         {/* Tabs: only the ones this role can use */}
         <div role="tablist" aria-label="Admin sections"
-          className={`${allowed.length < 2 ? 'hidden' : 'flex'} ios-noscroll sticky top-14 sm:top-16 z-30 mb-6 w-fit max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-white/[0.08] bg-[#1c1c1e]/70 p-[3px] backdrop-blur-2xl`}>
+          className={`${allowed.length < 2 ? 'hidden' : 'flex'} ios-noscroll sticky top-[70px] sm:top-[86px] z-30 mb-6 w-fit max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-white/[0.08] bg-[#1c1c1e]/70 p-[3px] backdrop-blur-2xl`}>
           {([
             { id: 'inbox', label: 'Inbox', badge: newCounts.inbox },
             { id: 'submissions', label: 'Blog submissions', badge: stats.pending },

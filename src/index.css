@@ -1021,3 +1021,7 @@ img[loading="lazy"] { transition: filter 0.3s; }
 .ios-admin ::-webkit-scrollbar { height: 6px; width: 8px; }
 .ios-admin ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 9999px; }
 .ios-admin ::-webkit-scrollbar-track { background: transparent; }
+
+/* Native dropdown lists: dark rows so the options are readable (they were white on white) */
+.ios-admin select option, .ios-admin select optgroup { background-color: #1c1c1e; color: #fff; }
+.ios-admin select option:checked { background-color: #0A84FF; color: #fff; }
