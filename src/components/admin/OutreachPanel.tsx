@@ -1,9 +1,9 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import {
-  AtSign, Bell, Check, ChevronDown, Compass, Copy, Flag, Loader2, Mail, MessageCircle, Phone, Plus, RotateCw, Search, Send, X,
+  AtSign, Bell, CalendarPlus, Check, ChevronDown, Compass, Copy, Flag, Loader2, Mail, MessageCircle, Phone, Plus, RotateCw, Search, Send, X,
 } from 'lucide-react';
 import { sbInsert, sbRows, sbWrite } from './mailingApi';
-import { CallsView, ComposeSheet, InboxList, MailTimeline, SentList, type OutMail, type Reply } from './OutreachMail';
+import { CallsView, ComposeSheet, InboxList, MailTimeline, ScheduleSheet, SentList, type OutMail, type Reply } from './OutreachMail';
 
 /* =============================================================
    Admin → Outreach: CTF organisers to pitch Cyber HX hosting to.
@@ -176,7 +176,8 @@ export function OutreachPanel() {
   const [section, setSection] = useState<'leads' | 'inbox' | 'sent' | 'calls'>('leads');
   const [mails, setMails] = useState<OutMail[]>([]);
   const [replies, setReplies] = useState<Reply[]>([]);
-  const [compose, setCompose] = useState<{ lead: Lead; reply?: Reply } | null>(null);
+  const [compose, setCompose] = useState<{ lead: Lead; reply?: Reply; autoLink?: boolean } | null>(null);
+  const [schedule, setSchedule] = useState<Lead | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const toastT = useRef<number>();
 
@@ -403,14 +404,25 @@ export function OutreachPanel() {
           {shown.map((l) => (
             <LeadRow key={l.id} l={l} q={dq.split(/\s+/)[0] || ''} expanded={open === l.id} saving={saving === l.id}
               onToggle={setOpen} onSave={save} onToast={notify} mails={mailsByLead.get(l.id)} replies={repliesByLead.get(l.id)}
-              onCompose={openCompose} onRead={markRead} />
+              onCompose={openCompose} onRead={markRead} onSchedule={setSchedule} />
           ))}
         </ul>
       )}
       </>}
 
+      {schedule && (
+        <ScheduleSheet lead={schedule} onClose={() => setSchedule(null)}
+          onLetThemPick={() => { const l = schedule; setSchedule(null); setCompose({ lead: l, autoLink: true }); }}
+          onBooked={(bk) => {
+            const l = schedule; setSchedule(null);
+            const when = new Date(bk.start).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+            const line = `Call booked: ${when} IST with ${bk.to.join(', ')}${bk.meetLink ? ` · ${bk.meetLink}` : ''}`;
+            save(l.id, { status: CLOSED.includes(l.status) ? l.status : 'meeting', notes: l.notes ? `${l.notes}\n${line}` : line });
+            setTimeout(() => notify(`Call booked for ${when} IST`), 60);
+          }} />
+      )}
       {compose && (
-        <ComposeSheet lead={compose.lead} replyTo={compose.reply}
+        <ComposeSheet lead={compose.lead} replyTo={compose.reply} autoLink={compose.autoLink}
           pitch={compose.reply ? replyFor(compose.reply)
             : mailsByLead.get(compose.lead.id)?.length ? followupFor(compose.lead, mailsByLead.get(compose.lead.id)!.slice(-1)[0]) : pitchFor(compose.lead)}
           onClose={() => setCompose(null)} onSent={(m) => onSent(compose.lead, m)} />
@@ -431,10 +443,10 @@ export function OutreachPanel() {
 ============================================================= */
 const NO_MAILS: OutMail[] = [];
 const NO_REPLIES: Reply[] = [];
-const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast, mails = NO_MAILS, replies = NO_REPLIES, onCompose, onRead }: {
+const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast, mails = NO_MAILS, replies = NO_REPLIES, onCompose, onRead, onSchedule }: {
   l: Lead; q: string; expanded: boolean; saving: boolean;
   onToggle: (id: string | null) => void; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void;
-  mails?: OutMail[]; replies?: Reply[]; onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void;
+  mails?: OutMail[]; replies?: Reply[]; onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void; onSchedule: (l: Lead) => void;
 }) {
   const newReplies = replies.filter((r) => !r.read_at).length;
   const d = daysTo(l.sort_date);
@@ -473,15 +485,15 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
 
       {/* Smooth expand (grid rows 0fr → 1fr); details only mount when opened */}
       <div id={bodyId} className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} mails={mails} replies={replies} onCompose={onCompose} onRead={onRead} />}</div>
+        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} mails={mails} replies={replies} onCompose={onCompose} onRead={onRead} onSchedule={onSchedule} />}</div>
       </div>
     </li>
   );
 });
 
-function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRead }: {
+function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRead, onSchedule }: {
   l: Lead; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void; mails: OutMail[]; replies: Reply[];
-  onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void;
+  onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void; onSchedule: (l: Lead) => void;
 }) {
   const [notes, setNotes] = useState(l.notes);
   useEffect(() => setNotes(l.notes), [l.notes]);
@@ -494,8 +506,9 @@ function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRe
   return (
     <div className="px-3.5 sm:px-5 pb-5 pt-1 sm:pl-[84px] space-y-4">
       {/* Actions */}
-      <div className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:-ml-1">
+      <div className="grid grid-cols-4 gap-1 sm:flex sm:flex-wrap sm:-ml-1">
         <Action icon={<Mail size={19} />} label={sent.length ? 'Follow up' : 'Email'} onClick={() => onCompose(l)} />
+        <Action icon={<CalendarPlus size={19} />} label="Schedule" onClick={() => onSchedule(l)} />
         <Action icon={<Copy size={18} />} label="Copy pitch" onClick={() => copy(`Subject: ${pitch.subject}\n\n${pitch.body}`, 'Pitch copied')} />
         {mails.length > 0 && <Action icon={<AtSign size={18} />} label="Copy email" onClick={() => copy(mails.join(', '), 'Email copied')} />}
         {phone && <Action icon={<Phone size={18} />} label="Call" href={`tel:${phone}`} />}
@@ -601,7 +614,7 @@ function AddLeadSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (l: 
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="add-lead-h">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="add-lead-h">
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div className={`relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-[28px] sm:rounded-[28px] ${glass} bg-[#1c1c1e]/85 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]`}>
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/25 sm:hidden" />

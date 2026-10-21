@@ -13,6 +13,7 @@
 //   POST /api/interview  { action:'book-now', name, emails, kind, topic, dur, hideGuests,
 //                          start | custom:{date,time}, force? }       -> admin books directly (free slot, or ANY IST date/time)
 //   POST /api/interview  { action:'add-attendees', eventId, emails[] } -> invite more people to a group / admin-made meeting
+// The Outreach role may only: see slots/list, create/delete links and book-now, always as kind 'ctf' (CTF hosting call hours).
 //
 // The token is created with `node scripts/make-interview-link.mjs` and is HMAC-signed,
 // so only people you sent a link to can see slots or book.
@@ -555,7 +556,7 @@ export default async function handler(req: any, res: any) {
       // The Outreach role only handles "CTF hosting call" links: see free slots, list, create and delete them.
       const outreachOnly = !fullMeetings && (await canAny(authz, ['outreach']));
       if (!fullMeetings && !outreachOnly) return res.status(401).json({ error: 'Unauthorized' });
-      if (outreachOnly && req.method === 'POST' && !['create-link', 'delete-link'].includes(String(req.body?.action))) {
+      if (outreachOnly && req.method === 'POST' && !['create-link', 'delete-link', 'book-now'].includes(String(req.body?.action))) {
         return res.status(403).json({ error: 'Not allowed for the Outreach role.' });
       }
 
@@ -618,7 +619,7 @@ export default async function handler(req: any, res: any) {
       if (action === 'book-now') {
         const cleanName = String(name || '').trim().slice(0, 80);
         const guestList = Array.isArray(emails) || (typeof emails === 'string' && emails.trim() !== '') ? cleanEmails(emails) : cleanEmails([email]);
-        const cleanKind: Kind = KINDS.includes(kind) ? kind : 'interview';
+        const cleanKind: Kind = outreachOnly ? 'ctf' : KINDS.includes(kind) ? kind : 'interview'; // Outreach books CTF hosting calls only
         const cleanTopic = cleanKind === 'other' ? String(topic || '').trim().slice(0, 80) : '';
         if (!cleanName || !guestList.length) return res.status(400).json({ error: 'Name/title and at least one valid email are required.' });
         if (cleanKind === 'other' && !cleanTopic) return res.status(400).json({ error: 'Please write a topic for this meeting.' });

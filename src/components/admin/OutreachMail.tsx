@@ -77,9 +77,11 @@ function StateBadge({ s }: { s?: string }) {
 /* =============================================================
    Compose sheet
 ============================================================= */
-export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo }: {
+export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink }: {
   lead: LeadLite; pitch: { subject: string; body: string };
   onClose: () => void; onSent: (m: OutMail | null) => void;
+  /** Add the booking link straight away (from "Email a booking link"). */
+  autoLink?: boolean;
   /** Answering a reply: send only to that person, in the same thread. */
   replyTo?: Reply;
 }) {
@@ -127,6 +129,12 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo }: {
     setLinkBusy(false);
   };
 
+  const autoDone = useRef(false);
+  useEffect(() => {
+    if (autoLink && !autoDone.current) { autoDone.current = true; addBookingLink(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLink]);
+
   const send = async () => {
     if (!to.length) { setErr('Add at least one email address.'); return; }
     if (!subject.trim() || !body.trim()) { setErr('Subject and message are needed.'); return; }
@@ -138,7 +146,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="compose-h">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="compose-h">
       <button aria-label="Close" onClick={() => !busy && onClose()} className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
       <div className={`relative flex w-full sm:max-w-2xl max-h-[94vh] flex-col rounded-t-[28px] sm:rounded-[28px] ${glass} bg-[#1c1c1e]/90`}>
         <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-white/25 sm:hidden" />
@@ -454,6 +462,184 @@ function Empty({ title, text }: { title: string; text: string }) {
     <div className={`${glass} rounded-[22px] px-6 py-12 text-center`}>
       <p className="text-white font-medium">{title}</p>
       <p className="mt-1 text-[13px] text-white/50">{text}</p>
+    </div>
+  );
+}
+
+/* =============================================================
+   Schedule a CTF hosting call with a lead
+   - Pick a free slot (from Call hours) or any date & time → Google Calendar event + Meet, invite goes to them
+   - Or "Let them pick" → opens the email with a booking link
+============================================================= */
+interface SlotData { slotMinutes: number; slots: string[]; taken: string[] }
+const istDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+const istDayLabel = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short' });
+const istTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' });
+const istToday = () => new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
+
+export function ScheduleSheet({ lead, onClose, onBooked, onLetThemPick }: {
+  lead: LeadLite; onClose: () => void;
+  onBooked: (b: { start: string; meetLink: string | null; to: string[] }) => void;
+  onLetThemPick: () => void;
+}) {
+  const initial = useMemo(() => lead.emails.split(/[,;\s]+/).filter((e) => EMAIL_RE.test(e)), [lead.emails]);
+  const [to, setTo] = useState<string[]>(initial);
+  const [extra, setExtra] = useState('');
+  const [mins, setMins] = useState(30);
+  const [mode, setMode] = useState<'slot' | 'custom'>('slot');
+  const [slots, setSlots] = useState<SlotData | null>(null);
+  const [day, setDay] = useState('');
+  const [slot, setSlot] = useState('');
+  const [cDate, setCDate] = useState('');
+  const [cTime, setCTime] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [err, setErr] = useState('');
+  const [clash, setClash] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose();
+    window.addEventListener('keydown', onKey);
+    const o = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = o; };
+  }, [onClose, busy]);
+
+  useEffect(() => {
+    if (mode !== 'slot') return;
+    let alive = true;
+    setLoadingSlots(true); setSlot('');
+    api<SlotData>(`/api/interview?admin=slots&kind=ctf&dur=${mins}`)
+      .then((d) => { if (!alive) return; setSlots(d); setDay((cur) => (cur && d.slots.some((s) => istDay(s) === cur) ? cur : d.slots[0] ? istDay(d.slots[0]) : '')); })
+      .catch((e) => alive && setErr(e instanceof Error ? e.message : 'Could not load free times.'))
+      .finally(() => alive && setLoadingSlots(false));
+    return () => { alive = false; };
+  }, [mode, mins]);
+
+  const days = useMemo(() => [...new Set((slots?.slots || []).map(istDay))].slice(0, 21), [slots]);
+  const daySlots = (slots?.slots || []).filter((s) => istDay(s) === day);
+  const ready = to.length > 0 && (mode === 'slot' ? !!slot : !!cDate && !!cTime && cDate >= istToday());
+
+  const addExtra = () => {
+    const parts = extra.split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+    const bad = parts.filter((x) => !EMAIL_RE.test(x));
+    if (bad.length) { setErr(`Not an email: ${bad[0]}`); return; }
+    setTo((t) => [...new Set([...t, ...parts])].slice(0, 20)); setExtra(''); setErr('');
+  };
+
+  const book = async (force = false) => {
+    setBusy(true); setErr(''); setClash(false);
+    try {
+      const d = await api<{ start: string; meetLink: string | null }>('/api/interview', {
+        action: 'book-now', kind: 'ctf', dur: mins,
+        name: (lead.organizer.split(',')[0] || lead.event).slice(0, 80),
+        ...(to.length > 1 ? { emails: to, hideGuests: false } : { email: to[0] }),
+        ...(mode === 'slot' ? { start: slot } : { custom: { date: cDate, time: cTime }, force }),
+      });
+      onBooked({ start: d.start, meetLink: d.meetLink, to });
+    } catch (e) {
+      const m = e instanceof Error ? e.message : 'Could not book.';
+      if (/already have something/i.test(m)) setClash(true);
+      setErr(m);
+      if (mode === 'slot') setSlot('');
+    }
+    setBusy(false);
+  };
+
+  const seg = 'inline-flex rounded-[11px] bg-white/[0.07] p-[3px] border border-white/[0.06]';
+  const segBtn = (on: boolean) => `px-3.5 py-1.5 text-[13px] font-medium rounded-[8px] whitespace-nowrap ${on ? 'bg-white/[0.16] text-white' : 'text-white/55 hover:text-white/85'}`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="sched-h">
+      <button aria-label="Close" onClick={() => !busy && onClose()} className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
+      <div className={`relative flex w-full sm:max-w-xl max-h-[94vh] flex-col rounded-t-[28px] sm:rounded-[28px] ${glass} bg-[#1c1c1e]/90`}>
+        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-white/25 sm:hidden" />
+        <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-white/[0.07]">
+          <button onClick={onClose} disabled={busy} className="text-[16px] text-[#0A84FF] disabled:opacity-40">Cancel</button>
+          <h3 id="sched-h" className="text-[17px] font-semibold text-white">Schedule a call</h3>
+          <button onClick={() => book(false)} disabled={busy || !ready}
+            className="h-9 rounded-full bg-[#0A84FF] px-4 text-[15px] font-semibold text-white disabled:opacity-40 flex items-center gap-1.5">
+            {busy && <Loader2 size={15} className="animate-spin" />}Book
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4 space-y-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div>
+            <p className="text-[13px] text-white/50">{lead.event}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[14px] text-white/45 mr-1">With:</span>
+              {to.map((e) => (
+                <span key={e} className="inline-flex items-center gap-1 rounded-full bg-[#0A84FF]/20 pl-2.5 pr-1 py-0.5 text-[13.5px] text-[#64B5FF]">
+                  {e}<button aria-label={`Remove ${e}`} onClick={() => setTo((t) => t.filter((x) => x !== e))} className="rounded-full p-0.5 hover:bg-white/10"><X size={12} /></button>
+                </span>
+              ))}
+              <input value={extra} onChange={(e) => setExtra(e.target.value)} onBlur={() => extra.trim() && addExtra()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addExtra(); } }}
+                placeholder={to.length ? 'add another email' : 'name@college.edu'} aria-label="Add email" inputMode="email"
+                className="min-w-[150px] flex-1 bg-transparent py-1 text-[14px] text-white placeholder:text-white/25 focus:outline-none" />
+            </div>
+            <p className="mt-1 text-[11.5px] text-white/35">They get a Google Calendar invite with a Meet link.</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className={seg} role="radiogroup" aria-label="Length">
+              {[30, 45, 60].map((m) => <button key={m} role="radio" aria-checked={mins === m} onClick={() => setMins(m)} className={segBtn(mins === m)}>{m} min</button>)}
+            </div>
+            <div className={seg} role="radiogroup" aria-label="When">
+              <button role="radio" aria-checked={mode === 'slot'} onClick={() => setMode('slot')} className={segBtn(mode === 'slot')}>Free slot</button>
+              <button role="radio" aria-checked={mode === 'custom'} onClick={() => setMode('custom')} className={segBtn(mode === 'custom')}>Any time</button>
+            </div>
+          </div>
+
+          {mode === 'slot' ? (
+            loadingSlots ? <div className="py-6 flex justify-center"><Loader2 className="animate-spin text-white/50" /></div>
+            : !days.length ? <p className="text-[13px] text-white/50">No free slots in your Call hours. Use "Any time", or set more hours in Call hours.</p>
+            : (
+              <div className="space-y-3">
+                <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {days.map((d) => (
+                    <button key={d} onClick={() => { setDay(d); setSlot(''); }}
+                      className={`shrink-0 rounded-xl px-3 py-2 text-center border ${day === d ? 'bg-[#0A84FF] border-[#0A84FF] text-white' : 'bg-white/[0.05] border-white/[0.08] text-white/75'}`}>
+                      <span className="block text-[11px] uppercase opacity-70">{istDayLabel(`${d}T06:00:00Z`).split(' ')[0].replace(',', '')}</span>
+                      <span className="block text-[15px] font-semibold">{istDayLabel(`${d}T06:00:00Z`).split(' ').slice(1).join(' ')}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                  {daySlots.map((s) => (
+                    <button key={s} onClick={() => setSlot(s)} aria-pressed={slot === s}
+                      className={`rounded-xl py-2 text-[14px] border ${slot === s ? 'bg-[#0A84FF] border-[#0A84FF] text-white font-semibold' : 'bg-white/[0.05] border-white/[0.08] text-white/80'}`}>
+                      {istTime(s)}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11.5px] text-white/35">Times are IST, from your Call hours. Busy times on the CyberHx calendar are hidden.</p>
+              </div>
+            )
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-[12.5px] text-white/50">Date (IST)
+                <input type="date" min={istToday()} value={cDate} onChange={(e) => setCDate(e.target.value)} className="mt-1 w-full rounded-xl bg-white/[0.06] border border-white/[0.08] px-3 py-2.5 text-[15px] text-white [color-scheme:dark] focus:outline-none" />
+              </label>
+              <label className="text-[12.5px] text-white/50">Time (IST)
+                <input type="time" value={cTime} onChange={(e) => setCTime(e.target.value)} className="mt-1 w-full rounded-xl bg-white/[0.06] border border-white/[0.08] px-3 py-2.5 text-[15px] text-white [color-scheme:dark] focus:outline-none" />
+              </label>
+            </div>
+          )}
+
+          {err && (
+            <div role="alert" className="rounded-xl bg-[#FF453A]/15 px-3 py-2 text-[14px] text-[#FF9F9A]">
+              {err}
+              {clash && <button onClick={() => book(true)} className="ml-2 font-medium text-white underline">Book anyway</button>}
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+            <p className="text-[14px] text-white/85">Rather let them choose?</p>
+            <p className="mt-0.5 text-[12.5px] text-white/45">Send an email with a booking link; they pick a time from your Call hours.</p>
+            <button onClick={onLetThemPick} className="mt-2 inline-flex items-center gap-1.5 text-[14px] font-medium text-[#0A84FF]"><Link2 size={14} /> Email a booking link</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
