@@ -31,7 +31,7 @@ export default {
 
     if (raw && env.INBOUND_SECRET) {
       ctx.waitUntil(
-        fetch('https://cyberhx.com/api/outreach', {
+        fetch('https://cyberhexgreen-gsra.vercel.app/api/outreach', { // straight to Vercel (Cloudflare bot rules can block Worker → own-zone calls)
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',

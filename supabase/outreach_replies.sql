@@ -74,3 +74,11 @@ REVOKE ALL ON FUNCTION public.outreach_inbound(text, text, text, text, text, tex
 GRANT EXECUTE ON FUNCTION public.outreach_inbound(text, text, text, text, text, text, text, text) TO anon;
 
 -- SELECT value AS "INBOUND_SECRET (put in the Cloudflare Worker)" FROM public.app_secrets WHERE name = 'inbound';
+
+-- ---------- Update (21 Oct): keep EVERY email to mail@ ----------
+-- outreach_inbound now stores all mail (lead_id stays NULL when the sender isn't a lead).
+-- Owners see everything in Admin → Outreach → Inbox; the Outreach role still sees only lead mail:
+-- ALTER POLICY outreach_replies_read ON public.outreach_replies
+--   USING ((SELECT public.can('outreach')) AND (lead_id IS NOT NULL OR (SELECT public.staff_role()) = 'owner'));
+-- (same for outreach_replies_mark) and GRANT UPDATE (read_at, lead_id) so "Add as lead" can link a mail.
+-- Applied as migration "outreach_inbox_all_mail".

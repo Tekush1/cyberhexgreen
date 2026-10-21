@@ -257,17 +257,29 @@ export function MailTimeline({ mails, replies = [], onReply, onRead }: {
 /* =============================================================
    Inbox: replies from organisers (to mail@cyberhx.com), newest first
 ============================================================= */
-export function InboxList({ replies, leads, onReply, onRead, onOpenLead }: {
+export function InboxList({ replies, leads, onReply, onRead, onOpenLead, onMakeLead }: {
   replies: Reply[]; leads: Map<string, LeadLite>;
-  onReply: (r: Reply) => void; onRead: (r: Reply) => void; onOpenLead: (id: string) => void;
+  onReply: (r: Reply) => void; onRead: (r: Reply) => void; onOpenLead: (id: string) => void; onMakeLead?: (r: Reply) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [only, setOnly] = useState<'all' | 'leads'>('all');
+  const hasOther = replies.some((r) => !r.lead_id);
+  const list = only === 'leads' ? replies.filter((r) => r.lead_id) : replies;
   if (!replies.length) {
-    return <Empty title="No replies yet" text="When an organiser replies to mail@cyberhx.com, it shows up here and the lead moves to Replied." />;
+    return <Empty title="No mail yet" text="Email sent to mail@cyberhx.com shows up here. Replies from leads also move the lead to Replied." />;
   }
   return (
+    <>
+    {hasOther && (
+      <div className="mb-3 inline-flex rounded-[11px] bg-white/[0.07] p-[3px] border border-white/[0.06]" role="radiogroup" aria-label="Which mail">
+        {([['all', 'All mail'], ['leads', 'From leads']] as const).map(([v, t]) => (
+          <button key={v} role="radio" aria-checked={only === v} onClick={() => setOnly(v)}
+            className={`px-3.5 py-1.5 text-[13px] font-medium rounded-[8px] ${only === v ? 'bg-white/[0.16] text-white' : 'text-white/55'}`}>{t}</button>
+        ))}
+      </div>
+    )}
     <ul className={`${glass} rounded-[22px] overflow-hidden divide-y divide-white/[0.06]`}>
-      {replies.map((r) => {
+      {list.map((r) => {
         const lead = r.lead_id ? leads.get(r.lead_id) : undefined;
         const open = openId === r.id;
         return (
@@ -280,7 +292,7 @@ export function InboxList({ replies, leads, onReply, onRead, onOpenLead }: {
                   <span className={`truncate text-[15px] ${r.read_at ? 'text-white/85' : 'font-semibold text-white'}`}>{r.from_name || r.from_email}</span>
                   <span className="shrink-0 text-[12px] text-white/40">{when(r.received_at)}</span>
                 </span>
-                <span className="block truncate text-[13.5px] text-white/75">{lead ? `${lead.event} · ` : ''}{r.subject}</span>
+                <span className="block truncate text-[13.5px] text-white/75">{lead ? `${lead.event} · ` : ''}{r.subject || '(no subject)'}</span>
                 {!open && <span className="block truncate text-[13px] text-white/40">{r.body.replace(/\s+/g, ' ').slice(0, 140)}</span>}
               </span>
             </button>
@@ -289,7 +301,10 @@ export function InboxList({ replies, leads, onReply, onRead, onOpenLead }: {
                 <pre className="whitespace-pre-wrap rounded-xl bg-white/[0.04] p-3 font-sans text-[14px] leading-relaxed text-white/85">{r.body || '(no text)'}</pre>
                 <div className="mt-2 flex gap-4">
                   <button onClick={() => onReply(r)} className="text-[14px] font-medium text-[#0A84FF]">Reply</button>
-                  {lead && <button onClick={() => onOpenLead(lead.id)} className="text-[14px] text-[#0A84FF]">Open lead</button>}
+                  {lead
+                    ? <button onClick={() => onOpenLead(lead.id)} className="text-[14px] text-[#0A84FF]">Open lead</button>
+                    : onMakeLead && <button onClick={() => onMakeLead(r)} className="text-[14px] text-[#0A84FF]">Add as lead</button>}
+                  <span className="ml-auto text-[12px] text-white/35">{r.from_email}</span>
                 </div>
               </div>
             )}
@@ -297,6 +312,7 @@ export function InboxList({ replies, leads, onReply, onRead, onOpenLead }: {
         );
       })}
     </ul>
+    </>
   );
 }
 

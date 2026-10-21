@@ -106,6 +106,13 @@ Best,
 Cyber HX Team`,
 });
 
+/** Stand-in "lead" so you can answer a mail@ email from someone who isn't a lead (nothing is saved on a lead). */
+const pseudoLead = (r: Reply): Lead => ({
+  id: '', event: r.subject || r.from_email, organizer: r.from_name || r.from_email, event_date: '', sort_date: null, emails: r.from_email,
+  phones: '', link: '', platform: '', priority: 'maybe', status: 'replied', notes: '', next_followup: null, last_contacted_at: null,
+  updated_by: null, updated_at: r.received_at,
+});
+
 /** Answer to an organiser's reply: same thread, short. */
 const replyFor = (r: Reply) => ({
   subject: /^re:/i.test(r.subject) ? r.subject : `Re: ${r.subject || 'Cyber HX'}`,
@@ -259,10 +266,26 @@ export function OutreachPanel() {
   const onSent = (l: Lead, m: OutMail | null) => {
     setCompose(null);
     if (m) setMails((ms) => [m, ...ms]);
-    if (l.status === 'todo') save(l.id, { status: 'contacted', next_followup: l.next_followup || addDays(4) });
+    if (!l.id) { /* reply to someone who isn't a lead */ }
+    else if (l.status === 'todo') save(l.id, { status: 'contacted', next_followup: l.next_followup || addDays(4) });
     else if (!l.next_followup) save(l.id, { next_followup: addDays(4) });
     setTimeout(() => notify('Email sent'), 50);
   };
+
+  /** "Add as lead" on an inbox mail from someone new: creates the lead and links the mail to it. */
+  const makeLead = useCallback(async (r: Reply) => {
+    try {
+      const domain = r.from_email.split('@')[1] || '';
+      const l = await sbInsert<Lead>('outreach_leads', {
+        event: r.subject.replace(/^(re|fwd?):\s*/i, '').slice(0, 120) || `Lead from ${r.from_name || r.from_email}`,
+        organizer: r.from_name || domain, emails: r.from_email, platform: 'Came in by email', priority: 'target', status: 'replied',
+      });
+      setLeads((ls) => [...ls, l]);
+      setReplies((rs) => rs.map((x) => (x.from_email === r.from_email && !x.lead_id ? { ...x, lead_id: l.id } : x)));
+      await sbWrite('PATCH', `outreach_replies?from_email=eq.${encodeURIComponent(r.from_email)}&lead_id=is.null`, { lead_id: l.id });
+      notify('Lead added');
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the lead.'); }
+  }, [notify]);
 
   const filtersOn = !!(dq || status || pri !== 'all' || view !== 'open');
 
@@ -299,7 +322,8 @@ export function OutreachPanel() {
       </div>
 
       {section === 'inbox' && <InboxList replies={replies} leads={leadMap} onRead={markRead} onOpenLead={openLead}
-        onReply={(r) => { const l = r.lead_id ? leadMap.get(r.lead_id) : undefined; if (l) setCompose({ lead: l, reply: r }); }} />}
+        onReply={(r) => setCompose({ lead: (r.lead_id && leadMap.get(r.lead_id)) || pseudoLead(r), reply: r })}
+        onMakeLead={makeLead} />}
       {section === 'sent' && <SentList mails={mails} leads={leadMap} onOpenLead={openLead} />}
       {section === 'calls' && <CallsView onToast={notify} />}
 

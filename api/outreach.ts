@@ -96,7 +96,7 @@ export default async function handler(req: any, res: any) {
   const body = String(b.body || '').trim().slice(0, 8000);
   const inReplyTo = /^<[^<>\s]{3,250}>$/.test(String(b.inReplyTo || '')) ? String(b.inReplyTo) : '';
   const bookingLink = /^https:\/\/[^\s]+$/.test(String(b.bookingLink || '')) ? String(b.bookingLink).slice(0, 500) : null;
-  if (!UUID_RE.test(leadId)) return res.status(400).json({ error: 'Pick a lead first.' });
+  // leadId is optional: replying to a mail@ email from someone who isn't a lead yet.
   if (!to.length) return res.status(400).json({ error: 'Add at least one valid email address.' });
   if (!subject || !body) return res.status(400).json({ error: 'Subject and message are needed.' });
 
@@ -137,7 +137,7 @@ export default async function handler(req: any, res: any) {
       const r = await fetch(`${url}/rest/v1/outreach_mails`, {
         method: 'POST',
         headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-        body: JSON.stringify({ lead_id: leadId, to_emails: to, subject, body, booking_link: bookingLink, message_ids: id ? [id] : [], provider: 'resend' }),
+        body: JSON.stringify({ lead_id: UUID_RE.test(leadId) ? leadId : null, to_emails: to, subject, body, booking_link: bookingLink, message_ids: id ? [id] : [], provider: 'resend' }),
       });
       if (r.ok) mail = (await r.json())?.[0] || null;
       else console.error('outreach_mails insert failed', r.status, await r.text().catch(() => ''));
