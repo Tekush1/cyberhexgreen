@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Link2, Copy, Check, Mail, Video, Trash2, Loader2, RefreshCw, AlertTriangle,
-  UserCheck, Handshake, Flag, PenLine, CalendarClock, Users, Clock, UserPlus,
+  UserCheck, Handshake, Flag, PenLine, CalendarClock, Users, Clock, UserPlus, ChevronDown, Plus, X,
 } from 'lucide-react';
 import { TOKEN_KEY } from './adminApi';
 import { GuestInput } from './GuestInput';
@@ -156,10 +156,14 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
   const [copiedCode, setCopiedCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | MeetingKind>('all');
+  const [showCreate, setShowCreate] = useState(false);
+  const [openWaiting, setOpenWaiting] = useState(false);
+  const [openPast, setOpenPast] = useState(false);
 
   // Pre-fill coming from the Applications / CTF Requests tabs
   useEffect(() => {
     if (!prefill) return;
+    setShowCreate(true);
     setKind(prefill.kind);
     setMode('single');
     setName(prefill.name);
@@ -353,6 +357,201 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
     return Array.from(map.entries());
   }, [slotData]);
 
+  const nowMs = Date.now();
+  const upcoming = shown.filter((b) => Date.parse(b.end || b.start) >= nowMs).sort((x, y) => Date.parse(x.start) - Date.parse(y.start));
+  const past = shown.filter((b) => Date.parse(b.end || b.start) < nowMs).sort((x, y) => Date.parse(y.start) - Date.parse(x.start));
+  const upcomingDays = useMemo(() => {
+    const m = new Map<string, Booking[]>();
+    upcoming.forEach((b) => { const k = istDay(b.start); m.set(k, [...(m.get(k) || []), b]); });
+    return [...m.entries()];
+  }, [upcoming]);
+  const dayLabel = (day: string) => {
+    const today = istToday();
+    const t = new Date(`${today}T00:00:00Z`); t.setUTCDate(t.getUTCDate() + 1);
+    if (day === today) return 'Today';
+    if (day === t.toISOString().slice(0, 10)) return 'Tomorrow';
+    return new Date(`${day}T12:00:00+05:30`).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'short' });
+  };
+
+  const pendingCard = (p: PendingLink) => (
+            <div key={p.code} className="bg-[#0a0f1a] border border-dashed border-white/15 rounded-2xl p-4 flex items-center gap-x-4 gap-y-3 flex-wrap">
+              <div className="min-w-0 grow basis-full sm:basis-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-white text-sm font-medium truncate">{p.name}</p>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full border ${KINDS[p.kind].badge}`}>
+                    {p.kind === 'other' && p.topic ? p.topic : KINDS[p.kind].label}
+                  </span>
+                  {p.group && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full border border-white/15 text-gray-300 flex items-center gap-1">
+                      <Users size={10} /> Group · {p.guests.length}
+                    </span>
+                  )}
+                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-yellow-500/30 text-yellow-300 flex items-center gap-1">
+                    <Clock size={10} /> Waiting for slot
+                  </span>
+                </div>
+                <p className="text-gray-500 text-xs mt-0.5 truncate">{p.group ? `${p.guests.length} people invited` : p.email}</p>
+                <p className="text-gray-400 text-xs mt-1 break-all">{p.link}</p>
+                <p className="text-gray-400 text-[11px] mt-0.5">Expires {fmt(p.expiresAt)} IST</p>
+                <SentHistory emails={p.group ? p.guests : p.email ? [p.email] : []} history={history} />
+              </div>
+              <button onClick={() => copyPending(p)} className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
+                {copiedCode === p.code ? <Check size={12} /> : <Copy size={12} />} {copiedCode === p.code ? 'Copied' : 'Copy link'}
+              </button>
+              <button
+                onClick={() => setEmailingCode(emailingCode === p.code ? null : p.code)}
+                aria-expanded={emailingCode === p.code}
+                className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
+                  emailingCode === p.code ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
+                }`}
+              >
+                <Mail size={12} /> Email
+              </button>
+              <button onClick={() => removePending(p)} className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Delete link">
+                <Trash2 size={14} />
+              </button>
+              {emailingCode === p.code && (
+                <EmailComposer
+                  target={{
+                    name: p.group ? '' : p.name,
+                    emails: p.group ? p.guests : p.email ? [p.email] : [],
+                    title: p.kind === 'other' && p.topic ? p.topic : MEETING_TITLE[p.kind],
+                  }}
+                  initialTemplate="booking"
+                  initialBookingLink={p.link}
+                  onClose={() => setEmailingCode(null)}
+                  onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingCode(null); setTimeout(load, 1500); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                />
+              )}
+            </div>
+  );
+
+  const bookingCard = (b: Booking, past: boolean) => {
+            const k = b.kind || 'interview';
+            const n = b.attendees?.length || 0;
+            const accepted = (b.attendees || []).filter((a) => a.status === 'accepted').length;
+            return (
+              <div key={b.eventId} className={`bg-[#0a0f1a] border border-white/8 rounded-2xl p-4 flex items-center gap-x-4 gap-y-3 flex-wrap ${past ? 'opacity-60' : ''}`}>
+                <div className="w-16 shrink-0 text-center self-start">
+                  <p className="text-[19px] font-semibold leading-tight text-white tabular-nums">{new Date(b.start).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' }).replace(/\s?(am|pm)/i, '')}</p>
+                  <p className="text-[11px] uppercase text-gray-500">{new Date(b.start).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: true }).replace(/[^apm]/gi, '').toUpperCase()}</p>
+                </div>
+                <div className="min-w-0 grow basis-[calc(100%-5rem)] sm:basis-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-white text-sm font-medium truncate">{b.name}</p>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full border ${KINDS[k].badge}`}>
+                      {k === 'other' && b.topic ? b.topic : KINDS[k].label}
+                    </span>
+                    {b.group && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full border border-white/15 text-gray-300 flex items-center gap-1">
+                        <Users size={10} /> Group · {n}
+                      </span>
+                    )}
+                  </div>
+                  {b.group ? (
+                    <details className="mt-0.5">
+                      <summary className="text-gray-500 text-xs cursor-pointer hover:text-gray-300">{accepted}/{n} accepted · show guests</summary>
+                      <ul className="mt-1.5 space-y-0.5">
+                        {(b.attendees || []).map((a) => (
+                          <li key={a.email} className="text-xs text-gray-400 flex items-center gap-2">
+                            {a.email}
+                            <span className={a.status === 'accepted' ? 'text-green-400' : a.status === 'declined' ? 'text-red-400' : 'text-yellow-400'}>
+                              {a.status === 'needsAction' ? 'pending' : a.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : (
+                    <p className="text-gray-500 text-xs">{b.email}</p>
+                  )}
+                  <p className="text-gray-400 text-xs mt-1">
+                    {Math.round((Date.parse(b.end) - Date.parse(b.start)) / 60000)} min
+                    {!b.group && (
+                      <>
+                        {' · '}
+                        <span className={b.status === 'accepted' ? 'text-green-400' : b.status === 'declined' ? 'text-red-400' : 'text-yellow-400'}>
+                          {b.status === 'needsAction' ? 'invite pending' : b.status}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                  <SentHistory emails={b.group ? (b.attendees || []).map((a) => a.email) : b.email ? [b.email] : []} history={history} />
+                </div>
+                {(b.group || b.canAdd) && (
+                  <button
+                    onClick={() => { setAddingTo(addingTo === b.eventId ? null : b.eventId); setAddGuestsList([]); setEmailingTo(null); }}
+                    className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5"
+                  >
+                    <UserPlus size={12} /> Add people
+                  </button>
+                )}
+                {b.meetLink && (
+                  <a href={b.meetLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
+                    <Video size={12} /> Join Meet
+                  </a>
+                )}
+                <button
+                  onClick={() => { setEmailingTo(emailingTo === b.eventId ? null : b.eventId); setAddingTo(null); }}
+                  aria-expanded={emailingTo === b.eventId}
+                  className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
+                    emailingTo === b.eventId ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <Mail size={12} /> Email
+                </button>
+                <button
+                  onClick={() => { setBox(box?.id === b.eventId && box.kind === 'resched' ? null : { id: b.eventId, kind: 'resched' }); setEmailingTo(null); setAddingTo(null); }}
+                  aria-expanded={box?.id === b.eventId && box.kind === 'resched'}
+                  className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
+                    box?.id === b.eventId && box.kind === 'resched' ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <CalendarClock size={12} /> Reschedule
+                </button>
+                <button
+                  onClick={() => { setBox(box?.id === b.eventId && box.kind === 'cancel' ? null : { id: b.eventId, kind: 'cancel' }); setEmailingTo(null); setAddingTo(null); }}
+                  aria-expanded={box?.id === b.eventId && box.kind === 'cancel'}
+                  className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Cancel meeting" aria-label={`Cancel meeting with ${b.name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+                {box?.id === b.eventId && (
+                  box.kind === 'resched'
+                    ? <RescheduleBox b={b} api={api} onClose={() => setBox(null)} onDone={(msg) => { setBox(null); setOkMsg({ text: msg, meet: null }); load(); if (when === 'now') loadSlotPicker(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+                    : <CancelBox b={b} api={api} onClose={() => setBox(null)} onDone={(msg) => { setBox(null); setOkMsg({ text: msg, meet: null }); setItems((prev) => prev.filter((x) => x.eventId !== b.eventId)); if (when === 'now') loadSlotPicker(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+                )}
+                {emailingTo === b.eventId && (
+                  <EmailComposer
+                    target={{
+                      name: b.group ? '' : b.name,
+                      emails: b.group ? (b.attendees || []).map((a) => a.email) : b.email ? [b.email] : [],
+                      title: k === 'other' && b.topic ? b.topic : MEETING_TITLE[k],
+                      start: b.start,
+                      end: b.end,
+                      meetLink: b.meetLink,
+                    }}
+                    onClose={() => setEmailingTo(null)}
+                    onReschedule={() => { setEmailingTo(null); setBox({ id: b.eventId, kind: 'resched' }); }}
+                    onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingTo(null); setTimeout(load, 1500); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  />
+                )}
+                {addingTo === b.eventId && (
+                  <div className="basis-full pt-3 border-t border-white/5">
+                    <GuestInput guests={addGuestsList} setGuests={setAddGuestsList} max={MAX_DIRECT_GUESTS} />
+                    <button
+                      onClick={() => addPeople(b)}
+                      disabled={!addGuestsList.length || addBusy}
+                      className="mt-3 px-4 py-2 bg-[#a3e635] text-[#05080f] text-sm font-bold rounded-xl hover:bg-[#bef264] disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {addBusy ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />} Invite {addGuestsList.length || ''} {addGuestsList.length === 1 ? 'person' : 'people'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+  };
+
   const seg = (active: boolean) =>
     `px-3.5 py-1.5 rounded-lg text-xs border transition-all ${active ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635] font-semibold' : 'bg-[#05080f] border-white/10 text-gray-400 hover:text-white'}`;
 
@@ -365,7 +564,24 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
       )}
 
       {/* Create link */}
-      <div className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5 sm:p-6">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-[28px] sm:text-[32px] font-semibold leading-none tracking-[-0.02em] text-white">Meetings</h2>
+          <p className="mt-1.5 text-[13px] text-gray-500">{upcoming.length} upcoming · {shownPending.length} waiting for a slot</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={load} aria-label="Refresh" className="h-10 w-10 rounded-full bg-[#0a0f1a] border border-white/10 text-gray-300 hover:text-white flex items-center justify-center">
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button onClick={() => setShowCreate((v) => !v)} aria-expanded={showCreate}
+            className="h-10 rounded-full bg-[#a3e635] text-[#05080f] px-4 text-[14px] font-semibold flex items-center gap-1.5 hover:bg-[#bef264]">
+            {showCreate ? <X size={17} /> : <Plus size={17} />}<span className="hidden sm:inline">{showCreate ? 'Close' : 'New meeting'}</span>
+          </button>
+        </div>
+      </div>
+
+      {(showCreate || okMsg || link) && <div className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5 sm:p-6">
+        {showCreate && <>
         <h3 className="text-white font-medium mb-1 flex items-center gap-2">
           <Link2 size={16} className="text-[#a3e635]" /> Schedule a meeting
         </h3>
@@ -540,6 +756,7 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
           </button>
           {blocker && <p className="text-xs text-yellow-400 self-center" role="status">{blocker}</p>}
         </div>
+        </>}
 
         {okMsg && (
           <div className="mt-4 p-3 rounded-xl bg-[#a3e635]/5 border border-[#a3e635]/30 text-sm text-[#a3e635] flex items-center gap-3 flex-wrap">
@@ -577,206 +794,68 @@ export const MeetingsPanel: React.FC<{ prefill?: MeetingPrefill | null }> = ({ p
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Bookings */}
-      <div>
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 className="text-white font-medium">Meetings &amp; links</h3>
-          <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 overflow-x-auto ios-noscroll">
+          <div role="radiogroup" aria-label="Meeting type" className="inline-flex rounded-[11px] bg-white/[0.07] p-[3px] border border-white/[0.06]">
             {(['all', ...KIND_ORDER] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-2.5 py-1 rounded-lg text-xs border transition-all ${
-                  filter === f ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635] font-medium' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'
-                }`}
-              >
+              <button key={f} role="radio" aria-checked={filter === f} onClick={() => setFilter(f)}
+                className={`px-3.5 py-1.5 text-[13px] font-medium rounded-[8px] whitespace-nowrap transition ${filter === f ? 'bg-white/[0.16] text-white shadow-[0_2px_8px_rgba(0,0,0,.35)]' : 'text-white/55 hover:text-white/85'}`}>
                 {f === 'all' ? 'All' : KINDS[f].label}
               </button>
             ))}
-            <button onClick={load} className="text-gray-500 hover:text-white p-1.5" title="Refresh">
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            </button>
           </div>
         </div>
-        {!loading && shown.length === 0 && shownPending.length === 0 && <p className="text-gray-500 text-sm">No meetings or links yet.</p>}
-        <div className="space-y-3">
-          {shownPending.map((p) => (
-            <div key={p.code} className="bg-[#0a0f1a] border border-dashed border-white/15 rounded-2xl p-4 flex items-center gap-4 flex-wrap">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-white text-sm font-medium truncate">{p.name}</p>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full border ${KINDS[p.kind].badge}`}>
-                    {p.kind === 'other' && p.topic ? p.topic : KINDS[p.kind].label}
-                  </span>
-                  {p.group && (
-                    <span className="text-[11px] px-2 py-0.5 rounded-full border border-white/15 text-gray-300 flex items-center gap-1">
-                      <Users size={10} /> Group · {p.guests.length}
-                    </span>
-                  )}
-                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-yellow-500/30 text-yellow-300 flex items-center gap-1">
-                    <Clock size={10} /> Waiting for slot
-                  </span>
-                </div>
-                <p className="text-gray-500 text-xs mt-0.5 truncate">{p.group ? `${p.guests.length} people invited` : p.email}</p>
-                <p className="text-gray-400 text-xs mt-1 break-all">{p.link}</p>
-                <p className="text-gray-400 text-[11px] mt-0.5">Expires {fmt(p.expiresAt)} IST</p>
-                <SentHistory emails={p.group ? p.guests : p.email ? [p.email] : []} history={history} />
-              </div>
-              <button onClick={() => copyPending(p)} className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
-                {copiedCode === p.code ? <Check size={12} /> : <Copy size={12} />} {copiedCode === p.code ? 'Copied' : 'Copy link'}
-              </button>
-              <button
-                onClick={() => setEmailingCode(emailingCode === p.code ? null : p.code)}
-                aria-expanded={emailingCode === p.code}
-                className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
-                  emailingCode === p.code ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
-                }`}
-              >
-                <Mail size={12} /> Email
-              </button>
-              <button onClick={() => removePending(p)} className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Delete link">
-                <Trash2 size={14} />
-              </button>
-              {emailingCode === p.code && (
-                <EmailComposer
-                  target={{
-                    name: p.group ? '' : p.name,
-                    emails: p.group ? p.guests : p.email ? [p.email] : [],
-                    title: p.kind === 'other' && p.topic ? p.topic : MEETING_TITLE[p.kind],
-                  }}
-                  initialTemplate="booking"
-                  initialBookingLink={p.link}
-                  onClose={() => setEmailingCode(null)}
-                  onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingCode(null); setTimeout(load, 1500); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                />
-              )}
+
+        {/* Upcoming, grouped by day like Calendar */}
+        <section aria-labelledby="up-h">
+          <h3 id="up-h" className="mb-2 px-1 text-[12px] font-medium uppercase tracking-wide text-gray-500">Upcoming · {upcoming.length}</h3>
+          {!loading && upcoming.length === 0 && (
+            <div className="bg-[#0a0f1a] border border-white/8 rounded-2xl px-5 py-8 text-center">
+              <p className="text-white font-medium">No upcoming meetings</p>
+              <p className="mt-1 text-[13px] text-gray-500">Tap New meeting to send a booking link or book a time.</p>
             </div>
-          ))}
-          {shown.map((b) => {
-            const k = b.kind || 'interview';
-            const n = b.attendees?.length || 0;
-            const accepted = (b.attendees || []).filter((a) => a.status === 'accepted').length;
-            return (
-              <div key={b.eventId} className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-4 flex items-center gap-4 flex-wrap">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-white text-sm font-medium truncate">{b.name}</p>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full border ${KINDS[k].badge}`}>
-                      {k === 'other' && b.topic ? b.topic : KINDS[k].label}
-                    </span>
-                    {b.group && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full border border-white/15 text-gray-300 flex items-center gap-1">
-                        <Users size={10} /> Group · {n}
-                      </span>
-                    )}
-                  </div>
-                  {b.group ? (
-                    <details className="mt-0.5">
-                      <summary className="text-gray-500 text-xs cursor-pointer hover:text-gray-300">{accepted}/{n} accepted · show guests</summary>
-                      <ul className="mt-1.5 space-y-0.5">
-                        {(b.attendees || []).map((a) => (
-                          <li key={a.email} className="text-xs text-gray-400 flex items-center gap-2">
-                            {a.email}
-                            <span className={a.status === 'accepted' ? 'text-green-400' : a.status === 'declined' ? 'text-red-400' : 'text-yellow-400'}>
-                              {a.status === 'needsAction' ? 'pending' : a.status}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  ) : (
-                    <p className="text-gray-500 text-xs">{b.email}</p>
-                  )}
-                  <p className="text-gray-400 text-xs mt-1">
-                    {fmt(b.start)} IST
-                    {!b.group && (
-                      <>
-                        {' · '}
-                        <span className={b.status === 'accepted' ? 'text-green-400' : b.status === 'declined' ? 'text-red-400' : 'text-yellow-400'}>
-                          {b.status === 'needsAction' ? 'invite pending' : b.status}
-                        </span>
-                      </>
-                    )}
-                  </p>
-                  <SentHistory emails={b.group ? (b.attendees || []).map((a) => a.email) : b.email ? [b.email] : []} history={history} />
-                </div>
-                {(b.group || b.canAdd) && (
-                  <button
-                    onClick={() => { setAddingTo(addingTo === b.eventId ? null : b.eventId); setAddGuestsList([]); setEmailingTo(null); }}
-                    className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5"
-                  >
-                    <UserPlus size={12} /> Add people
-                  </button>
-                )}
-                {b.meetLink && (
-                  <a href={b.meetLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white flex items-center gap-1.5">
-                    <Video size={12} /> Join Meet
-                  </a>
-                )}
-                <button
-                  onClick={() => { setEmailingTo(emailingTo === b.eventId ? null : b.eventId); setAddingTo(null); }}
-                  aria-expanded={emailingTo === b.eventId}
-                  className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
-                    emailingTo === b.eventId ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  <Mail size={12} /> Email
-                </button>
-                <button
-                  onClick={() => { setBox(box?.id === b.eventId && box.kind === 'resched' ? null : { id: b.eventId, kind: 'resched' }); setEmailingTo(null); setAddingTo(null); }}
-                  aria-expanded={box?.id === b.eventId && box.kind === 'resched'}
-                  className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
-                    box?.id === b.eventId && box.kind === 'resched' ? 'border-[#a3e635] text-[#a3e635] bg-[#a3e635]/10' : 'border-white/10 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  <CalendarClock size={12} /> Reschedule
-                </button>
-                <button
-                  onClick={() => { setBox(box?.id === b.eventId && box.kind === 'cancel' ? null : { id: b.eventId, kind: 'cancel' }); setEmailingTo(null); setAddingTo(null); }}
-                  aria-expanded={box?.id === b.eventId && box.kind === 'cancel'}
-                  className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10" title="Cancel meeting" aria-label={`Cancel meeting with ${b.name}`}
-                >
-                  <Trash2 size={14} />
-                </button>
-                {box?.id === b.eventId && (
-                  box.kind === 'resched'
-                    ? <RescheduleBox b={b} api={api} onClose={() => setBox(null)} onDone={(msg) => { setBox(null); setOkMsg({ text: msg, meet: null }); load(); if (when === 'now') loadSlotPicker(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
-                    : <CancelBox b={b} api={api} onClose={() => setBox(null)} onDone={(msg) => { setBox(null); setOkMsg({ text: msg, meet: null }); setItems((prev) => prev.filter((x) => x.eventId !== b.eventId)); if (when === 'now') loadSlotPicker(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
-                )}
-                {emailingTo === b.eventId && (
-                  <EmailComposer
-                    target={{
-                      name: b.group ? '' : b.name,
-                      emails: b.group ? (b.attendees || []).map((a) => a.email) : b.email ? [b.email] : [],
-                      title: k === 'other' && b.topic ? b.topic : MEETING_TITLE[k],
-                      start: b.start,
-                      end: b.end,
-                      meetLink: b.meetLink,
-                    }}
-                    onClose={() => setEmailingTo(null)}
-                    onReschedule={() => { setEmailingTo(null); setBox({ id: b.eventId, kind: 'resched' }); }}
-                    onSent={(msg) => { setOkMsg({ text: msg, meet: null }); setEmailingTo(null); setTimeout(load, 1500); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  />
-                )}
-                {addingTo === b.eventId && (
-                  <div className="basis-full pt-3 border-t border-white/5">
-                    <GuestInput guests={addGuestsList} setGuests={setAddGuestsList} max={MAX_DIRECT_GUESTS} />
-                    <button
-                      onClick={() => addPeople(b)}
-                      disabled={!addGuestsList.length || addBusy}
-                      className="mt-3 px-4 py-2 bg-[#a3e635] text-[#05080f] text-sm font-bold rounded-xl hover:bg-[#bef264] disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {addBusy ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />} Invite {addGuestsList.length || ''} {addGuestsList.length === 1 ? 'person' : 'people'}
-                    </button>
-                  </div>
-                )}
+          )}
+          <div className="space-y-5">
+            {upcomingDays.map(([day, list]) => (
+              <div key={day}>
+                <p className="mb-2 px-1 text-[15px] font-semibold text-white">{dayLabel(day)}</p>
+                <div className="space-y-3">{list.map((b) => bookingCard(b, false))}</div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Waiting for a slot (collapsed) */}
+        <Disclosure title="Waiting for a slot" count={shownPending.length} open={openWaiting} onToggle={() => setOpenWaiting((v) => !v)}
+          hint="Links sent, not booked yet">
+          {shownPending.map((p) => pendingCard(p))}
+        </Disclosure>
+
+        {/* Past (collapsed) */}
+        <Disclosure title="Past meetings" count={past.length} open={openPast} onToggle={() => setOpenPast((v) => !v)} hint="Last 7 days">
+          {past.map((b) => bookingCard(b, true))}
+        </Disclosure>
       </div>
     </div>
   );
 };
+
+function Disclosure({ title, count, open, onToggle, hint, children }: { title: string; count: number; open: boolean; onToggle: () => void; hint?: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <button onClick={onToggle} aria-expanded={open} disabled={!count}
+        className="w-full flex items-center justify-between gap-3 bg-[#0a0f1a] border border-white/8 rounded-2xl px-4 py-3.5 text-left disabled:opacity-50">
+        <span>
+          <span className="text-[15px] font-medium text-white">{title}</span>
+          <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[12px] text-gray-300 tabular-nums">{count}</span>
+          {hint && <span className="ml-2 hidden sm:inline text-[12.5px] text-gray-500">{hint}</span>}
+        </span>
+        <ChevronDown size={18} className={`text-gray-500 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && count > 0 && <div className="mt-3 space-y-3">{children}</div>}
+    </section>
+  );
+}

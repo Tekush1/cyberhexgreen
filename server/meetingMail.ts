@@ -34,7 +34,7 @@ export async function sendMeetingMail(auth: string, template: TemplateId, vars: 
           method: 'POST',
           headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
           body: JSON.stringify(batch.map((b, i) => ({
-            email: b.to[0], template, subject: String(b.subject).slice(0, 300), provider: 'resend',
+            email: b.to[0], template, subject: String(b.subject).slice(0, 300), body: String(b.text || '').slice(0, 8000), provider: 'resend',
             message_id: data?.data?.[i]?.id ? String(data.data[i].id).slice(0, 200) : null,
           }))),
         });
