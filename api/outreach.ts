@@ -106,6 +106,7 @@ export default async function handler(req: any, res: any) {
   if (!(await allow('outreach.send', me || 'anon', 60, 3600))) return res.status(429).json({ error: 'Too many emails this hour. Try again later.' });
 
   // From address: mail@cyberhx.com (the inbox the panel reads). Tried in order:
+  //   0. Mailtrap as OUTREACH_FROM (cyberhx.com verified in Mailtrap → Domains)
   //   0. Mailjet as OUTREACH_FROM (cyberhx.com verified in Mailjet → Senders & Domains)
   //   1. Resend as OUTREACH_FROM (works once cyberhx.com is verified in Resend → Domains)
   //   2. Sender as OUTREACH_FROM (cyberhx.com is already authenticated there)
@@ -154,6 +155,28 @@ export default async function handler(req: any, res: any) {
     } catch { errors.push('Mailjet: unreachable'); }
     return '';
   };
+  const viaMailtrap = async (from: string) => {
+    const tk = process.env.MAILTRAP_API_KEY;
+    if (!tk) { errors.push('Mailtrap: no key'); return ''; }
+    const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+    try {
+      const r = await fetch('https://send.api.mailtrap.io/api/send', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: { email: (m ? m[2] : from).trim(), name: (m ? m[1] : '').replace(/^"|"$/g, '') || 'CyberHx' },
+          to: to.map((email) => ({ email })),
+          reply_to: { email: 'mail@cyberhx.com', name: 'CyberHx' }, // Mailtrap takes one reply-to
+          subject, text: body, html: toHtml(body), category: 'outreach',
+          ...(threadHeaders ? { headers: threadHeaders } : {}),
+        }),
+      });
+      const d: any = await r.json().catch(() => ({}));
+      if (r.ok && d?.success !== false) return (d?.message_ids || []).map(String).join(',') || 'ok';
+      errors.push(`Mailtrap ${r.status}: ${String((d?.errors || []).join('; ') || d?.error || '').slice(0, 200)}`);
+    } catch { errors.push('Mailtrap: unreachable'); }
+    return '';
+  };
   const viaSender = async (from: string) => {
     const sk = process.env.SENDER_API_KEY;
     if (!sk) { errors.push('Sender: no key'); return ''; }
@@ -176,9 +199,9 @@ export default async function handler(req: any, res: any) {
   };
 
   let id = '', provider = '', sentFrom = '';
-  for (const [p, f] of [['mailjet', want], ['resend', want], ['sender', want], ['resend', safe]] as const) {
+  for (const [p, f] of [['mailtrap', want], ['mailjet', want], ['resend', want], ['sender', want], ['resend', safe]] as const) {
     if (p === 'resend' && f === safe && f === want) continue;
-    id = p === 'mailjet' ? await viaMailjet(f) : p === 'resend' ? await viaResend(f) : await viaSender(f);
+    id = p === 'mailtrap' ? await viaMailtrap(f) : p === 'mailjet' ? await viaMailjet(f) : p === 'resend' ? await viaResend(f) : await viaSender(f);
     if (id) { provider = p; sentFrom = f; break; }
   }
   if (!id) {
