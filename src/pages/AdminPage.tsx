@@ -27,6 +27,17 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 const TOKEN_KEY = 'cyberhx_admin_token';
 export const getAdminToken = () => sessionStorage.getItem(TOKEN_KEY) || '';
 
+/** Sign-in log (Admin → Team). Fire-and-forget: never slows down or blocks signing in. */
+const logSignIn = (body: object, token?: string) => {
+  try {
+    fetch('/api/staff', {
+      method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(body),
+    }).catch(() => {});
+  } catch { /* ignore */ }
+};
+
 async function adminSignIn(email: string, password: string): Promise<string> {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -34,14 +45,15 @@ async function adminSignIn(email: string, password: string): Promise<string> {
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.access_token) throw new Error('Invalid email or password.');
+  if (!res.ok || !data.access_token) { logSignIn({ action: 'failed', email }); throw new Error('Invalid email or password.'); }
   // Confirm this user is on the admins allow-list (server-side check via RLS function)
   const chk = await fetch(`${SUPABASE_URL}/rest/v1/rpc/is_admin`, {
     method: 'POST',
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${data.access_token}`, 'Content-Type': 'application/json' },
     body: '{}',
   });
-  if (!chk.ok || (await chk.json()) !== true) throw new Error('This account has no admin access. Ask the owner to add you in Admin → Team.');
+  if (!chk.ok || (await chk.json()) !== true) { logSignIn({ action: 'failed', email }); throw new Error('This account has no admin access. Ask the owner to add you in Admin → Team.'); }
+  logSignIn({ action: 'login' }, data.access_token);
   return data.access_token as string;
 }
 

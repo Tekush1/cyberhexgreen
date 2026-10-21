@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { Check, ExternalLink, Loader2, RefreshCw, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
-import { sbRpc } from './mailingApi';
+import { sbRows, sbRpc } from './mailingApi';
+import { SignInActivity, place, type SignIn } from './SignInActivity';
 import { ROLES, type Role } from './roles';
 
 interface Member {
@@ -28,6 +29,17 @@ export function TeamPanel() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('hr');
   const [busy, setBusy] = useState<string | null>(null);
+  const [logins, setLogins] = useState<SignIn[]>([]);
+  const [logLoading, setLogLoading] = useState(true);
+  const [logErr, setLogErr] = useState('');
+  const loadLogins = async () => {
+    setLogLoading(true);
+    try { setLogins((await sbRows<SignIn>('staff_logins?select=*&order=at.desc&limit=200')).rows); setLogErr(''); }
+    catch (e) { setLogErr(e instanceof Error ? e.message : 'Could not load sign-ins.'); }
+    setLogLoading(false);
+  };
+  useEffect(() => { loadLogins(); }, []);
+  const lastPlace = (email: string) => { const l = logins.find((x) => x.ok && x.email === email.toLowerCase()); return l ? place(l) : ''; };
   const emailId = useId();
   const roleId = useId();
 
@@ -139,7 +151,7 @@ export function TeamPanel() {
               <li key={m.user_id} className="py-3 flex flex-wrap items-center gap-3">
                 <div className="flex-1 min-w-[200px]">
                   <p className="text-sm text-white break-all">{m.email}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Last sign-in: {when(m.last_sign_in)}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Last sign-in: {when(m.last_sign_in)}{lastPlace(m.email) ? ` · ${lastPlace(m.email)}` : ''}</p>
                 </div>
                 {m.fixed ? (
                   <span className="text-xs px-2.5 py-1 rounded-full bg-[#a3e635]/10 text-[#a3e635] border border-[#a3e635]/25">Main owner</span>
@@ -162,6 +174,8 @@ export function TeamPanel() {
           </ul>
         )}
       </section>
+
+      <SignInActivity rows={logins} loading={logLoading} err={logErr} onRefresh={loadLogins} />
     </div>
   );
 }
