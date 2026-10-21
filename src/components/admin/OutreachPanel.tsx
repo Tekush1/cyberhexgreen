@@ -3,7 +3,7 @@ import {
   AtSign, Bell, Check, ChevronDown, Compass, Copy, Flag, Loader2, Mail, MessageCircle, Phone, Plus, RotateCw, Search, Send, X,
 } from 'lucide-react';
 import { sbInsert, sbRows, sbWrite } from './mailingApi';
-import { CallsView, ComposeSheet, MailTimeline, SentList, type OutMail } from './OutreachMail';
+import { CallsView, ComposeSheet, InboxList, MailTimeline, SentList, type OutMail, type Reply } from './OutreachMail';
 
 /* =============================================================
    Admin → Outreach: CTF organisers to pitch Cyber HX hosting to.
@@ -106,6 +106,19 @@ Best,
 Cyber HX Team`,
 });
 
+/** Answer to an organiser's reply: same thread, short. */
+const replyFor = (r: Reply) => ({
+  subject: /^re:/i.test(r.subject) ? r.subject : `Re: ${r.subject || 'Cyber HX'}`,
+  body: `Hi ${(r.from_name || '').split(/\s+/)[0] || 'there'},
+
+Thanks for getting back to us.
+
+
+
+Best,
+Cyber HX Team`,
+});
+
 /** Second email, when the first one got no answer. */
 const followupFor = (l: Pick<Lead, 'event' | 'organizer'>, first?: OutMail) => ({
   subject: first ? `Re: ${first.subject.replace(/^Re:\s*/i, '')}` : `Following up: ${l.event}`,
@@ -153,21 +166,24 @@ export function OutreachPanel() {
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [adding, setAdding] = useState(false);
-  const [section, setSection] = useState<'leads' | 'sent' | 'calls'>('leads');
+  const [section, setSection] = useState<'leads' | 'inbox' | 'sent' | 'calls'>('leads');
   const [mails, setMails] = useState<OutMail[]>([]);
-  const [compose, setCompose] = useState<Lead | null>(null);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [compose, setCompose] = useState<{ lead: Lead; reply?: Reply } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const toastT = useRef<number>();
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
     try {
-      const [{ rows }, sent] = await Promise.all([
+      const [{ rows }, sent, inbox] = await Promise.all([
         sbRows<Lead>('outreach_leads?select=*&order=sort_date.asc.nullslast'),
         sbRows<OutMail>('outreach_mails?select=*&order=sent_at.desc&limit=1000').catch(() => ({ rows: [] as OutMail[] })),
+        sbRows<Reply>('outreach_replies?select=*&order=received_at.desc&limit=500').catch(() => ({ rows: [] as Reply[] })),
       ]);
       setLeads(rows);
       setMails(sent.rows);
+      setReplies(inbox.rows);
     } catch (e) {
       const m = e instanceof Error ? e.message : 'Could not load.';
       setErr(/missing|does not exist/i.test(m) ? 'Outreach table is missing: run supabase/outreach.sql in Supabase.' : m);
@@ -226,7 +242,19 @@ export function OutreachPanel() {
     mails.forEach((x) => { if (x.lead_id) m.set(x.lead_id, [...(m.get(x.lead_id) || []), x]); });
     return m;
   }, [mails]);
+  const repliesByLead = useMemo(() => {
+    const m = new Map<string, Reply[]>();
+    replies.forEach((x) => { if (x.lead_id) m.set(x.lead_id, [...(m.get(x.lead_id) || []), x]); });
+    return m;
+  }, [replies]);
+  const unread = replies.filter((r) => !r.read_at).length;
+  const markRead = useCallback((r: Reply) => {
+    const at = new Date().toISOString();
+    setReplies((rs) => rs.map((x) => (x.id === r.id ? { ...x, read_at: at } : x)));
+    sbWrite('PATCH', `outreach_replies?id=eq.${r.id}`, { read_at: at }).catch(() => { /* stays unread next load */ });
+  }, []);
   const leadMap = useMemo(() => new Map(leads.map((l) => [l.id, l])), [leads]);
+  const openCompose = useCallback((l: Lead, reply?: Reply) => setCompose({ lead: l, reply }), []);
   const openLead = useCallback((id: string) => { setSection('leads'); setQ(''); setView('all'); setStatus(''); setPri('all'); setOpen(id); }, []);
   const onSent = (l: Lead, m: OutMail | null) => {
     setCompose(null);
@@ -267,9 +295,11 @@ export function OutreachPanel() {
 
       <div className="mb-5">
         <Segmented label="Section" value={section} onChange={setSection}
-          options={[{ v: 'leads', t: 'Leads' }, { v: 'sent', t: `Sent${mails.length ? ` · ${mails.length}` : ''}` }, { v: 'calls', t: 'Calls' }]} />
+          options={[{ v: 'leads', t: 'Leads' }, { v: 'inbox', t: `Inbox${unread ? ` · ${unread}` : ''}` }, { v: 'sent', t: `Sent${mails.length ? ` · ${mails.length}` : ''}` }, { v: 'calls', t: 'Calls' }]} />
       </div>
 
+      {section === 'inbox' && <InboxList replies={replies} leads={leadMap} onRead={markRead} onOpenLead={openLead}
+        onReply={(r) => { const l = r.lead_id ? leadMap.get(r.lead_id) : undefined; if (l) setCompose({ lead: l, reply: r }); }} />}
       {section === 'sent' && <SentList mails={mails} leads={leadMap} onOpenLead={openLead} />}
       {section === 'calls' && <CallsView onToast={notify} />}
 
@@ -355,16 +385,18 @@ export function OutreachPanel() {
         <ul className={`${glass} rounded-[22px] overflow-hidden divide-y divide-white/[0.06]`}>
           {shown.map((l) => (
             <LeadRow key={l.id} l={l} q={dq.split(/\s+/)[0] || ''} expanded={open === l.id} saving={saving === l.id}
-              onToggle={setOpen} onSave={save} onToast={notify} mails={mailsByLead.get(l.id)} onCompose={setCompose} />
+              onToggle={setOpen} onSave={save} onToast={notify} mails={mailsByLead.get(l.id)} replies={repliesByLead.get(l.id)}
+              onCompose={openCompose} onRead={markRead} />
           ))}
         </ul>
       )}
       </>}
 
       {compose && (
-        <ComposeSheet lead={compose}
-          pitch={mailsByLead.get(compose.id)?.length ? followupFor(compose, mailsByLead.get(compose.id)!.slice(-1)[0]) : pitchFor(compose)}
-          onClose={() => setCompose(null)} onSent={(m) => onSent(compose, m)} />
+        <ComposeSheet lead={compose.lead} replyTo={compose.reply}
+          pitch={compose.reply ? replyFor(compose.reply)
+            : mailsByLead.get(compose.lead.id)?.length ? followupFor(compose.lead, mailsByLead.get(compose.lead.id)!.slice(-1)[0]) : pitchFor(compose.lead)}
+          onClose={() => setCompose(null)} onSent={(m) => onSent(compose.lead, m)} />
       )}
 
       {adding && <AddLeadSheet onClose={() => setAdding(false)} onAdded={(l) => { setLeads((ls) => [...ls, l]); setAdding(false); setOpen(l.id); notify('Lead added'); }} />}
@@ -381,11 +413,13 @@ export function OutreachPanel() {
    One lead: compact row, tap to expand
 ============================================================= */
 const NO_MAILS: OutMail[] = [];
-const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast, mails = NO_MAILS, onCompose }: {
+const NO_REPLIES: Reply[] = [];
+const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast, mails = NO_MAILS, replies = NO_REPLIES, onCompose, onRead }: {
   l: Lead; q: string; expanded: boolean; saving: boolean;
   onToggle: (id: string | null) => void; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void;
-  mails?: OutMail[]; onCompose: (l: Lead) => void;
+  mails?: OutMail[]; replies?: Reply[]; onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void;
 }) {
+  const newReplies = replies.filter((r) => !r.read_at).length;
   const d = daysTo(l.sort_date);
   const due = isDue(l);
   const st = STATUS[l.status];
@@ -407,6 +441,7 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
             {d !== null && d >= 0 && d <= 7 && <span className="text-[#FF9F0A]">· {d === 0 ? 'today' : `in ${d}d`}</span>}
             {due && <span className="text-[#FF9F0A]">· Follow up</span>}
             {mails.length > 0 && <span>· {mails.length} email{mails.length > 1 ? 's' : ''} sent</span>}
+            {newReplies > 0 && <span className="font-medium text-[#0A84FF]">· New reply</span>}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -421,14 +456,15 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
 
       {/* Smooth expand (grid rows 0fr → 1fr); details only mount when opened */}
       <div id={bodyId} className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} mails={mails} onCompose={onCompose} />}</div>
+        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} mails={mails} replies={replies} onCompose={onCompose} onRead={onRead} />}</div>
       </div>
     </li>
   );
 });
 
-function LeadDetails({ l, onSave, onToast, mails: sent, onCompose }: {
-  l: Lead; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void; mails: OutMail[]; onCompose: (l: Lead) => void;
+function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRead }: {
+  l: Lead; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void; mails: OutMail[]; replies: Reply[];
+  onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void;
 }) {
   const [notes, setNotes] = useState(l.notes);
   useEffect(() => setNotes(l.notes), [l.notes]);
@@ -475,7 +511,7 @@ function LeadDetails({ l, onSave, onToast, mails: sent, onCompose }: {
         <Info k="Event date"><span className="text-white/70">{l.event_date}</span></Info>
       </dl>
 
-      <MailTimeline mails={sent} />
+      <MailTimeline mails={sent} replies={replies} onReply={(r) => onCompose(l, r)} onRead={onRead} />
 
       {/* Notes + follow-up */}
       <div className="grid gap-3 sm:grid-cols-[1fr_200px]">

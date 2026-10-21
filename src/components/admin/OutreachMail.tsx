@@ -12,6 +12,10 @@ export interface OutMail {
   id: string; lead_id: string | null; to_emails: string[]; subject: string; body: string; booking_link: string | null;
   message_ids: string[]; sent_by: string | null; sent_at: string;
 }
+export interface Reply {
+  id: string; lead_id: string | null; from_email: string; from_name: string; subject: string; body: string;
+  message_id: string | null; received_at: string; read_at: string | null;
+}
 export interface LeadLite { id: string; event: string; organizer: string; emails: string; status: string }
 
 const glass = 'bg-white/[0.045] backdrop-blur-2xl backdrop-saturate-150 border border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_10px_40px_-12px_rgba(0,0,0,0.6)]';
@@ -73,11 +77,13 @@ function StateBadge({ s }: { s?: string }) {
 /* =============================================================
    Compose sheet
 ============================================================= */
-export function ComposeSheet({ lead, pitch, onClose, onSent }: {
+export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo }: {
   lead: LeadLite; pitch: { subject: string; body: string };
   onClose: () => void; onSent: (m: OutMail | null) => void;
+  /** Answering a reply: send only to that person, in the same thread. */
+  replyTo?: Reply;
 }) {
-  const initial = useMemo(() => lead.emails.split(/[,;\s]+/).filter((e) => EMAIL_RE.test(e)), [lead.emails]);
+  const initial = useMemo(() => (replyTo ? [replyTo.from_email] : lead.emails.split(/[,;\s]+/).filter((e) => EMAIL_RE.test(e))), [lead.emails, replyTo]);
   const [to, setTo] = useState<string[]>(initial);
   const [extra, setExtra] = useState('');
   const [subject, setSubject] = useState(pitch.subject);
@@ -126,7 +132,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent }: {
     if (!subject.trim() || !body.trim()) { setErr('Subject and message are needed.'); return; }
     setBusy(true); setErr('');
     try {
-      const d = await api<{ mail: OutMail | null }>('/api/outreach', { action: 'send', leadId: lead.id, to, subject, body, bookingLink: link || undefined });
+      const d = await api<{ mail: OutMail | null }>('/api/outreach', { action: 'send', leadId: lead.id, to, subject, body, bookingLink: link || undefined, inReplyTo: replyTo?.message_id || undefined });
       onSent(d.mail);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not send.'); setBusy(false); }
   };
@@ -138,7 +144,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent }: {
         <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-white/25 sm:hidden" />
         <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-white/[0.07]">
           <button onClick={onClose} disabled={busy} className="text-[16px] text-[#0A84FF] disabled:opacity-40">Cancel</button>
-          <h3 id="compose-h" className="text-[17px] font-semibold text-white">New Message</h3>
+          <h3 id="compose-h" className="text-[17px] font-semibold text-white">{replyTo ? 'Reply' : 'New Message'}</h3>
           <button onClick={send} disabled={busy} aria-label="Send"
             className="h-9 rounded-full bg-[#0A84FF] px-4 text-[15px] font-semibold text-white disabled:opacity-50 flex items-center gap-1.5 active:scale-95 transition">
             {busy ? <Loader2 size={15} className="animate-spin" /> : null}Send
@@ -190,30 +196,107 @@ export function ComposeSheet({ lead, pitch, onClose, onSent }: {
 }
 
 /* =============================================================
-   Emails sent to one lead (inside an opened lead)
+   Conversation with one lead (inside an opened lead): what we sent + what they replied
 ============================================================= */
-export function MailTimeline({ mails }: { mails: OutMail[] }) {
+export function MailTimeline({ mails, replies = [], onReply, onRead }: {
+  mails: OutMail[]; replies?: Reply[]; onReply?: (r: Reply) => void; onRead?: (r: Reply) => void;
+}) {
   const status = useMailStatus(mails.map((m) => m.message_ids[0]).filter(Boolean));
   const [openId, setOpenId] = useState<string | null>(null);
-  if (!mails.length) return null;
+  type Item = { kind: 'out'; at: string; m: OutMail } | { kind: 'in'; at: string; r: Reply };
+  const items: Item[] = [
+    ...mails.map((m) => ({ kind: 'out' as const, at: m.sent_at, m })),
+    ...replies.map((r) => ({ kind: 'in' as const, at: r.received_at, r })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
+  if (!items.length) return null;
   return (
     <div>
-      <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/40">Emails sent · {mails.length}</p>
-      <ul className="rounded-2xl bg-white/[0.04] border border-white/[0.06] divide-y divide-white/[0.06]">
-        {mails.map((m) => (
-          <li key={m.id}>
-            <button onClick={() => setOpenId(openId === m.id ? null : m.id)} aria-expanded={openId === m.id} className={`w-full px-4 py-2.5 text-left ${ring}`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-[14px] text-white">{m.subject}</span>
-                <StateBadge s={status(m.message_ids[0])} />
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/40">Conversation · {items.length}</p>
+      <ul className="space-y-2">
+        {items.map((it) => {
+          const id = it.kind === 'out' ? it.m.id : it.r.id;
+          const isOpen = openId === id || (it.kind === 'in' && !openId && it === items[items.length - 1]);
+          if (it.kind === 'out') {
+            const m = it.m;
+            return (
+              <li key={id} className="flex justify-end">
+                <button onClick={() => setOpenId(openId === id ? null : id)} aria-expanded={isOpen}
+                  className={`max-w-[88%] rounded-2xl rounded-br-md bg-[#0A84FF]/20 border border-[#0A84FF]/25 px-3.5 py-2.5 text-left ${ring}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate text-[13.5px] font-medium text-white">{m.subject}</span>
+                    <StateBadge s={status(m.message_ids[0])} />
+                  </div>
+                  <p className="mt-0.5 text-[11.5px] text-white/45">You · {when(m.sent_at)} · to {m.to_emails.join(', ')}</p>
+                  {isOpen && <pre className="mt-2 whitespace-pre-wrap font-sans text-[13.5px] leading-relaxed text-white/80">{m.body}</pre>}
+                </button>
+              </li>
+            );
+          }
+          const r = it.r;
+          return (
+            <li key={id} className="flex justify-start">
+              <div className={`max-w-[88%] rounded-2xl rounded-bl-md bg-white/[0.07] border border-white/[0.08] px-3.5 py-2.5 ${!r.read_at ? 'ring-1 ring-[#0A84FF]/60' : ''}`}>
+                <button onClick={() => { setOpenId(openId === id ? null : id); if (!r.read_at) onRead?.(r); }} aria-expanded={isOpen} className={`w-full text-left ${ring}`}>
+                  <div className="flex items-center gap-2">
+                    {!r.read_at && <span className="h-2 w-2 shrink-0 rounded-full bg-[#0A84FF]" aria-label="Unread" />}
+                    <span className="truncate text-[13.5px] font-medium text-white">{r.from_name || r.from_email}</span>
+                  </div>
+                  <p className="mt-0.5 text-[11.5px] text-white/45">{when(r.received_at)} · {r.from_email}</p>
+                  {isOpen && <pre className="mt-2 whitespace-pre-wrap font-sans text-[13.5px] leading-relaxed text-white/85">{r.body || '(no text)'}</pre>}
+                </button>
+                {isOpen && onReply && <button onClick={() => onReply(r)} className="mt-2 text-[13.5px] font-medium text-[#0A84FF]">Reply</button>}
               </div>
-              <p className="mt-0.5 truncate text-[12px] text-white/40">{when(m.sent_at)} · to {m.to_emails.join(', ')}{m.sent_by ? ` · by ${m.sent_by}` : ''}</p>
-            </button>
-            {openId === m.id && <pre className="whitespace-pre-wrap px-4 pb-3 font-sans text-[13.5px] leading-relaxed text-white/70">{m.body}</pre>}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
+  );
+}
+
+/* =============================================================
+   Inbox: replies from organisers (to mail@cyberhx.com), newest first
+============================================================= */
+export function InboxList({ replies, leads, onReply, onRead, onOpenLead }: {
+  replies: Reply[]; leads: Map<string, LeadLite>;
+  onReply: (r: Reply) => void; onRead: (r: Reply) => void; onOpenLead: (id: string) => void;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  if (!replies.length) {
+    return <Empty title="No replies yet" text="When an organiser replies to mail@cyberhx.com, it shows up here and the lead moves to Replied." />;
+  }
+  return (
+    <ul className={`${glass} rounded-[22px] overflow-hidden divide-y divide-white/[0.06]`}>
+      {replies.map((r) => {
+        const lead = r.lead_id ? leads.get(r.lead_id) : undefined;
+        const open = openId === r.id;
+        return (
+          <li key={r.id}>
+            <button onClick={() => { setOpenId(open ? null : r.id); if (!r.read_at) onRead(r); }} aria-expanded={open}
+              className={`w-full flex gap-3 px-4 sm:px-5 py-3 text-left hover:bg-white/[0.03] ${ring}`}>
+              <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${r.read_at ? 'bg-transparent' : 'bg-[#0A84FF]'}`} aria-label={r.read_at ? undefined : 'Unread'} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className={`truncate text-[15px] ${r.read_at ? 'text-white/85' : 'font-semibold text-white'}`}>{r.from_name || r.from_email}</span>
+                  <span className="shrink-0 text-[12px] text-white/40">{when(r.received_at)}</span>
+                </span>
+                <span className="block truncate text-[13.5px] text-white/75">{lead ? `${lead.event} · ` : ''}{r.subject}</span>
+                {!open && <span className="block truncate text-[13px] text-white/40">{r.body.replace(/\s+/g, ' ').slice(0, 140)}</span>}
+              </span>
+            </button>
+            {open && (
+              <div className="px-4 sm:px-5 pb-4 sm:pl-[52px]">
+                <pre className="whitespace-pre-wrap rounded-xl bg-white/[0.04] p-3 font-sans text-[14px] leading-relaxed text-white/85">{r.body || '(no text)'}</pre>
+                <div className="mt-2 flex gap-4">
+                  <button onClick={() => onReply(r)} className="text-[14px] font-medium text-[#0A84FF]">Reply</button>
+                  {lead && <button onClick={() => onOpenLead(lead.id)} className="text-[14px] text-[#0A84FF]">Open lead</button>}
+                </div>
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
