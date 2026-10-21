@@ -940,3 +940,84 @@ img[loading="lazy"] { transition: filter 0.3s; }
   .cx-spark { display: none; }
   .cx-ed-hw:hover .cx-ed-hero { transform: none; }
 }
+
+/* =============================================================
+   Admin panel: Apple-style theme (frosted glass, SF type, iOS blue).
+   Scoped to .ios-admin so the public site keeps its own look. It restyles the
+   shared admin classes (cards, inputs, lime accents) in one place instead of every panel.
+============================================================= */
+.ios-admin {
+  --ios-blue: #0A84FF;
+  --ios-blue-hi: #409CFF;
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-line: rgba(255, 255, 255, 0.09);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+  background: #000;
+}
+.ios-admin .font-display { font-family: inherit; }
+.ios-admin h1, .ios-admin h2, .ios-admin h3 { letter-spacing: -0.02em; }
+
+/* Ambient colour behind the glass (fixed, full page: no hard edges) */
+.ios-admin-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.ios-admin-glow::before, .ios-admin-glow::after, .ios-admin-glow i {
+  content: ""; position: absolute; border-radius: 9999px; filter: blur(110px); opacity: .55;
+}
+.ios-admin-glow::before { width: 46vw; height: 46vw; left: -8vw; top: -12vw; background: radial-gradient(circle, #0A84FF66, transparent 70%); }
+.ios-admin-glow::after { width: 40vw; height: 40vw; right: -10vw; top: 6vh; background: radial-gradient(circle, #BF5AF255, transparent 70%); }
+.ios-admin-glow i { width: 36vw; height: 36vw; left: 30vw; top: 45vh; background: radial-gradient(circle, #30D15833, transparent 70%); }
+
+/* Cards / panels -> glass */
+.ios-admin .bg-\[\#0a0f1a\] {
+  background-color: var(--glass) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  border-color: var(--glass-line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 40px -14px rgba(0,0,0,.65);
+}
+.ios-admin .rounded-2xl { border-radius: 22px; }
+.ios-admin .rounded-xl { border-radius: 12px; }
+.ios-admin .border-white\/8, .ios-admin .border-white\/5 { border-color: rgba(255,255,255,.07); }
+
+/* Inputs, selects, inner wells */
+.ios-admin .bg-\[\#05080f\], .ios-admin .bg-\[\#05070c\] { background-color: rgba(255,255,255,.06); }
+.ios-admin input:not([type=checkbox]):not([type=radio]):not([type=range]), .ios-admin select, .ios-admin textarea { color-scheme: dark; }
+.ios-admin input:focus, .ios-admin select:focus, .ios-admin textarea:focus { border-color: rgba(10,132,255,.6) !important; outline: none; }
+.ios-admin .accent-\[\#a3e635\] { accent-color: var(--ios-blue); }
+
+/* Lime brand accent -> iOS blue inside the admin */
+.ios-admin .text-\[\#a3e635\] { color: var(--ios-blue); }
+.ios-admin .bg-\[\#a3e635\] { background-color: var(--ios-blue); color: #fff; }
+.ios-admin .bg-\[\#a3e635\] .text-\[\#05080f\], .ios-admin .bg-\[\#a3e635\].text-\[\#05080f\] { color: #fff; }
+.ios-admin .hover\:bg-\[\#bef264\]:hover { background-color: var(--ios-blue-hi); }
+.ios-admin .bg-\[\#a3e635\]\/5 { background-color: rgba(10,132,255,.06); }
+.ios-admin .bg-\[\#a3e635\]\/10 { background-color: rgba(10,132,255,.12); }
+.ios-admin .bg-\[\#a3e635\]\/15 { background-color: rgba(10,132,255,.16); }
+.ios-admin .bg-\[\#a3e635\]\/20 { background-color: rgba(10,132,255,.2); }
+.ios-admin .border-\[\#a3e635\] { border-color: var(--ios-blue); }
+.ios-admin .border-\[\#a3e635\]\/20, .ios-admin .border-\[\#a3e635\]\/25 { border-color: rgba(10,132,255,.25); }
+.ios-admin .border-\[\#a3e635\]\/30, .ios-admin .border-\[\#a3e635\]\/40 { border-color: rgba(10,132,255,.38); }
+.ios-admin .border-\[\#a3e635\]\/50 { border-color: rgba(10,132,255,.5); }
+.ios-admin .ring-\[\#a3e635\], .ios-admin .ring-\[\#a3e635\]\/70 { --tw-ring-color: rgba(10,132,255,.75); }
+.ios-admin .hover\:text-\[\#a3e635\]:hover { color: var(--ios-blue-hi); }
+.ios-admin .hover\:border-\[\#a3e635\]\/50:hover, .ios-admin .hover\:border-\[\#a3e635\]\/30:hover { border-color: rgba(10,132,255,.5); }
+.ios-admin .decoration-\[\#a3e635\] { text-decoration-color: var(--ios-blue); }
+
+/* Primary buttons feel like iOS: pill-ish, soft glow, press */
+.ios-admin button.bg-\[\#a3e635\], .ios-admin a.bg-\[\#a3e635\] {
+  font-weight: 600; box-shadow: 0 6px 20px -8px #0A84FF, inset 0 1px 0 rgba(255,255,255,.28); transition: transform .12s, background-color .15s;
+}
+.ios-admin button.bg-\[\#a3e635\]:active, .ios-admin a.bg-\[\#a3e635\]:active { transform: scale(.97); }
+
+/* Greys a touch cooler, like iOS secondary labels */
+.ios-admin .text-gray-500 { color: rgba(235,235,245,.45); }
+.ios-admin .text-gray-400 { color: rgba(235,235,245,.6); }
+.ios-admin .text-gray-300 { color: rgba(235,235,245,.78); }
+
+/* Horizontal scrollers without the white bar */
+.ios-admin .ios-noscroll { scrollbar-width: none; }
+.ios-admin .ios-noscroll::-webkit-scrollbar { display: none; }
+.ios-admin ::-webkit-scrollbar { height: 6px; width: 8px; }
+.ios-admin ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 9999px; }
+.ios-admin ::-webkit-scrollbar-track { background: transparent; }

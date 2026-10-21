@@ -15,7 +15,7 @@ import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle, XCircle, Clock, Eye, Search,
-  LogIn, Newspaper, Users, TrendingUp,
+  Newspaper, Users, TrendingUp,
   ChevronDown, ChevronUp, Loader2, AlertTriangle,
   Trash2
 } from 'lucide-react';
@@ -145,12 +145,13 @@ const LoginScreen = ({ onLogin, notice = '' }: { onLogin: () => void; notice?: s
   };
 
   return (
-    <div className="min-h-screen bg-[#05080f] flex items-center justify-center p-4">
+    <div className="ios-admin relative min-h-screen flex items-center justify-center p-4">
+      <div className="ios-admin-glow" aria-hidden><i /></div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-[#0a0f1a] border border-white/10 rounded-2xl p-8 w-full max-w-sm shadow-2xl">
+        className="relative bg-[#0a0f1a] border border-white/10 rounded-[28px] p-8 w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-white">Sign in</h1>
-          <p className="text-gray-500 text-sm mt-1">CyberHx team sign-in</p>
+          <p className="text-gray-500 text-[15px] mt-1">CyberHx team</p>
         </div>
         <div className="space-y-4">
           <div>
@@ -168,9 +169,9 @@ const LoginScreen = ({ onLogin, notice = '' }: { onLogin: () => void; notice?: s
           </div>
           {error && <p className="text-red-400 text-sm flex items-center gap-1.5"><AlertTriangle size={14} />{error}</p>}
           <button onClick={handleLogin} disabled={loading}
-            className="w-full py-3 bg-[#a3e635] text-[#05080f] font-bold rounded-xl hover:bg-[#bef264] transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
-            {loading ? 'Logging in…' : 'Login'}
+            className="w-full py-3 bg-[#a3e635] text-[#05080f] text-[17px] rounded-xl hover:bg-[#bef264] transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+            {loading && <Loader2 size={18} className="animate-spin" />}
+            {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </div>
       </motion.div>
@@ -383,7 +384,7 @@ const AdminPage: React.FC = () => {
   if (!authed) return <LoginScreen onLogin={() => { setMeErr(''); setAuthed(true); }} notice={meErr} />;
   if (!me) {
     return (
-      <div className="min-h-screen bg-[#05080f] flex items-center justify-center" role="status" aria-live="polite">
+      <div className="ios-admin min-h-screen flex items-center justify-center" role="status" aria-live="polite">
         {meErr ? <p className="text-red-400 text-sm">{meErr}</p> : <Loader2 size={32} className="text-[#a3e635] animate-spin" aria-label="Loading" />}
       </div>
     );
@@ -391,26 +392,27 @@ const AdminPage: React.FC = () => {
   const go = (t: TabId) => (allowed.includes(t) ? t : null);
 
   return (
-    <div className="min-h-screen bg-[#05080f] pt-14 sm:pt-16">
+    <div className="ios-admin relative min-h-screen pt-14 sm:pt-16">
+      <div className="ios-admin-glow" aria-hidden><i /></div>
       <Seo title="Admin · CyberHx" description="CyberHx admin." path="/admin" noindex />
       {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 bg-[#0a0f1a] border border-[#a3e635]/30 text-[#a3e635] px-5 py-2.5 rounded-xl text-sm font-medium z-50 shadow-xl">
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0a0f1a] border border-white/10 text-white px-5 py-2.5 rounded-full text-[14px] z-50">
             {toast}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative z-[1] max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-start justify-between mb-8 gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-[-0.02em] text-white">Admin</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Signed in as <span className="text-gray-300">{me.email || 'staff'}</span>
-              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#a3e635]/10 text-[#a3e635] border border-[#a3e635]/25 align-middle">{ROLES[me.role].label}</span>
+            <h1 className="text-[22px] sm:text-[26px] leading-none font-semibold tracking-[-0.02em] text-white">Admin</h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-500">
+              <span className="truncate max-w-[60vw] sm:max-w-none">{me.email || 'staff'}</span>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11.5px] font-medium text-gray-300">{ROLES[me.role].label}</span>
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -426,22 +428,26 @@ const AdminPage: React.FC = () => {
         </div>
 
         {/* Stats (blog roles only) */}
-        {canBlog && <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        {canBlog && (tab === 'submissions' || tab === 'posts') && <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Total Submissions', value: stats.total, color: 'text-white', icon: <Newspaper size={18} /> },
-            { label: 'Pending Review', value: stats.pending, color: 'text-yellow-400', icon: <Clock size={18} /> },
-            { label: 'Approved', value: stats.approved, color: 'text-green-400', icon: <CheckCircle size={18} /> },
-            { label: 'Published Posts', value: stats.published, color: 'text-[#a3e635]', icon: <TrendingUp size={18} /> },
+            { label: 'Submissions', value: stats.total, tint: '#0A84FF', icon: <Newspaper size={16} /> },
+            { label: 'Pending review', value: stats.pending, tint: '#FF9F0A', icon: <Clock size={16} /> },
+            { label: 'Approved', value: stats.approved, tint: '#30D158', icon: <CheckCircle size={16} /> },
+            { label: 'Published', value: stats.published, tint: '#BF5AF2', icon: <TrendingUp size={16} /> },
           ].map(s => (
-            <div key={s.label} className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-4">
-              <div className={`flex items-center gap-2 mb-2 ${s.color}`}>{s.icon}<span className="text-xs font-medium text-gray-500">{s.label}</span></div>
-              <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
+            <div key={s.label} className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-4 flex items-center gap-3 sm:block">
+              <span aria-hidden className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white" style={{ background: s.tint }}>{s.icon}</span>
+              <span className="block">
+                <p className="sm:mt-3 text-[26px] font-semibold leading-none tabular-nums text-white">{s.value}</p>
+                <p className="mt-1 text-[12.5px] text-gray-500">{s.label}</p>
+              </span>
             </div>
           ))}
         </div>}
 
         {/* Tabs: only the ones this role can use */}
-        <div role="tablist" aria-label="Admin sections" className={`${allowed.length < 2 ? 'hidden' : 'flex'} gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1`}>
+        <div role="tablist" aria-label="Admin sections"
+          className={`${allowed.length < 2 ? 'hidden' : 'flex'} ios-noscroll sticky top-14 sm:top-16 z-30 mb-6 w-fit max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-white/[0.08] bg-[#1c1c1e]/70 p-[3px] backdrop-blur-2xl`}>
           {([
             { id: 'inbox', label: 'Inbox', badge: newCounts.inbox },
             { id: 'submissions', label: 'Blog submissions', badge: stats.pending },
@@ -458,10 +464,10 @@ const AdminPage: React.FC = () => {
             { id: 'team', label: 'Team', badge: 0 },
           ] as { id: TabId; label: string; badge: number }[]).filter(t => allowed.includes(t.id)).sort((a, b) => allowed.indexOf(a.id) - allowed.indexOf(b.id)).map(t => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap flex items-center gap-2 ${tab === t.id ? 'bg-[#a3e635] text-[#05080f] border-[#a3e635]' : 'bg-[#0a0f1a] border-white/8 text-gray-400 hover:text-white'}`}>
+              className={`shrink-0 px-3.5 sm:px-4 py-1.5 rounded-[11px] text-[13.5px] font-medium whitespace-nowrap flex items-center gap-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/80 ${tab === t.id ? 'bg-white/[0.16] text-white shadow-[0_2px_8px_rgba(0,0,0,.35),inset_0_0.5px_0_rgba(255,255,255,.25)]' : 'text-white/55 hover:text-white/85'}`}>
               {t.label}
               {t.badge > 0 && (
-                <span className={`text-[11px] font-bold px-1.5 min-w-[20px] h-5 rounded-full flex items-center justify-center ${tab === t.id ? 'bg-[#05080f] text-[#a3e635]' : 'bg-[#a3e635] text-[#05080f]'}`}>{t.badge}</span>
+                <span className="text-[11px] font-semibold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center bg-[#FF453A] text-white">{t.badge}</span>
               )}
             </button>
           ))}

@@ -291,19 +291,12 @@ export function OutreachPanel() {
 
   return (
     <div className="relative isolate">
-      {/* ambient colour behind the glass */}
-      <div aria-hidden className="pointer-events-none absolute -inset-x-6 -top-10 -z-10 h-[520px] overflow-hidden">
-        <div className="absolute left-[8%] top-0 h-72 w-72 rounded-full bg-[#0A84FF]/25 blur-[90px]" />
-        <div className="absolute right-[10%] top-16 h-64 w-64 rounded-full bg-[#BF5AF2]/20 blur-[90px]" />
-        <div className="absolute left-[40%] top-48 h-56 w-56 rounded-full bg-[#30D158]/15 blur-[90px]" />
-      </div>
-
       {/* Title */}
       <header className="mb-5 flex items-end justify-between gap-3">
         <div className="flex items-center gap-3.5">
           <div>
             <h2 className="text-[28px] sm:text-[34px] font-semibold tracking-[-0.02em] text-white leading-none">Outreach</h2>
-            <p className="mt-1.5 text-[13px] text-white/50">CTF organisers with no platform · {leads.length} leads</p>
+            <p className="mt-1.5 text-[13px] text-white/50">CTF organisers with no platform · {leads.length} {leads.length === 1 ? 'lead' : 'leads'}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
