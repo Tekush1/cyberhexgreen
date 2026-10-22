@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, Loader2, Save, AlertTriangle, CalendarDays, Clock, Copy, RefreshCw } from 'lucide-react';
 import { sbSelect, sbUpsert } from './adminApi';
+import { sbWrite } from './mailingApi';
 
 interface Win { s: string; e: string }
 interface Config {
@@ -92,8 +93,9 @@ const WindowsEditor: React.FC<{ windows: Win[]; onChange: (w: Win[]) => void }> 
   </div>
 );
 
-/** row 1 = interviews & other meetings, row 2 = CTF hosting calls (the Outreach role edits only row 2). */
-export const AvailabilityPanel: React.FC<{ row?: 1 | 2; canSwitch?: boolean }> = ({ row: fixedRow, canSwitch = false }) => {
+/** row 1 = interviews & other meetings, row 2 = shared CTF hosting calls.
+ *  `person` = one outreach person's own call hours (outreach_people.availability), edited by them or an owner. */
+export const AvailabilityPanel: React.FC<{ row?: 1 | 2; canSwitch?: boolean; person?: { id: string; name: string; self?: boolean } }> = ({ row: fixedRow, canSwitch = false, person }) => {
   const [row, setRow] = useState<1 | 2>(fixedRow || 1);
   const [cfg, setCfg] = useState<Config>(DEFAULT_CONFIG);
   const [savedJson, setSavedJson] = useState(JSON.stringify(DEFAULT_CONFIG));
@@ -112,7 +114,9 @@ export const AvailabilityPanel: React.FC<{ row?: 1 | 2; canSwitch?: boolean }> =
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    const res = await sbSelect<{ config: Partial<Config> }>('meeting_availability', { select: 'config', id: `eq.${row}` });
+    const res = person
+      ? await sbSelect<{ config: Partial<Config> }>('outreach_people', { select: 'config:availability', user_id: `eq.${person.id}` })
+      : await sbSelect<{ config: Partial<Config> }>('meeting_availability', { select: 'config', id: `eq.${row}` });
     if (!res.ok) {
       setMissing(res.missingTable);
       setError(res.error);
@@ -130,7 +134,7 @@ export const AvailabilityPanel: React.FC<{ row?: 1 | 2; canSwitch?: boolean }> =
       setSavedJson(JSON.stringify(next));
     }
     setLoading(false);
-  }, [row]);
+  }, [row, person?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
@@ -152,9 +156,15 @@ export const AvailabilityPanel: React.FC<{ row?: 1 | 2; canSwitch?: boolean }> =
     }
     const next: Config = { slotMinutes: cfg.slotMinutes, daysAhead: cfg.daysAhead, minNoticeHours: cfg.minNoticeHours, weekly, dates };
     setSaving(true);
-    const res = await sbUpsert('meeting_availability', { id: row, config: next, updated_at: new Date().toISOString() });
-    setSaving(false);
-    if (!res.ok) { setMissing(res.missingTable); return setError(res.error); }
+    if (person) {
+      try { await sbWrite('PATCH', `outreach_people?user_id=eq.${person.id}`, { availability: next }); }
+      catch (e) { setSaving(false); return setError(e instanceof Error ? e.message : 'Could not save.'); }
+      setSaving(false);
+    } else {
+      const res = await sbUpsert('meeting_availability', { id: row, config: next, updated_at: new Date().toISOString() });
+      setSaving(false);
+      if (!res.ok) { setMissing(res.missingTable); return setError(res.error); }
+    }
     setCfg(next);
     setSavedJson(JSON.stringify(next));
     setToast('✅ Availability saved');
@@ -217,9 +227,9 @@ export const AvailabilityPanel: React.FC<{ row?: 1 | 2; canSwitch?: boolean }> =
       <div className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h3 className="text-white font-medium flex items-center gap-2"><Clock size={16} className="text-[#a3e635]" /> {row === 2 ? 'When can you take CTF hosting calls?' : 'When are you available?'}</h3>
+            <h3 className="text-white font-medium flex items-center gap-2"><Clock size={16} className="text-[#a3e635]" /> {person ? (person.self ? 'When can you take CTF hosting calls?' : `${person.name}'s call hours`) : row === 2 ? 'When can you take CTF hosting calls?' : 'When are you available?'}</h3>
             <p className="text-gray-500 text-xs mt-1 max-w-xl">
-              {row === 2 ? 'CTF organisers who get a booking link from Outreach can only pick a time inside these hours' : 'People can only book inside these times'} (all times are <b className="text-gray-300">IST</b>). Slots that clash with something already on your Google Calendar are hidden automatically.
+              {person ? `Organisers who get a booking link from ${person.self ? 'you' : person.name} can only pick a time inside these hours` : row === 2 ? 'CTF organisers who get a booking link from Outreach can only pick a time inside these hours' : 'People can only book inside these times'} (all times are <b className="text-gray-300">IST</b>). {person ? `Times when ${person.self ? 'you already have' : `${person.name} already has`} a call booked are hidden automatically.` : 'Slots that clash with something already on your Google Calendar are hidden automatically.'}
             </p>
           </div>
           <div className="flex gap-3 flex-wrap">

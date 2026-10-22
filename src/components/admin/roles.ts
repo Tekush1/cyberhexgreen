@@ -35,7 +35,7 @@ export const ROLES: Record<Role, { label: string; short: string; about: string; 
     label: 'Outreach',
     short: 'Outreach',
     about: 'Outreach only: CTF organiser leads, pitch emails and their history, CTF-call booking links and the hours for those calls.',
-    tabs: ['outreach', 'availability'],
+    tabs: ['outreach'], // call hours live inside Outreach now (each person has their own)
   },
 };
 

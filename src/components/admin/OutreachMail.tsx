@@ -10,11 +10,11 @@ import { TOKEN_KEY } from './adminApi';
 
 export interface OutMail {
   id: string; lead_id: string | null; to_emails: string[]; subject: string; body: string; booking_link: string | null;
-  message_ids: string[]; sent_by: string | null; sent_at: string;
+  message_ids: string[]; sent_by: string | null; sent_at: string; sent_by_id?: string | null; from_email?: string | null;
 }
 export interface Reply {
   id: string; lead_id: string | null; from_email: string; from_name: string; subject: string; body: string;
-  message_id: string | null; received_at: string; read_at: string | null;
+  message_id: string | null; received_at: string; read_at: string | null; owner_id?: string | null;
 }
 export interface LeadLite { id: string; event: string; organizer: string; emails: string; status: string }
 
@@ -77,8 +77,10 @@ function StateBadge({ s }: { s?: string }) {
 /* =============================================================
    Compose sheet
 ============================================================= */
-export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink }: {
+export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, as, fromAddr = 'mail@cyberhx.com' }: {
   lead: LeadLite; pitch: { subject: string; body: string };
+  /** Owner writing for one outreach person: send as them, link uses their hours. */
+  as?: string; fromAddr?: string;
   onClose: () => void; onSent: (m: OutMail | null) => void;
   /** Add the booking link straight away (from "Email a booking link"). */
   autoLink?: boolean;
@@ -116,7 +118,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink }
     setLinkBusy(true); setErr('');
     try {
       const d = await api<{ link: string }>('/api/interview', {
-        action: 'create-link', kind: 'ctf', days: 14,
+        action: 'create-link', kind: 'ctf', days: 14, ...(as ? { as } : {}),
         name: (lead.organizer.split(',')[0] || lead.event).slice(0, 80),
         ...(to.length > 1 ? { emails: to, hideGuests: false } : { email: to[0] }),
       });
@@ -140,7 +142,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink }
     if (!subject.trim() || !body.trim()) { setErr('Subject and message are needed.'); return; }
     setBusy(true); setErr('');
     try {
-      const d = await api<{ mail: OutMail | null }>('/api/outreach', { action: 'send', leadId: lead.id, to, subject, body, bookingLink: link || undefined, inReplyTo: replyTo?.message_id || undefined });
+      const d = await api<{ mail: OutMail | null }>('/api/outreach', { action: 'send', leadId: lead.id, to, subject, body, bookingLink: link || undefined, inReplyTo: replyTo?.message_id || undefined, ...(as ? { as } : {}) });
       onSent(d.mail);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not send.'); setBusy(false); }
   };
@@ -174,7 +176,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink }
               inputMode="email" placeholder={to.length ? '' : 'name@college.edu'} aria-label="Add recipient"
               className="min-w-[140px] flex-1 bg-transparent py-1 text-[15px] text-white placeholder:text-white/25 focus:outline-none" />
           </div>
-          <p className="py-1.5 text-[11.5px] text-white/35">Sent from mail@cyberhx.com. All addresses get the same email; replies come to mail@cyberhx.com and to you.</p>
+          <p className="py-1.5 text-[11.5px] text-white/35">From <span className="text-white/60">{fromAddr}</span>{fromAddr !== 'mail@cyberhx.com' ? ', with a copy to mail@cyberhx.com' : ''}. Replies come to mail@cyberhx.com and show up in your Inbox here.</p>
           {/* Subject */}
           <div className="flex items-center gap-2 border-b border-white/[0.07] py-2.5">
             <span className="text-[15px] text-white/45">Subject:</span>
@@ -347,7 +349,7 @@ export function SentList({ mails, leads, onOpenLead }: { mails: OutMail[]; leads
                 </div>
                 <p className="truncate text-[14px] text-white/80">{m.subject}</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className="truncate text-[12px] text-white/40">to {m.to_emails.join(', ')}{m.sent_by ? ` · by ${m.sent_by}` : ''}</span>
+                  <span className="truncate text-[12px] text-white/40">to {m.to_emails.join(', ')}{m.from_email ? ` · from ${m.from_email}` : m.sent_by ? ` · by ${m.sent_by}` : ''}</span>
                   <StateBadge s={status(m.message_ids[0])} />
                 </div>
               </button>
@@ -373,17 +375,21 @@ export function SentList({ mails, leads, onOpenLead }: { mails: OutMail[]; leads
 interface Booking { eventId: string; name: string; email: string; start: string; end: string; meetLink: string | null; attendees: { email: string; status: string }[] }
 interface Pending { code: string; link: string; name: string; email: string; guests: string[]; expiresAt: string; createdAt: string }
 
-export function CallsView({ onToast }: { onToast: (m: string) => void }) {
+export function CallsView({ onToast, as }: { onToast: (m: string) => void; as?: string }) {
   const [data, setData] = useState<{ items: Booking[]; pending: Pending[] } | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const load = useCallback(async () => {
     setErr('');
     try {
-      const d = await api<{ items: (Booking & { kind?: string })[]; pending: (Pending & { kind?: string })[] }>('/api/interview?admin=list');
-      setData({ items: d.items.filter((i) => !i.kind || i.kind === 'ctf'), pending: d.pending.filter((p) => !p.kind || p.kind === 'ctf') });
+      const d = await api<{ items: (Booking & { kind?: string })[]; pending: (Pending & { kind?: string })[] }>(`/api/interview?admin=list${as ? `&as=${as}` : ''}`);
+      const mine = (o?: string) => !as || o === as;
+      setData({
+        items: d.items.filter((i) => (!i.kind || i.kind === 'ctf') && mine((i as { owner?: string }).owner)),
+        pending: d.pending.filter((p) => (!p.kind || p.kind === 'ctf') && mine((p as { owner?: string }).owner)),
+      });
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load calls.'); }
-  }, []);
+  }, [as]);
   useEffect(() => { load(); }, [load]);
 
   const del = async (code: string) => {
@@ -477,8 +483,8 @@ const istDayLabel = (iso: string) => new Date(iso).toLocaleDateString('en-IN', {
 const istTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' });
 const istToday = () => new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
 
-export function ScheduleSheet({ lead, onClose, onBooked, onLetThemPick }: {
-  lead: LeadLite; onClose: () => void;
+export function ScheduleSheet({ lead, onClose, onBooked, onLetThemPick, as }: {
+  lead: LeadLite; onClose: () => void; as?: string;
   onBooked: (b: { start: string; meetLink: string | null; to: string[] }) => void;
   onLetThemPick: () => void;
 }) {
@@ -508,12 +514,12 @@ export function ScheduleSheet({ lead, onClose, onBooked, onLetThemPick }: {
     if (mode !== 'slot') return;
     let alive = true;
     setLoadingSlots(true); setSlot('');
-    api<SlotData>(`/api/interview?admin=slots&kind=ctf&dur=${mins}`)
+    api<SlotData>(`/api/interview?admin=slots&kind=ctf&dur=${mins}${as ? `&as=${as}` : ''}`)
       .then((d) => { if (!alive) return; setSlots(d); setDay((cur) => (cur && d.slots.some((s) => istDay(s) === cur) ? cur : d.slots[0] ? istDay(d.slots[0]) : '')); })
       .catch((e) => alive && setErr(e instanceof Error ? e.message : 'Could not load free times.'))
       .finally(() => alive && setLoadingSlots(false));
     return () => { alive = false; };
-  }, [mode, mins]);
+  }, [mode, mins, as]);
 
   const days = useMemo(() => [...new Set((slots?.slots || []).map(istDay))].slice(0, 21), [slots]);
   const daySlots = (slots?.slots || []).filter((s) => istDay(s) === day);
@@ -530,7 +536,7 @@ export function ScheduleSheet({ lead, onClose, onBooked, onLetThemPick }: {
     setBusy(true); setErr(''); setClash(false);
     try {
       const d = await api<{ start: string; meetLink: string | null }>('/api/interview', {
-        action: 'book-now', kind: 'ctf', dur: mins,
+        action: 'book-now', kind: 'ctf', dur: mins, ...(as ? { as } : {}),
         name: (lead.organizer.split(',')[0] || lead.event).slice(0, 80),
         ...(to.length > 1 ? { emails: to, hideGuests: false } : { email: to[0] }),
         ...(mode === 'slot' ? { start: slot } : { custom: { date: cDate, time: cTime }, force }),

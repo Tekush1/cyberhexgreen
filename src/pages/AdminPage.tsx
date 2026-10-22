@@ -536,7 +536,7 @@ const AdminPage: React.FC = () => {
 
         {go(tab) === 'team' && <TeamPanel />}
         {go(tab) === 'payments' && <PaymentsPanel />}
-        {go(tab) === 'outreach' && <OutreachPanel />}
+        {go(tab) === 'outreach' && <OutreachPanel role={me.role} />}
 
         {go(tab) === 'posts' && (
           <div>

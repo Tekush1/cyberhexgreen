@@ -1,8 +1,9 @@
 // Vercel serverless function: Admin → Outreach (owners and the 'outreach' role).
 //
 //   POST /api/outreach  { action:'send', leadId, to: string[], subject, body }
-//        Sends ONE plain, personal-looking email (all of the lead's addresses on it) through Resend,
-//        replies go to mail@cyberhx.com AND to the staff member who sent it, then saves it in outreach_mails.
+//        Sends ONE plain, personal-looking email (all of the lead's addresses on it) through Mailtrap,
+//        from the sender's own address (yashika@cyberhx.com ...), CC + reply-to mail@cyberhx.com; saved in outreach_mails.
+//        Owners may pass `as: <user id>` to send as that person.
 //        -> { ok: true, id, mail }
 //   GET  /api/outreach?status=<resend id>,<resend id>...   -> { status: { [id]: 'delivered' | 'opened' | ... } }
 //   POST /api/outreach  (header x-inbound-secret, body = the raw email)  <- Cloudflare Email Worker on mail@cyberhx.com
@@ -15,6 +16,7 @@ import { canAny } from '../server/staff.js';
 import { countUsage, rpc } from '../server/mailer.js';
 import { allow } from '../server/payments.js';
 import PostalMime from 'postal-mime';
+import crypto from 'node:crypto';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE = /^[0-9a-f-]{36}$/i;
@@ -100,45 +102,55 @@ export default async function handler(req: any, res: any) {
   if (!to.length) return res.status(400).json({ error: 'Add at least one valid email address.' });
   if (!subject || !body) return res.status(400).json({ error: 'Subject and message are needed.' });
 
-  // Who is sending (for reply-to and the history)
-  let me = '';
-  try { me = String((await rpc<{ email?: string }>(auth, 'staff_me', {}))?.email || '').toLowerCase(); } catch { /* optional */ }
+  // Who is sending. Each outreach person sends as their own address (outreach_people.send_as, e.g. yashika@cyberhx.com),
+  // CC mail@cyberhx.com, replies to mail@cyberhx.com. Owners send as mail@, or as a person when they pass `as`.
+  let staff: { email?: string; role?: string } = {};
+  try { staff = (await rpc<{ email?: string; role?: string }>(auth, 'staff_me', {})) || {}; } catch { /* optional */ }
+  const me = String(staff.email || '').toLowerCase();
   if (!(await allow('outreach.send', me || 'anon', 60, 3600))) return res.status(429).json({ error: 'Too many emails this hour. Try again later.' });
 
-  // From address: mail@cyberhx.com (the inbox the panel reads), sent only via Mailtrap.
-  const want = process.env.OUTREACH_FROM || 'CyberHx <mail@cyberhx.com>';
-  const threadHeaders = inReplyTo ? { 'In-Reply-To': inReplyTo, References: inReplyTo } : undefined; // keeps the thread together in their inbox
-  const errors: string[] = [];
-
-  const viaMailtrap = async (from: string) => {
-    const tk = process.env.MAILTRAP_API_KEY;
-    if (!tk) { errors.push('Mailtrap: no key'); return ''; }
-    const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+  type Person = { user_id: string; name: string; send_as: string };
+  let person: Person | null = null;
+  try { person = await rpc<Person | null>(auth, 'outreach_me', {}); } catch { /* not an outreach person */ }
+  if (!person && staff.role === 'owner' && UUID_RE.test(String(b.as || ''))) {
     try {
-      const r = await fetch('https://send.api.mailtrap.io/api/send', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: { email: (m ? m[2] : from).trim(), name: (m ? m[1] : '').replace(/^"|"$/g, '') || 'CyberHx' },
-          to: to.map((email) => ({ email })),
-          reply_to: { email: 'mail@cyberhx.com', name: 'CyberHx' }, // Mailtrap takes one reply-to
-          subject, text: body, html: toHtml(body), category: 'outreach',
-          ...(threadHeaders ? { headers: threadHeaders } : {}),
-        }),
-      });
-      const d: any = await r.json().catch(() => ({}));
-      if (r.ok && d?.success !== false) return (d?.message_ids || []).map(String).join(',') || 'ok';
-      errors.push(`Mailtrap ${r.status}: ${String((d?.errors || []).join('; ') || d?.error || '').slice(0, 200)}`);
-    } catch { errors.push('Mailtrap: unreachable'); }
-    return '';
-  };
-  // Outreach goes only through Mailtrap, as mail@cyberhx.com.
-  const id = await viaMailtrap(want), provider = 'mailtrap', sentFrom = want;
-  if (!id) {
-    console.error('outreach send failed', errors);
-    return res.status(500).json({ error: `Could not send. ${errors.slice(-1)[0] || ''}`.trim(), errors });
+      const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const r = await fetch(`${url}/rest/v1/outreach_people?user_id=eq.${b.as}&select=user_id,name,send_as`, { headers: { apikey: String(anon), Authorization: auth } });
+      person = r.ok ? ((await r.json())?.[0] || null) : null;
+    } catch { /* fall back to mail@ */ }
   }
-  await countUsage(auth, 'mailtrap', to.length);
+  if (!person && staff.role !== 'owner') return res.status(403).json({ error: 'Your sending address is not set up yet. Ask the owner to add you in Outreach → Team.' });
+
+  const MAIN = 'mail@cyberhx.com';
+  const fromAddr = person ? { email: person.send_as, name: `${person.name} from CyberHx` } : { email: MAIN, name: 'CyberHx' };
+  const cc = fromAddr.email === MAIN || to.includes(MAIN) ? [] : [{ email: MAIN, name: 'CyberHx' }];
+  const msgId = `<${crypto.randomUUID()}@cyberhx.com>`; // replies quote this, so they land in the right person's inbox
+  const headers: Record<string, string> = { 'Message-ID': msgId, ...(inReplyTo ? { 'In-Reply-To': inReplyTo, References: inReplyTo } : {}) };
+
+  let ids: string[] = [];
+  try {
+    const r = await fetch('https://send.api.mailtrap.io/api/send', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.MAILTRAP_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: fromAddr, to: to.map((email) => ({ email })), ...(cc.length ? { cc } : {}),
+        reply_to: { email: MAIN, name: 'CyberHx' },
+        subject, text: body, html: toHtml(body), category: 'outreach', headers,
+      }),
+    });
+    const d: any = await r.json().catch(() => ({}));
+    if (!r.ok || d?.success === false) {
+      const err = String((d?.errors || []).join('; ') || d?.error || '').slice(0, 200);
+      console.error('outreach send failed', r.status, err);
+      return res.status(500).json({ error: `Mailtrap ${r.status}${err ? ` - ${err}` : ''}` });
+    }
+    ids = (d?.message_ids || []).map(String);
+  } catch {
+    return res.status(500).json({ error: 'Could not reach the email service. Try again.' });
+  }
+  const id = ids[0] || 'ok';
+  await countUsage(auth, 'mailtrap', to.length + cc.length);
 
   // Keep a copy (with the sender's own session, so RLS applies). Never blocks the send.
   let mail: unknown = null;
@@ -149,12 +161,12 @@ export default async function handler(req: any, res: any) {
       const r = await fetch(`${url}/rest/v1/outreach_mails`, {
         method: 'POST',
         headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-        body: JSON.stringify({ lead_id: UUID_RE.test(leadId) ? leadId : null, to_emails: to, subject, body, booking_link: bookingLink, message_ids: id ? id.split(',') : [], provider }),
+        body: JSON.stringify({ lead_id: UUID_RE.test(leadId) ? leadId : null, to_emails: to, subject, body, booking_link: bookingLink, message_ids: [msgId, ...ids], provider: 'mailtrap', from_email: fromAddr.email, ...(person ? { sent_by_id: person.user_id } : {}) }),
       });
       if (r.ok) mail = (await r.json())?.[0] || null;
       else console.error('outreach_mails insert failed', r.status, await r.text().catch(() => ''));
     }
   } catch (e) { console.error('outreach_mails insert error', e); }
 
-  return res.status(200).json({ ok: true, id, mail, provider, from: sentFrom });
+  return res.status(200).json({ ok: true, id, mail, from: fromAddr.email });
 }

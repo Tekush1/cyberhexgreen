@@ -13,7 +13,9 @@
 //   POST /api/interview  { action:'book-now', name, emails, kind, topic, dur, hideGuests,
 //                          start | custom:{date,time}, force? }       -> admin books directly (free slot, or ANY IST date/time)
 //   POST /api/interview  { action:'add-attendees', eventId, emails[] } -> invite more people to a group / admin-made meeting
-// The Outreach role may only: see slots/list, create/delete links and book-now, always as kind 'ctf' (CTF hosting call hours).
+// The Outreach role may only: see slots/list, create/delete links and book-now, always as kind 'ctf', always as themselves:
+// their own hours (outreach_people.availability), their own calls (event private.owner), their own links (payload.o).
+// Owners pass `as=<user id>` to do the same for one person.
 //
 // The token is created with `node scripts/make-interview-link.mjs` and is HMAC-signed,
 // so only people you sent a link to can see slots or book.
@@ -53,7 +55,7 @@ const MAIL_TITLE: Record<Kind, string> = { interview: 'interview', partnership: 
 function meetingOf(ev: any) {
   const priv = ev.extendedProperties?.private || {};
   const kind: Kind = KINDS.includes(priv.kind) ? priv.kind : 'interview';
-  const guests = (ev.attendees || []).filter((a: any) => !a.self && !a.organizer && a.email);
+  const guests = (ev.attendees || []).filter((a: any) => !a.self && !a.organizer && a.email && String(a.email).toLowerCase() !== String(priv.oe || ''));
   const group = priv.group === '1' || guests.length > 1;
   const rcpts: Rcpt[] = guests.map((a: any) => ({ email: String(a.email).toLowerCase(), name: group ? '' : String(priv.name || a.displayName || '') }));
   const startMs = Date.parse(ev.start?.dateTime || '');
@@ -84,6 +86,41 @@ const validWins = (ws: unknown): Win[] =>
     ? ws.filter((w) => w && /^\d{2}:\d{2}$/.test(w.s) && /^\d{2}:\d{2}$/.test(w.e) && toMin(w.e) > toMin(w.s))
     : [];
 
+function parseAvailability(c: any): Availability | null {
+  if (!c || !c.weekly) return null;
+  const weekly: Record<string, Win[]> = {};
+  for (let d = 0; d < 7; d++) weekly[String(d)] = validWins(c.weekly[String(d)]);
+  const dates: Record<string, Win[]> = {};
+  for (const [k, v] of Object.entries(c.dates || {})) if (/^\d{4}-\d{2}-\d{2}$/.test(k)) dates[k] = validWins(v);
+  const slot = Number(c.slotMinutes);
+  const ahead = Number(c.daysAhead);
+  const notice = Number(c.minNoticeHours);
+  return {
+    slotMinutes: [15, 20, 30, 45, 60].includes(slot) ? slot : CONFIG.slotMinutes,
+    daysAhead: Number.isFinite(ahead) && ahead >= 1 ? Math.min(ahead, 90) : CONFIG.daysAhead,
+    minNoticeHours: Number.isFinite(notice) && notice >= 0 ? Math.min(notice, 168) : CONFIG.minNoticeHours,
+    weekly,
+    dates,
+  };
+}
+
+/** One outreach person's own call hours (Admin → Outreach → Call hours). Falls back to the shared CTF hours. */
+async function personAvailability(uid: string): Promise<Availability> {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (url && anon && UUID_RE.test(uid)) {
+    try {
+      const r = await fetch(`${url}/rest/v1/rpc/outreach_hours`, {
+        method: 'POST', headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_user: uid }), cache: 'no-store',
+      });
+      const av = r.ok ? parseAvailability(await r.json()) : null;
+      if (av) return av;
+    } catch { /* fall back */ }
+  }
+  return loadAvailability(2);
+}
+
 async function loadAvailability(row: 1 | 2 = 1): Promise<Availability> {
   const fallback: Availability = {
     slotMinutes: CONFIG.slotMinutes,
@@ -111,28 +148,16 @@ async function loadAvailability(row: 1 | 2 = 1): Promise<Availability> {
     }
     const c = (await res.json())?.[0]?.config;
     if ((!c || !c.weekly) && row === 2) return loadAvailability(1);
-    if (!c || !c.weekly) return fallback;
-    const weekly: Record<string, Win[]> = {};
-    for (let d = 0; d < 7; d++) weekly[String(d)] = validWins(c.weekly[String(d)]);
-    const dates: Record<string, Win[]> = {};
-    for (const [k, v] of Object.entries(c.dates || {})) if (/^\d{4}-\d{2}-\d{2}$/.test(k)) dates[k] = validWins(v);
-    const slot = Number(c.slotMinutes);
-    const ahead = Number(c.daysAhead);
-    const notice = Number(c.minNoticeHours);
-    return {
-      slotMinutes: [15, 20, 30, 45, 60].includes(slot) ? slot : CONFIG.slotMinutes,
-      daysAhead: Number.isFinite(ahead) && ahead >= 1 ? Math.min(ahead, 90) : CONFIG.daysAhead,
-      minNoticeHours: Number.isFinite(notice) && notice >= 0 ? Math.min(notice, 168) : CONFIG.minNoticeHours,
-      weekly,
-      dates,
-    };
+    return parseAvailability(c) || fallback;
   } catch (e) {
     console.error('availability: read error', e instanceof Error ? e.message : e);
     return fallback;
   }
 }
-/** CTF hosting calls use their own hours (Admin → Availability, row 2, set by the Outreach role); everything else uses row 1. */
-const availabilityFor = (k?: string) => loadAvailability(k === 'ctf' ? 2 : 1);
+/** CTF hosting calls use the outreach person's own hours (or the shared CTF hours, row 2); everything else uses row 1. */
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+const availabilityFor = (k?: string, owner?: string) =>
+  k === 'ctf' && owner && UUID_RE.test(owner) ? personAvailability(owner) : loadAvailability(k === 'ctf' ? 2 : 1);
 const CALENDAR_ID = process.env.INTERVIEW_CALENDAR_ID || 'primary';
 
 // ---------- Token ----------
@@ -146,6 +171,8 @@ interface TokenPayload {
   g?: string[]; // group meeting: every invitee email (one link, one slot, many guests)
   hg?: boolean; // group meeting: hide the guest list from attendees
   d?: number; // meeting length in minutes (missing = one slot)
+  o?: string; // outreach person's user id: their hours, their calendar slots, their dashboard
+  oe?: string; // that person's email: invited to the meeting too
 }
 
 // New links are ENCRYPTED (AES-256-GCM) + compressed, so nobody can read the invitee emails out of the URL
@@ -258,6 +285,7 @@ async function listPendingLinks(auth: string, origin: string, bookedIds: Set<str
           guests,
           kind: (p.k && KINDS.includes(p.k) ? p.k : 'interview') as Kind,
           topic: p.tp || '',
+          owner: p.o || '',
           expiresAt: row.expires_at,
           createdAt: row.created_at,
         };
@@ -367,7 +395,17 @@ async function gcal(path: string, init?: RequestInit) {
   return data;
 }
 
-async function busyRanges(from: Date, to: Date): Promise<Array<[number, number]>> {
+/** Busy times for ONE outreach person: only their own CTF calls count (each person runs their own diary). */
+async function ownerBusy(owner: string, from: Date, to: Date): Promise<Array<[number, number]>> {
+  const q = new URLSearchParams({ timeMin: from.toISOString(), timeMax: to.toISOString(), singleEvents: 'true', maxResults: '250' });
+  const data = await gcal(`/calendars/${encodeURIComponent(CALENDAR_ID)}/events?${q}`);
+  return (data.items || [])
+    .filter((e: any) => e.status !== 'cancelled' && e.start?.dateTime && (e.extendedProperties?.private?.owner === owner))
+    .map((e: any) => [Date.parse(e.start.dateTime), Date.parse(e.end.dateTime)] as [number, number]);
+}
+
+async function busyRanges(from: Date, to: Date, owner?: string): Promise<Array<[number, number]>> {
+  if (owner) return ownerBusy(owner, from, to);
   const data = await gcal('/freeBusy', {
     method: 'POST',
     body: JSON.stringify({
@@ -406,7 +444,7 @@ async function listBookings() {
     .filter((ev: any) => ev.extendedProperties?.private?.inviteId)
     .map((ev: any) => {
       const priv = ev.extendedProperties.private;
-      const guests = (ev.attendees || []).filter((a: any) => !a.self && !a.organizer);
+      const guests = (ev.attendees || []).filter((a: any) => !a.self && !a.organizer && String(a.email || '').toLowerCase() !== String(priv.oe || ''));
       const group = priv.group === '1' || guests.length > 1;
       return {
         eventId: ev.id,
@@ -422,6 +460,7 @@ async function listBookings() {
         meetLink: ev.hangoutLink || null,
         kind: (KINDS.includes(priv.kind) ? priv.kind : 'interview') as Kind,
         topic: priv.topic || '',
+        owner: priv.owner || '',
       };
     });
 }
@@ -431,7 +470,7 @@ async function listBookings() {
 // nobody gets a stray invite or cancellation mail. Only the winner's guests are invited.
 async function createEvent(o: {
   inviteId: string; kind: Kind; topic: string; name: string; emails: string[]; hide: boolean;
-  startMs: number; endMs: number; admin?: boolean; allowOverlap?: boolean;
+  startMs: number; endMs: number; admin?: boolean; allowOverlap?: boolean; owner?: string; ownerEmail?: string;
 }) {
   const cal = encodeURIComponent(CALENDAR_ID);
   const group = o.emails.length > 1;
@@ -446,7 +485,10 @@ async function createEvent(o: {
       guestsCanSeeOtherGuests: !(group && o.hide),
       transparency: 'opaque',
       extendedProperties: {
-        private: { inviteId: o.inviteId, kind: o.kind, topic: o.topic, name: o.name, ...(group ? { group: '1' } : {}), ...(o.admin ? { adm: '1' } : {}) },
+        private: {
+          inviteId: o.inviteId, kind: o.kind, topic: o.topic, name: o.name, ...(group ? { group: '1' } : {}), ...(o.admin ? { adm: '1' } : {}),
+          ...(o.owner ? { owner: o.owner } : {}), ...(o.ownerEmail ? { oe: o.ownerEmail } : {}),
+        },
       },
       conferenceData: {
         createRequest: { requestId: crypto.randomUUID(), conferenceSolutionKey: { type: 'hangoutsMeet' } },
@@ -470,6 +512,7 @@ async function createEvent(o: {
       e.status !== 'cancelled' &&
       e.extendedProperties?.private?.inviteId &&
       e.extendedProperties.private.inviteId !== o.inviteId &&
+      (e.extendedProperties.private.owner || '') === (o.owner || '') && // each outreach person has their own diary
       ((e.created || '') < (event.created || '') || ((e.created || '') === (event.created || '') && e.id < event.id)),
   );
   if (lost) {
@@ -494,7 +537,12 @@ async function createEvent(o: {
   try {
     const done = await gcal(`/calendars/${cal}/events/${encodeURIComponent(event.id)}?conferenceDataVersion=1&sendUpdates=all`, {
       method: 'PATCH',
-      body: JSON.stringify({ attendees: o.emails.map((email) => (group ? { email } : { email, displayName: o.name })) }),
+      body: JSON.stringify({
+        attendees: [
+          ...o.emails.map((email) => (group ? { email } : { email, displayName: o.name })),
+          ...(o.ownerEmail && !o.emails.includes(o.ownerEmail) ? [{ email: o.ownerEmail }] : []),
+        ],
+      }),
     });
     return { ...event, ...done, hangoutLink: done.hangoutLink || event.hangoutLink };
   } catch (e) {
@@ -526,16 +574,41 @@ function candidateSlots(now: Date, av: Availability): number[] {
 
 // free = a start time where the WHOLE meeting (durationMin, default one slot) fits inside your hours and
 // nothing is busy; taken = every other start time inside your hours (shown as "Booked" on the page).
-async function slotState(now: Date, av: Availability, durationMin?: number): Promise<{ free: number[]; taken: number[] }> {
+async function slotState(now: Date, av: Availability, durationMin?: number, owner?: string): Promise<{ free: number[]; taken: number[] }> {
   const cands = candidateSlots(now, av);
   if (!cands.length) return { free: [], taken: [] };
   const slotMs = av.slotMinutes * 60_000;
   const need = Math.max(1, Math.ceil((durationMin || av.slotMinutes) / av.slotMinutes));
-  const busy = await busyRanges(new Date(cands[0]), new Date(cands[cands.length - 1] + slotMs));
+  const busy = await busyRanges(new Date(cands[0]), new Date(cands[cands.length - 1] + slotMs), owner);
   const isBusy = (s: number) => busy.some(([bs, be]) => s < be && s + slotMs > bs);
   const open = new Set(cands.filter((s) => !isBusy(s)));
   const fits = (s: number) => Array.from({ length: need }, (_, i) => s + i * slotMs).every((x) => open.has(x));
   return { free: cands.filter(fits), taken: cands.filter((s) => !fits(s)) };
+}
+
+// ---------- Outreach people ----------
+type Who = { id: string; email: string };
+/** The signed-in outreach person (their user id + login email). */
+async function outreachSelf(auth: string): Promise<Who | null> {
+  const { url, anon } = sb();
+  if (!url || !anon) return null;
+  try {
+    const [p, me] = await Promise.all(['outreach_me', 'staff_me'].map((fn) =>
+      fetch(`${url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json' }, body: '{}' })
+        .then((r) => (r.ok ? r.json() : null)).catch(() => null)));
+    return p?.user_id ? { id: String(p.user_id), email: String(me?.email || '').toLowerCase() } : null;
+  } catch { return null; }
+}
+/** For owners: any outreach person by user id (via the owner-only outreach_team()). */
+async function outreachPerson(auth: string, id: string): Promise<Who | null> {
+  const { url, anon } = sb();
+  if (!url || !anon) return null;
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/outreach_team`, { method: 'POST', headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json' }, body: '{}' });
+    const rows = r.ok ? ((await r.json()) as Array<{ user_id: string; login_email: string }>) : [];
+    const p = rows.find((x) => x.user_id === id);
+    return p ? { id, email: String(p.login_email || '').toLowerCase() } : null;
+  } catch { return null; }
 }
 
 // ---------- Handler ----------
@@ -559,12 +632,18 @@ export default async function handler(req: any, res: any) {
       if (outreachOnly && req.method === 'POST' && !['create-link', 'delete-link', 'book-now'].includes(String(req.body?.action))) {
         return res.status(403).json({ error: 'Not allowed for the Outreach role.' });
       }
+      // Whose CTF calls are these? An outreach person: always their own. An owner: anyone, via `as` (a person's user id).
+      const asId = String((req.method === 'GET' ? req.query?.as : req.body?.as) || '');
+      const who = outreachOnly ? await outreachSelf(authz) : UUID_RE.test(asId) ? await outreachPerson(authz, asId) : null;
+      if (outreachOnly && !who) return res.status(403).json({ error: 'Your outreach profile is not set up yet. Ask the owner.' });
 
       if (req.method === 'GET') {
         if (req.query?.admin === 'slots') {
-          const av = await availabilityFor(outreachOnly ? 'ctf' : String(req.query?.kind || ''));
+          const k = outreachOnly ? 'ctf' : String(req.query?.kind || '');
+          const owner = k === 'ctf' ? who?.id : undefined;
+          const av = await availabilityFor(k, owner);
           const dur = cleanDur(req.query?.dur, av.slotMinutes);
-          const st = await slotState(new Date(), av, dur);
+          const st = await slotState(new Date(), av, dur, owner);
           return res.status(200).json({
             slotMinutes: dur,
             slots: st.free.map((s) => new Date(s).toISOString()),
@@ -572,7 +651,7 @@ export default async function handler(req: any, res: any) {
           });
         }
         const all = await listBookings();
-        const items = outreachOnly ? all.filter((i: any) => i.kind === 'ctf') : all;
+        const items = outreachOnly ? all.filter((i: any) => i.kind === 'ctf' && i.owner === who!.id) : all;
         const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
         const pending = await listPendingLinks(String(req.headers.authorization), origin, new Set(items.map((i: any) => i.inviteId)));
         return res.status(200).json({ items, pending });
@@ -603,6 +682,7 @@ export default async function handler(req: any, res: any) {
           ...(cleanTopic ? { tp: cleanTopic } : {}),
           ...(isGroup ? { g: guestList, hg: !!hideGuests } : {}),
           ...(Number(dur) > 0 ? { d: cleanDur(dur, 0) || undefined } : {}),
+          ...(cleanKind === 'ctf' && who ? { o: who.id, oe: who.email } : {}),
         };
         const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
         const code = await storeShortLink(String(req.headers.authorization), payload);
@@ -623,7 +703,8 @@ export default async function handler(req: any, res: any) {
         const cleanTopic = cleanKind === 'other' ? String(topic || '').trim().slice(0, 80) : '';
         if (!cleanName || !guestList.length) return res.status(400).json({ error: 'Name/title and at least one valid email are required.' });
         if (cleanKind === 'other' && !cleanTopic) return res.status(400).json({ error: 'Please write a topic for this meeting.' });
-        const av = await availabilityFor(cleanKind);
+        const owner = cleanKind === 'ctf' ? who?.id : undefined;
+        const av = await availabilityFor(cleanKind, owner);
         const mins = cleanDur(dur, av.slotMinutes);
 
         let startMs: number;
@@ -634,7 +715,7 @@ export default async function handler(req: any, res: any) {
           if (t < Date.now()) return res.status(400).json({ error: 'That date/time is in the past.' });
           startMs = t;
           if (!force) {
-            const busy = await busyRanges(new Date(startMs), new Date(startMs + mins * 60_000));
+            const busy = await busyRanges(new Date(startMs), new Date(startMs + mins * 60_000), owner);
             if (busy.some(([bs, be]) => startMs < be && startMs + mins * 60_000 > bs)) {
               return res.status(409).json({ conflict: true, error: 'You already have something booked at that time.' });
             }
@@ -642,7 +723,7 @@ export default async function handler(req: any, res: any) {
         } else {
           startMs = Date.parse(String(start || ''));
           if (Number.isNaN(startMs)) return res.status(400).json({ error: 'Pick a date and time first.' });
-          if (!(await slotState(new Date(), av, mins)).free.includes(startMs)) {
+          if (!(await slotState(new Date(), av, mins, owner)).free.includes(startMs)) {
             return res.status(409).json({ error: 'That slot is no longer free. Pick another.' });
           }
         }
@@ -651,6 +732,7 @@ export default async function handler(req: any, res: any) {
             inviteId: crypto.randomUUID(), kind: cleanKind, topic: cleanTopic, name: cleanName,
             emails: guestList, hide: !!hideGuests, startMs, endMs: startMs + mins * 60_000, admin: true,
             allowOverlap: !!(custom && force), // admin knowingly double-books
+            ...(owner && who ? { owner, ownerEmail: who.email } : {}),
           });
           return res.status(200).json({ eventId: event.id, meetLink: event.hangoutLink || null, start: new Date(startMs).toISOString(), guests: guestList.length });
         } catch (e) {
@@ -715,7 +797,8 @@ export default async function handler(req: any, res: any) {
         const ev = await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}`);
         if (!ev.extendedProperties?.private?.inviteId) return res.status(400).json({ error: 'Not a booking made here.' });
         const m = meetingOf(ev);
-        const av = await availabilityFor(m.kind);
+        const owner = m.kind === 'ctf' && m.priv.owner ? String(m.priv.owner) : undefined;
+        const av = await availabilityFor(m.kind, owner);
         const mins = Number(dur) > 0 ? cleanDur(dur, av.slotMinutes) : m.mins > 0 ? m.mins : av.slotMinutes;
 
         let startMs: number;
@@ -725,7 +808,7 @@ export default async function handler(req: any, res: any) {
           if (t < Date.now()) return res.status(400).json({ error: 'That date/time is in the past.' });
           startMs = t;
           if (!force) {
-            const busy = await busyRanges(new Date(startMs), new Date(startMs + mins * 60_000));
+            const busy = await busyRanges(new Date(startMs), new Date(startMs + mins * 60_000), owner);
             // The meeting's own current slot does not count as a clash.
             const clash = busy.some(([bs, be]) => startMs < be && startMs + mins * 60_000 > bs && !(bs >= m.startMs && be <= m.endMs));
             if (clash) return res.status(409).json({ conflict: true, error: 'You already have something booked at that time.' });
@@ -733,7 +816,7 @@ export default async function handler(req: any, res: any) {
         } else {
           startMs = Date.parse(String(start || ''));
           if (Number.isNaN(startMs)) return res.status(400).json({ error: 'Pick a new date and time first.' });
-          if (!(await slotState(new Date(), av, mins)).free.includes(startMs)) {
+          if (!(await slotState(new Date(), av, mins, owner)).free.includes(startMs)) {
             return res.status(409).json({ error: 'That slot is no longer free. Pick another.' });
           }
         }
@@ -773,6 +856,7 @@ export default async function handler(req: any, res: any) {
           ...(m.kind === 'other' && m.topic ? { tp: m.topic.slice(0, 80) } : {}),
           ...(m.group ? { g: m.rcpts.map((r) => r.email).slice(0, MAX_LINK_GUESTS), hg: m.hide } : {}),
           ...(m.mins > 0 ? { d: cleanDur(m.mins, 0) || undefined } : {}),
+          ...(m.priv.owner ? { o: String(m.priv.owner), ...(m.priv.oe ? { oe: String(m.priv.oe) } : {}) } : {}),
         };
         const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
         const code = await storeShortLink(auth, payload);
@@ -797,9 +881,9 @@ export default async function handler(req: any, res: any) {
       const booked = await existingBooking(invite.id);
       if (booked) return res.status(200).json({ name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', groupSize, booked });
 
-      const av = await availabilityFor(invite.k);
+      const av = await availabilityFor(invite.k, invite.o);
       const mins = cleanDur(invite.d, av.slotMinutes);
-      const st = await slotState(new Date(), av, mins);
+      const st = await slotState(new Date(), av, mins, invite.k === 'ctf' ? invite.o : undefined);
       return res.status(200).json({
         name: invite.n, kind: invite.k || 'interview', topic: invite.tp || '', groupSize, slotMinutes: av.slotMinutes, durationMinutes: mins,
         slots: st.free.map((s) => new Date(s).toISOString()),
@@ -823,9 +907,9 @@ export default async function handler(req: any, res: any) {
       }
 
       // Re-validate: slot must be one we offer AND still free right now.
-      const av = await availabilityFor(invite.k);
+      const av = await availabilityFor(invite.k, invite.o);
       const mins = cleanDur(invite.d, av.slotMinutes);
-      const free = (await slotState(new Date(), av, mins)).free;
+      const free = (await slotState(new Date(), av, mins, invite.k === 'ctf' ? invite.o : undefined)).free;
       if (!free.includes(startMs)) {
         return res.status(409).json({ error: 'Sorry, that slot was just taken. Please pick another.' });
       }
@@ -837,6 +921,7 @@ export default async function handler(req: any, res: any) {
         event = await createEvent({
           inviteId: invite.id, kind, topic: invite.tp || '', name: invite.n,
           emails: attendeesOf(invite), hide: !!invite.hg, startMs, endMs,
+          ...(kind === 'ctf' && invite.o ? { owner: invite.o, ownerEmail: invite.oe } : {}),
         });
       } catch (e) {
         if (e instanceof SlotTakenError) return res.status(409).json({ error: 'Sorry, that slot was just taken. Please pick another.' });

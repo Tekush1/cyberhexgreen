@@ -4,6 +4,9 @@ import {
 } from 'lucide-react';
 import { sbInsert, sbRows, sbWrite } from './mailingApi';
 import { CallsView, ComposeSheet, InboxList, MailTimeline, ScheduleSheet, SentList, type OutMail, type Reply } from './OutreachMail';
+import { TeamView, colorOf, type Person } from './OutreachTeam';
+import { AvailabilityPanel } from './AvailabilityPanel';
+import { sbRpc } from './mailingApi';
 
 /* =============================================================
    Admin → Outreach: CTF organisers to pitch Cyber HX hosting to.
@@ -15,7 +18,7 @@ type Status = 'todo' | 'contacted' | 'replied' | 'meeting' | 'won' | 'lost' | 's
 interface Lead {
   id: string; event: string; organizer: string; event_date: string; sort_date: string | null; emails: string; phones: string;
   link: string; platform: string; priority: 'target' | 'maybe'; status: Status; notes: string; next_followup: string | null;
-  last_contacted_at: string | null; updated_by: string | null; updated_at: string;
+  last_contacted_at: string | null; updated_by: string | null; updated_at: string; owner_id?: string | null;
 }
 
 // iOS system colours (dark mode)
@@ -90,6 +93,7 @@ const firstPhone = (s: string) => (s.match(/\+?\d[\d\s-]{8,}\d/) || [''])[0].rep
 const initials = (s: string) => s.replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '•';
 const isDue = (l: Lead) => { const d = daysTo(l.next_followup); return d !== null && d <= 0 && !CLOSED.includes(l.status); };
 
+let SIGN = 'Cyber HX Team'; // set by the panel: "Yashika\nCyber HX" for an outreach person
 const pitchFor = (l: Pick<Lead, 'event' | 'organizer'>) => ({
   subject: `Hosting partner for ${l.event}: Cyber HX`,
   body: `Hi ${l.organizer.split(',')[0]} team,
@@ -103,7 +107,7 @@ Pricing and details: https://cyberhx.com/host-your-ctf
 Would a quick 15-minute call this week work?
 
 Best,
-Cyber HX Team`,
+${SIGN}`,
 });
 
 /** Stand-in "lead" so you can answer a mail@ email from someone who isn't a lead (nothing is saved on a lead). */
@@ -123,7 +127,7 @@ Thanks for getting back to us.
 
 
 Best,
-Cyber HX Team`,
+${SIGN}`,
 });
 
 /** Second email, when the first one got no answer. */
@@ -138,7 +142,7 @@ Details: https://cyberhx.com/host-your-ctf
 Would a short call this week or next help?
 
 Best,
-Cyber HX Team`,
+${SIGN}`,
 });
 
 async function copyText(text: string) {
@@ -160,7 +164,11 @@ function Highlight({ text, q }: { text: string; q: string }) {
 /* =============================================================
    Panel
 ============================================================= */
-export function OutreachPanel() {
+export function OutreachPanel({ role = 'owner' }: { role?: string }) {
+  const isOwner = role === 'owner';
+  const [people, setPeople] = useState<Person[]>([]);
+  /** Owner: whose dashboard is on screen ('' = everyone). Outreach person: always their own. */
+  const [who, setWho] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -173,7 +181,7 @@ export function OutreachPanel() {
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [adding, setAdding] = useState(false);
-  const [section, setSection] = useState<'leads' | 'inbox' | 'sent' | 'calls'>('leads');
+  const [section, setSection] = useState<'leads' | 'inbox' | 'sent' | 'calls' | 'hours' | 'team'>('leads');
   const [mails, setMails] = useState<OutMail[]>([]);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [compose, setCompose] = useState<{ lead: Lead; reply?: Reply; autoLink?: boolean } | null>(null);
@@ -184,11 +192,13 @@ export function OutreachPanel() {
   const load = useCallback(async () => {
     setLoading(true); setErr('');
     try {
-      const [{ rows }, sent, inbox] = await Promise.all([
+      const [{ rows }, sent, inbox, team] = await Promise.all([
         sbRows<Lead>('outreach_leads?select=*&order=sort_date.asc.nullslast'),
         sbRows<OutMail>('outreach_mails?select=*&order=sent_at.desc&limit=1000').catch(() => ({ rows: [] as OutMail[] })),
         sbRows<Reply>('outreach_replies?select=*&order=received_at.desc&limit=500').catch(() => ({ rows: [] as Reply[] })),
+        (isOwner ? sbRpc<Person[]>('outreach_team', {}) : sbRows<Person>('outreach_people?select=user_id,name,send_as').then((r) => r.rows)).catch(() => [] as Person[]),
       ]);
+      setPeople(team);
       setLeads(rows);
       setMails(sent.rows);
       setReplies(inbox.rows);
@@ -197,8 +207,27 @@ export function OutreachPanel() {
       setErr(/missing|does not exist/i.test(m) ? 'Outreach table is missing: run supabase/outreach.sql in Supabase.' : m);
     }
     setLoading(false);
-  }, []);
+  }, [isOwner]);
   useEffect(() => { load(); }, [load]);
+
+  // Who am I writing as? An outreach person = themselves. Owner = the person whose dashboard is open, else mail@.
+  const self = !isOwner ? people[0] : undefined;
+  const actor = self || (who ? people.find((p) => p.user_id === who) : undefined);
+  const as = isOwner && actor ? actor.user_id : undefined;
+  SIGN = actor ? `${actor.name}\nCyber HX` : 'Cyber HX Team';
+  const nameOf = useCallback((id?: string | null) => people.find((p) => p.user_id === id)?.name || '', [people]);
+  /** Email about a lead goes out as the lead's person (owner) or as yourself (outreach person). */
+  const composeAs = (ownerId?: string | null) => {
+    if (self) return { fromAddr: self.send_as };
+    const p = people.find((x) => x.user_id === (ownerId || who));
+    return p ? { as: p.user_id, fromAddr: p.send_as } : {};
+  };
+
+  // Owner looking at one person: only that person's leads / mail.
+  const myLeads = useMemo(() => (isOwner && who ? leads.filter((l) => l.owner_id === who) : leads), [leads, isOwner, who]);
+  const myMails = useMemo(() => (isOwner && who ? mails.filter((m) => m.sent_by_id === who) : mails), [mails, isOwner, who]);
+  const myReplies = useMemo(() => (isOwner && who ? replies.filter((r) => r.owner_id === who) : replies), [replies, isOwner, who]);
+  const pickPerson = useCallback((id: string, to: typeof section = 'leads') => { setWho(id); setSection(to); setOpen(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }, []);
 
   // ⌘K / Ctrl+K / "/" focuses search (Spotlight-style)
   useEffect(() => {
@@ -224,12 +253,12 @@ export function OutreachPanel() {
   }, [notify]);
 
   // One lowercase search string per lead, built once per data change
-  const index = useMemo(() => new Map(leads.map((l) => [l.id,
-    `${l.event} ${l.organizer} ${l.emails} ${l.phones} ${l.notes} ${l.platform} ${l.event_date} ${STATUS[l.status].label}`.toLowerCase()])), [leads]);
+  const index = useMemo(() => new Map(myLeads.map((l) => [l.id,
+    `${l.event} ${l.organizer} ${l.emails} ${l.phones} ${l.notes} ${l.platform} ${l.event_date} ${STATUS[l.status].label} ${nameOf(l.owner_id)}`.toLowerCase()])), [myLeads, nameOf]);
 
   const shown = useMemo(() => {
     const words = dq.split(/\s+/).filter(Boolean);
-    return leads
+    return myLeads
       .filter((l) => (view === 'open' ? !CLOSED.includes(l.status) : view === 'due' ? isDue(l) : view === 'won' ? l.status === 'won' : true))
       .filter((l) => pri === 'all' || l.priority === pri)
       .filter((l) => !status || l.status === status)
@@ -237,25 +266,25 @@ export function OutreachPanel() {
       .sort((a, b) => Number(isDue(b)) - Number(isDue(a))
         || (a.priority === b.priority ? 0 : a.priority === 'target' ? -1 : 1)
         || (a.sort_date || '9999').localeCompare(b.sort_date || '9999'));
-  }, [leads, index, dq, view, pri, status]);
+  }, [myLeads, index, dq, view, pri, status]);
 
   const stats = useMemo(() => {
     const c = Object.fromEntries(ORDER.map((s) => [s, 0])) as Record<Status, number>;
-    leads.forEach((l) => { c[l.status]++; });
-    return { c, due: leads.filter(isDue).length };
-  }, [leads]);
+    myLeads.forEach((l) => { c[l.status]++; });
+    return { c, due: myLeads.filter(isDue).length };
+  }, [myLeads]);
 
   const mailsByLead = useMemo(() => {
     const m = new Map<string, OutMail[]>();
-    mails.forEach((x) => { if (x.lead_id) m.set(x.lead_id, [...(m.get(x.lead_id) || []), x]); });
+    myMails.forEach((x) => { if (x.lead_id) m.set(x.lead_id, [...(m.get(x.lead_id) || []), x]); });
     return m;
-  }, [mails]);
+  }, [myMails]);
   const repliesByLead = useMemo(() => {
     const m = new Map<string, Reply[]>();
-    replies.forEach((x) => { if (x.lead_id) m.set(x.lead_id, [...(m.get(x.lead_id) || []), x]); });
+    myReplies.forEach((x) => { if (x.lead_id) m.set(x.lead_id, [...(m.get(x.lead_id) || []), x]); });
     return m;
-  }, [replies]);
-  const unread = replies.filter((r) => !r.read_at).length;
+  }, [myReplies]);
+  const unread = myReplies.filter((r) => !r.read_at).length;
   const markRead = useCallback((r: Reply) => {
     const at = new Date().toISOString();
     setReplies((rs) => rs.map((x) => (x.id === r.id ? { ...x, read_at: at } : x)));
@@ -280,24 +309,28 @@ export function OutreachPanel() {
       const l = await sbInsert<Lead>('outreach_leads', {
         event: r.subject.replace(/^(re|fwd?):\s*/i, '').slice(0, 120) || `Lead from ${r.from_name || r.from_email}`,
         organizer: r.from_name || domain, emails: r.from_email, platform: 'Came in by email', priority: 'target', status: 'replied',
+        ...(isOwner ? { owner_id: r.owner_id || who || null } : {}),
       });
       setLeads((ls) => [...ls, l]);
       setReplies((rs) => rs.map((x) => (x.from_email === r.from_email && !x.lead_id ? { ...x, lead_id: l.id } : x)));
       await sbWrite('PATCH', `outreach_replies?from_email=eq.${encodeURIComponent(r.from_email)}&lead_id=is.null`, { lead_id: l.id });
       notify('Lead added');
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the lead.'); }
-  }, [notify]);
+  }, [notify, isOwner, who]);
 
   const filtersOn = !!(dq || status || pri !== 'all' || view !== 'open');
 
   return (
-    <div className="relative isolate">
+    <div className="relative">
       {/* Title */}
       <header className="mb-5 flex items-end justify-between gap-3">
         <div className="flex items-center gap-3.5">
           <div>
             <h2 className="text-[28px] sm:text-[34px] font-semibold tracking-[-0.02em] text-white leading-none">Outreach</h2>
-            <p className="mt-1.5 text-[13px] text-white/50">CTF organisers with no platform · {leads.length} {leads.length === 1 ? 'lead' : 'leads'}</p>
+            <p className="mt-1.5 text-[13px] text-white/50">
+              {actor ? <>{isOwner ? `${actor.name}'s dashboard` : `Hi ${actor.name}`} · sending as <span className="text-white/75">{actor.send_as}</span> · </> : isOwner ? 'Everyone · ' : ''}
+              {myLeads.length} {myLeads.length === 1 ? 'lead' : 'leads'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -310,16 +343,42 @@ export function OutreachPanel() {
         </div>
       </header>
 
-      <div className="mb-5">
+      {/* Owner: whose dashboard */}
+      {isOwner && people.length > 0 && (
+        <div className="mb-3 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="radiogroup" aria-label="Whose dashboard">
+          {[{ user_id: '', name: 'Everyone' } as Pick<Person, 'user_id' | 'name'>, ...people].map((p) => {
+            const on = who === p.user_id;
+            const n = p.user_id ? leads.filter((l) => l.owner_id === p.user_id).length : leads.length;
+            return (
+              <button key={p.user_id || 'all'} role="radio" aria-checked={on} onClick={() => { setWho(p.user_id); if (section === 'team' || (section === 'hours' && !p.user_id)) setSection('leads'); setOpen(null); }}
+                className={`shrink-0 flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1.5 text-[14px] border transition ${ring} ${on ? 'bg-white/[0.16] text-white border-white/[0.18]' : 'text-white/65 border-white/[0.08] bg-white/[0.04] hover:text-white'}`}>
+                <span aria-hidden className="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-semibold text-white" style={{ background: p.user_id ? colorOf(people, p.user_id) : '#636366' }}>{p.user_id ? p.name.slice(0, 1) : '∗'}</span>
+                {p.name}<span className="tabular-nums text-white/40 text-[12.5px]">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mb-5 -mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Segmented label="Section" value={section} onChange={setSection}
-          options={[{ v: 'leads', t: 'Leads' }, { v: 'inbox', t: `Inbox${unread ? ` · ${unread}` : ''}` }, { v: 'sent', t: `Sent${mails.length ? ` · ${mails.length}` : ''}` }, { v: 'calls', t: 'Calls' }]} />
+          options={[
+            { v: 'leads', t: 'Leads' }, { v: 'inbox', t: `Inbox${unread ? ` · ${unread}` : ''}` }, { v: 'sent', t: `Sent${myMails.length ? ` · ${myMails.length}` : ''}` }, { v: 'calls', t: 'Calls' },
+            ...(actor ? [{ v: 'hours' as const, t: 'Call hours' }] : []),
+            ...(isOwner ? [{ v: 'team' as const, t: 'Team' }] : []),
+          ]} />
       </div>
 
-      {section === 'inbox' && <InboxList replies={replies} leads={leadMap} onRead={markRead} onOpenLead={openLead}
+      {section === 'inbox' && <InboxList replies={myReplies} leads={leadMap} onRead={markRead} onOpenLead={openLead}
         onReply={(r) => setCompose({ lead: (r.lead_id && leadMap.get(r.lead_id)) || pseudoLead(r), reply: r })}
         onMakeLead={makeLead} />}
-      {section === 'sent' && <SentList mails={mails} leads={leadMap} onOpenLead={openLead} />}
-      {section === 'calls' && <CallsView onToast={notify} />}
+      {section === 'sent' && <SentList mails={myMails} leads={leadMap} onOpenLead={openLead} />}
+      {section === 'calls' && <CallsView key={who || 'all'} onToast={notify} as={as} />}
+      {section === 'hours' && actor && <div className="ios-hours"><AvailabilityPanel key={actor.user_id} person={{ id: actor.user_id, name: actor.name, self: !isOwner }} /></div>}
+      {section === 'team' && isOwner && (
+        <TeamView people={people} leads={leads} mails={mails} onReload={load} onToast={notify}
+          onOpen={(id) => pickPerson(id, 'leads')} onHours={(id) => pickPerson(id, 'hours')} />
+      )}
 
       {section === 'leads' && <>
       {/* Widgets */}
@@ -404,14 +463,15 @@ export function OutreachPanel() {
           {shown.map((l) => (
             <LeadRow key={l.id} l={l} q={dq.split(/\s+/)[0] || ''} expanded={open === l.id} saving={saving === l.id}
               onToggle={setOpen} onSave={save} onToast={notify} mails={mailsByLead.get(l.id)} replies={repliesByLead.get(l.id)}
-              onCompose={openCompose} onRead={markRead} onSchedule={setSchedule} />
+              onCompose={openCompose} onRead={markRead} onSchedule={setSchedule}
+              owner={isOwner ? { people, showChip: !who } : undefined} />
           ))}
         </ul>
       )}
       </>}
 
       {schedule && (
-        <ScheduleSheet lead={schedule} onClose={() => setSchedule(null)}
+        <ScheduleSheet lead={schedule} onClose={() => setSchedule(null)} as={isOwner ? (schedule.owner_id && people.some((p) => p.user_id === schedule.owner_id) ? schedule.owner_id : as) : undefined}
           onLetThemPick={() => { const l = schedule; setSchedule(null); setCompose({ lead: l, autoLink: true }); }}
           onBooked={(bk) => {
             const l = schedule; setSchedule(null);
@@ -423,12 +483,13 @@ export function OutreachPanel() {
       )}
       {compose && (
         <ComposeSheet lead={compose.lead} replyTo={compose.reply} autoLink={compose.autoLink}
+          {...composeAs(compose.lead.owner_id || compose.reply?.owner_id)}
           pitch={compose.reply ? replyFor(compose.reply)
             : mailsByLead.get(compose.lead.id)?.length ? followupFor(compose.lead, mailsByLead.get(compose.lead.id)!.slice(-1)[0]) : pitchFor(compose.lead)}
           onClose={() => setCompose(null)} onSent={(m) => onSent(compose.lead, m)} />
       )}
 
-      {adding && <AddLeadSheet onClose={() => setAdding(false)} onAdded={(l) => { setLeads((ls) => [...ls, l]); setAdding(false); setOpen(l.id); notify('Lead added'); }} />}
+      {adding && <AddLeadSheet owners={isOwner ? people : undefined} defaultOwner={who} onClose={() => setAdding(false)} onAdded={(l) => { setLeads((ls) => [...ls, l]); setAdding(false); setOpen(l.id); notify('Lead added'); }} />}
 
       {/* iOS-style toast */}
       <div aria-live="polite" className={`pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center transition-all duration-300 ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
@@ -443,8 +504,9 @@ export function OutreachPanel() {
 ============================================================= */
 const NO_MAILS: OutMail[] = [];
 const NO_REPLIES: Reply[] = [];
-const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast, mails = NO_MAILS, replies = NO_REPLIES, onCompose, onRead, onSchedule }: {
-  l: Lead; q: string; expanded: boolean; saving: boolean;
+type OwnerCtx = { people: Person[]; showChip: boolean };
+const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave, onToast, mails = NO_MAILS, replies = NO_REPLIES, onCompose, onRead, onSchedule, owner }: {
+  l: Lead; q: string; expanded: boolean; saving: boolean; owner?: OwnerCtx;
   onToggle: (id: string | null) => void; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void;
   mails?: OutMail[]; replies?: Reply[]; onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void; onSchedule: (l: Lead) => void;
 }) {
@@ -471,6 +533,10 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
             {due && <span className="text-[#FF9F0A]">· Follow up</span>}
             {mails.length > 0 && <span>· {mails.length} email{mails.length > 1 ? 's' : ''} sent</span>}
             {newReplies > 0 && <span className="font-medium text-[#0A84FF]">· New reply</span>}
+            {owner?.showChip && (() => {
+              const p = owner.people.find((x) => x.user_id === l.owner_id);
+              return <span className="inline-flex items-center gap-1">· <span className="h-1.5 w-1.5 rounded-full" style={{ background: p ? colorOf(owner.people, p.user_id) : '#636366' }} />{p ? p.name : 'Not assigned'}</span>;
+            })()}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -485,14 +551,14 @@ const LeadRow = memo(function LeadRow({ l, q, expanded, saving, onToggle, onSave
 
       {/* Smooth expand (grid rows 0fr → 1fr); details only mount when opened */}
       <div id={bodyId} className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} mails={mails} replies={replies} onCompose={onCompose} onRead={onRead} onSchedule={onSchedule} />}</div>
+        <div className="overflow-hidden">{expanded && <LeadDetails l={l} onSave={onSave} onToast={onToast} mails={mails} replies={replies} onCompose={onCompose} onRead={onRead} onSchedule={onSchedule} owner={owner} />}</div>
       </div>
     </li>
   );
 });
 
-function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRead, onSchedule }: {
-  l: Lead; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void; mails: OutMail[]; replies: Reply[];
+function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRead, onSchedule, owner }: {
+  l: Lead; onSave: (id: string, p: Partial<Lead>) => void; onToast: (m: string) => void; mails: OutMail[]; replies: Reply[]; owner?: OwnerCtx;
   onCompose: (l: Lead, reply?: Reply) => void; onRead: (r: Reply) => void; onSchedule: (l: Lead) => void;
 }) {
   const [notes, setNotes] = useState(l.notes);
@@ -539,6 +605,15 @@ function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRe
         {l.phones && <Info k="Phone"><span className="select-all break-all text-white/85">{l.phones}</span></Info>}
         <Info k="Platform"><span className="text-white/70">{l.priority === 'target' ? 'None found · ' : 'Ask first · '}{l.platform || '—'}</span></Info>
         <Info k="Event date"><span className="text-white/70">{l.event_date}</span></Info>
+        {owner && (
+          <Info k="Handled by">
+            <select value={owner.people.some((p) => p.user_id === l.owner_id) ? l.owner_id || '' : ''} onChange={(e) => onSave(l.id, { owner_id: e.target.value || null })}
+              aria-label="Handled by" className="rounded-lg bg-white/[0.06] border border-white/[0.08] px-2 py-1 text-[14px] text-white">
+              <option value="">Not assigned</option>
+              {owner.people.map((p) => <option key={p.user_id} value={p.user_id}>{p.name} ({p.send_as})</option>)}
+            </select>
+          </Info>
+        )}
       </dl>
 
       <MailTimeline mails={sent} replies={replies} onReply={(r) => onCompose(l, r)} onRead={onRead} />
@@ -587,8 +662,9 @@ function Info({ k, children }: { k: string; children: ReactNode }) {
 /* =============================================================
    Add lead: bottom sheet on phones, centred card on desktop
 ============================================================= */
-function AddLeadSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (l: Lead) => void }) {
+function AddLeadSheet({ onClose, onAdded, owners, defaultOwner = '' }: { onClose: () => void; onAdded: (l: Lead) => void; owners?: Person[]; defaultOwner?: string }) {
   const [f, setF] = useState({ event: '', organizer: '', event_date: '', sort_date: '', emails: '', phones: '', link: '', platform: '', priority: 'target' });
+  const [ownerId, setOwnerId] = useState(defaultOwner);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = (k: keyof typeof f) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -603,7 +679,7 @@ function AddLeadSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (l: 
   const submit = async () => {
     if (!f.event.trim()) { setErr('Event name is needed.'); return; }
     setBusy(true); setErr('');
-    try { onAdded(await sbInsert<Lead>('outreach_leads', { ...f, event: f.event.trim(), sort_date: f.sort_date || null })); }
+    try { onAdded(await sbInsert<Lead>('outreach_leads', { ...f, event: f.event.trim(), sort_date: f.sort_date || null, ...(owners ? { owner_id: ownerId || null } : {}) })); }
     catch (e) { setErr(e instanceof Error ? e.message : 'Could not add.'); setBusy(false); }
   };
   const row = (k: keyof typeof f, label: string, ph = '', type = 'text', mode?: 'email' | 'tel' | 'url') => (
@@ -634,6 +710,15 @@ function AddLeadSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (l: 
           {row('phones', 'Phone / other contact', '+91…', 'text', 'tel')}
           {row('link', 'Event link', 'https://', 'url', 'url')}
           <div className="sm:col-span-2">{row('platform', 'Platform note', 'e.g. no platform named')}</div>
+          {owners && owners.length > 0 && (
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-[12.5px] text-white/50">Handled by</span>
+              <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={field}>
+                <option value="">Not assigned</option>
+                {owners.map((p) => <option key={p.user_id} value={p.user_id}>{p.name}</option>)}
+              </select>
+            </label>
+          )}
           <div className="sm:col-span-2">
             <span className="mb-1 block text-[12.5px] text-white/50">Priority</span>
             <Segmented label="Priority" value={f.priority as 'target' | 'maybe'} onChange={(v) => setF((p) => ({ ...p, priority: v }))}
