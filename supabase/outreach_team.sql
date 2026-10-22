@@ -170,3 +170,9 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.outreach_team() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.outreach_team() TO authenticated;
+
+-- Update (22 Oct): the Inbox is shared. Every outreach person sees ALL mail to mail@cyberhx.com
+-- (leads, sent mail and calls stay per person). Applied as migration "outreach_inbox_shared".
+ALTER POLICY outreach_replies_read ON public.outreach_replies USING ((SELECT public.can('outreach')));
+ALTER POLICY outreach_replies_mark ON public.outreach_replies
+  USING ((SELECT public.can('outreach'))) WITH CHECK ((SELECT public.can('outreach')));

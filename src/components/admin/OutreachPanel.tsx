@@ -226,7 +226,8 @@ export function OutreachPanel({ role = 'owner' }: { role?: string }) {
   // Owner looking at one person: only that person's leads / mail.
   const myLeads = useMemo(() => (isOwner && who ? leads.filter((l) => l.owner_id === who) : leads), [leads, isOwner, who]);
   const myMails = useMemo(() => (isOwner && who ? mails.filter((m) => m.sent_by_id === who) : mails), [mails, isOwner, who]);
-  const myReplies = useMemo(() => (isOwner && who ? replies.filter((r) => r.owner_id === who) : replies), [replies, isOwner, who]);
+  // The Inbox is shared: everyone on Outreach sees all mail to mail@cyberhx.com (lead links stay per person).
+  const myReplies = replies;
   const pickPerson = useCallback((id: string, to: typeof section = 'leads') => { setWho(id); setSection(to); setOpen(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }, []);
 
   // ⌘K / Ctrl+K / "/" focuses search (Spotlight-style)
