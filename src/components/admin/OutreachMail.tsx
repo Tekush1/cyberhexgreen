@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { CalendarPlus, Check, Copy, Link2, Loader2, Trash2, Video, X } from 'lucide-react';
+import { CalendarPlus, Check, Copy, Link2, Loader2, Paperclip, Trash2, Video, X } from 'lucide-react';
 import { TOKEN_KEY } from './adminApi';
 
 /* =============================================================
@@ -11,7 +11,18 @@ import { TOKEN_KEY } from './adminApi';
 export interface OutMail {
   id: string; lead_id: string | null; to_emails: string[]; subject: string; body: string; booking_link: string | null;
   message_ids: string[]; sent_by: string | null; sent_at: string; sent_by_id?: string | null; from_email?: string | null;
+  cc_emails?: string[]; attachments?: { name: string; size: number; type: string }[];
 }
+const MAX_FILES = 5;
+const MAX_BYTES = 3 * 1024 * 1024;
+const BLOCKED = /\.(exe|bat|cmd|com|scr|msi|vbs|js|jar|ps1|apk|sh|dll|reg|lnk|hta)$/i;
+export const fileSize = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const toBase64 = (f: File) => new Promise<string>((ok, bad) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, ''));
+  r.onerror = () => bad(new Error(`Could not read ${f.name}`));
+  r.readAsDataURL(f);
+});
 export interface Reply {
   id: string; lead_id: string | null; from_email: string; from_name: string; subject: string; body: string;
   message_id: string | null; received_at: string; read_at: string | null; owner_id?: string | null;
@@ -90,6 +101,11 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, 
   const initial = useMemo(() => (replyTo ? [replyTo.from_email] : lead.emails.split(/[,;\s]+/).filter((e) => EMAIL_RE.test(e))), [lead.emails, replyTo]);
   const [to, setTo] = useState<string[]>(initial);
   const [extra, setExtra] = useState('');
+  const [cc, setCc] = useState<string[]>([]);
+  const [ccOpen, setCcOpen] = useState(false);
+  const [ccExtra, setCcExtra] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [subject, setSubject] = useState(pitch.subject);
   const [body, setBody] = useState(pitch.body);
   const [link, setLink] = useState('');
@@ -112,6 +128,23 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, 
     setTo((t) => [...new Set([...t, ...parts])].slice(0, 6)); setExtra(''); setErr('');
   };
 
+  const addCc = () => {
+    const parts = ccExtra.split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+    const bad = parts.filter((x) => !EMAIL_RE.test(x));
+    if (bad.length) { setErr(`Not an email: ${bad[0]}`); return; }
+    setCc((t) => [...new Set([...t, ...parts])].slice(0, 6)); setCcExtra(''); setErr('');
+  };
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    const picked = Array.from(list);
+    const bad = picked.find((f) => BLOCKED.test(f.name));
+    if (bad) { setErr(`${bad.name}: program files can't be attached.`); return; }
+    const next = [...files, ...picked.filter((f) => !files.some((x) => x.name === f.name && x.size === f.size))];
+    if (next.length > MAX_FILES) { setErr(`At most ${MAX_FILES} attachments.`); return; }
+    if (next.reduce((n, f) => n + f.size, 0) > MAX_BYTES) { setErr('Attachments can be 3 MB in total at most. For bigger files, share a Google Drive link.'); return; }
+    setFiles(next); setErr('');
+  };
+
   /** Makes a one-time CTF-call booking link (uses Call hours) and puts it in the message. */
   const addBookingLink = async () => {
     if (!to.length) { setErr('Add an email address first.'); return; }
@@ -119,7 +152,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, 
     try {
       const d = await api<{ link: string }>('/api/interview', {
         action: 'create-link', kind: 'ctf', days: 14, ...(as ? { as } : {}),
-        name: (lead.organizer.split(',')[0] || lead.event).slice(0, 80),
+        name: (lead.organizer.split(',')[0] || lead.event || to[0] || 'Guest').slice(0, 80),
         ...(to.length > 1 ? { emails: to, hideGuests: false } : { email: to[0] }),
       });
       setLink(d.link);
@@ -142,7 +175,11 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, 
     if (!subject.trim() || !body.trim()) { setErr('Subject and message are needed.'); return; }
     setBusy(true); setErr('');
     try {
-      const d = await api<{ mail: OutMail | null }>('/api/outreach', { action: 'send', leadId: lead.id, to, subject, body, bookingLink: link || undefined, inReplyTo: replyTo?.message_id || undefined, ...(as ? { as } : {}) });
+      const attachments = await Promise.all(files.map(async (f) => ({ name: f.name, type: f.type || 'application/octet-stream', data: await toBase64(f) })));
+      const d = await api<{ mail: OutMail | null }>('/api/outreach', {
+        action: 'send', leadId: lead.id, to, subject, body, bookingLink: link || undefined, inReplyTo: replyTo?.message_id || undefined,
+        ...(cc.length ? { cc } : {}), ...(attachments.length ? { attachments } : {}), ...(as ? { as } : {}),
+      });
       onSent(d.mail);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not send.'); setBusy(false); }
   };
@@ -175,7 +212,22 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, 
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addExtra(); } }}
               inputMode="email" placeholder={to.length ? '' : 'name@college.edu'} aria-label="Add recipient"
               className="min-w-[140px] flex-1 bg-transparent py-1 text-[15px] text-white placeholder:text-white/25 focus:outline-none" />
+            {!ccOpen && <button type="button" onClick={() => setCcOpen(true)} className="text-[14px] text-[#0A84FF]">Cc</button>}
           </div>
+          {ccOpen && (
+            <div className="flex flex-wrap items-center gap-1.5 border-b border-white/[0.07] py-2.5">
+              <span className="text-[15px] text-white/45 mr-1">Cc:</span>
+              {cc.map((e) => (
+                <span key={e} className="inline-flex items-center gap-1 rounded-full bg-white/[0.1] pl-2.5 pr-1 py-0.5 text-[13.5px] text-white/85">
+                  {e}
+                  <button aria-label={`Remove ${e}`} onClick={() => setCc((t) => t.filter((x) => x !== e))} className="rounded-full p-0.5 hover:bg-white/10"><X size={12} /></button>
+                </span>
+              ))}
+              <input value={ccExtra} onChange={(e) => setCcExtra(e.target.value)} onBlur={() => ccExtra.trim() && addCc()} autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addCc(); } }}
+                inputMode="email" aria-label="Add Cc" className="min-w-[140px] flex-1 bg-transparent py-1 text-[15px] text-white focus:outline-none" />
+            </div>
+          )}
           <p className="py-1.5 text-[11.5px] text-white/35">From <span className="text-white/60">{fromAddr}</span>{fromAddr !== 'mail@cyberhx.com' ? ', with a copy to mail@cyberhx.com' : ''}. Replies come to mail@cyberhx.com and show up in your Inbox here.</p>
           {/* Subject */}
           <div className="flex items-center gap-2 border-b border-white/[0.07] py-2.5">
@@ -187,7 +239,22 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, 
           <textarea ref={bodyRef} value={body} onChange={(e) => setBody(e.target.value.slice(0, 8000))} aria-label="Message" rows={14}
             className="mt-3 w-full resize-y bg-transparent text-[15px] leading-relaxed text-white/90 focus:outline-none" />
 
+          {files.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Attachments">
+              {files.map((f) => (
+                <li key={f.name + f.size} className="inline-flex max-w-full items-center gap-1.5 rounded-xl bg-white/[0.07] border border-white/[0.08] pl-2.5 pr-1 py-1 text-[13px] text-white/85">
+                  <Paperclip size={13} className="shrink-0 text-white/50" />
+                  <span className="truncate max-w-[200px]">{f.name}</span><span className="shrink-0 text-white/40">{fileSize(f.size)}</span>
+                  <button aria-label={`Remove ${f.name}`} onClick={() => setFiles((x) => x.filter((y) => y !== f))} className="rounded-full p-0.5 hover:bg-white/10"><X size={12} /></button>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
+            <input ref={fileRef} type="file" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} className={`inline-flex items-center gap-1.5 rounded-full bg-white/[0.07] border border-white/[0.08] px-3 py-1.5 text-[13px] text-white/85 hover:bg-white/[0.12] ${ring}`}>
+              <Paperclip size={14} className="text-[#0A84FF]" />Attach
+            </button>
             {link ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#30D158]/15 px-3 py-1.5 text-[13px] text-[#30D158]"><Check size={14} />Booking link added</span>
             ) : (
@@ -196,7 +263,7 @@ export function ComposeSheet({ lead, pitch, onClose, onSent, replyTo, autoLink, 
                 Add a link to book a call
               </button>
             )}
-            <span className="text-[11.5px] text-white/35">Uses your Call hours. Valid 14 days.</span>
+            <span className="text-[11.5px] text-white/35">Files: up to 5, 3 MB in total. Booking link uses your Call hours, valid 14 days.</span>
           </div>
           {err && <p role="alert" className="mt-3 rounded-xl bg-[#FF453A]/15 px-3 py-2 text-[14px] text-[#FF9F9A]">{err}</p>}
         </div>
@@ -347,7 +414,7 @@ export function SentList({ mails, leads, onOpenLead }: { mails: OutMail[]; leads
                   <span className="truncate text-[15px] font-semibold text-white">{lead?.event || m.to_emails[0]}</span>
                   <span className="shrink-0 text-[12px] text-white/40">{when(m.sent_at)}</span>
                 </div>
-                <p className="truncate text-[14px] text-white/80">{m.subject}</p>
+                <p className="truncate text-[14px] text-white/80">{m.attachments?.length ? <Paperclip size={12} className="mr-1 inline text-white/45" /> : null}{m.subject}</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span className="truncate text-[12px] text-white/40">to {m.to_emails.join(', ')}{m.from_email ? ` · from ${m.from_email}` : m.sent_by ? ` · by ${m.sent_by}` : ''}</span>
                   <StateBadge s={status(m.message_ids[0])} />
@@ -355,7 +422,13 @@ export function SentList({ mails, leads, onOpenLead }: { mails: OutMail[]; leads
               </button>
               {openId === m.id && (
                 <div className="px-4 sm:px-5 pb-4">
+                  {!!m.cc_emails?.length && <p className="mb-1.5 text-[12.5px] text-white/45">Cc {m.cc_emails.join(', ')}</p>}
                   <pre className="whitespace-pre-wrap rounded-xl bg-white/[0.04] p-3 font-sans text-[13.5px] leading-relaxed text-white/75">{m.body}</pre>
+                  {!!m.attachments?.length && (
+                    <p className="mt-2 flex flex-wrap gap-1.5">
+                      {m.attachments.map((a) => <span key={a.name} className="inline-flex items-center gap-1 rounded-lg bg-white/[0.06] px-2 py-1 text-[12.5px] text-white/70"><Paperclip size={12} />{a.name} · {fileSize(a.size)}</span>)}
+                    </p>
+                  )}
                   {lead && <button onClick={() => onOpenLead(lead.id)} className="mt-2 text-[14px] text-[#0A84FF]">Open lead</button>}
                 </div>
               )}
@@ -537,7 +610,7 @@ export function ScheduleSheet({ lead, onClose, onBooked, onLetThemPick, as }: {
     try {
       const d = await api<{ start: string; meetLink: string | null }>('/api/interview', {
         action: 'book-now', kind: 'ctf', dur: mins, ...(as ? { as } : {}),
-        name: (lead.organizer.split(',')[0] || lead.event).slice(0, 80),
+        name: (lead.organizer.split(',')[0] || lead.event || to[0] || 'Guest').slice(0, 80),
         ...(to.length > 1 ? { emails: to, hideGuests: false } : { email: to[0] }),
         ...(mode === 'slot' ? { start: slot } : { custom: { date: cDate, time: cTime }, force }),
       });

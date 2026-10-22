@@ -117,6 +117,12 @@ const pseudoLead = (r: Reply): Lead => ({
   updated_by: null, updated_at: r.received_at,
 });
 
+/** "New email" to anyone: not tied to a lead. */
+const BLANK_LEAD: Lead = {
+  id: '', event: '', organizer: '', event_date: '', sort_date: null, emails: '', phones: '', link: '', platform: '', priority: 'maybe',
+  status: 'todo', notes: '', next_followup: null, last_contacted_at: null, updated_by: null, updated_at: '',
+};
+
 /** Answer to an organiser's reply: same thread, short. */
 const replyFor = (r: Reply) => ({
   subject: /^re:/i.test(r.subject) ? r.subject : `Re: ${r.subject || 'Cyber HX'}`,
@@ -184,7 +190,7 @@ export function OutreachPanel({ role = 'owner' }: { role?: string }) {
   const [section, setSection] = useState<'leads' | 'inbox' | 'sent' | 'calls' | 'hours' | 'team'>('leads');
   const [mails, setMails] = useState<OutMail[]>([]);
   const [replies, setReplies] = useState<Reply[]>([]);
-  const [compose, setCompose] = useState<{ lead: Lead; reply?: Reply; autoLink?: boolean } | null>(null);
+  const [compose, setCompose] = useState<{ lead: Lead; reply?: Reply; autoLink?: boolean; blank?: boolean } | null>(null);
   const [schedule, setSchedule] = useState<Lead | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const toastT = useRef<number>();
@@ -338,6 +344,10 @@ export function OutreachPanel({ role = 'owner' }: { role?: string }) {
           <button onClick={load} aria-label="Refresh" className={`h-10 w-10 rounded-full ${glass} flex items-center justify-center text-white/80 hover:text-white ${ring}`}>
             <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
+          <button onClick={() => setCompose({ lead: BLANK_LEAD, blank: true })} aria-label="New email"
+            className={`h-10 rounded-full ${glass} px-3.5 sm:px-4 text-[14px] font-medium text-white flex items-center gap-1.5 hover:bg-white/[0.1] active:scale-95 transition ${ring}`}>
+            <Mail size={16} /><span className="hidden sm:inline">New email</span>
+          </button>
           <button onClick={() => setAdding(true)} className={`h-10 rounded-full bg-[#0A84FF] px-4 text-[14px] font-semibold text-white shadow-[0_6px_20px_-6px_#0A84FF,inset_0_1px_0_rgba(255,255,255,.3)] hover:bg-[#409CFF] active:scale-95 transition flex items-center gap-1.5 ${ring}`}>
             <Plus size={17} strokeWidth={2.5} /><span className="hidden sm:inline">Add lead</span>
           </button>
@@ -485,7 +495,7 @@ export function OutreachPanel({ role = 'owner' }: { role?: string }) {
       {compose && (
         <ComposeSheet lead={compose.lead} replyTo={compose.reply} autoLink={compose.autoLink}
           {...composeAs(compose.lead.owner_id || compose.reply?.owner_id)}
-          pitch={compose.reply ? replyFor(compose.reply)
+          pitch={compose.blank ? { subject: '', body: `Hi,\n\n\n\nBest,\n${SIGN}` } : compose.reply ? replyFor(compose.reply)
             : mailsByLead.get(compose.lead.id)?.length ? followupFor(compose.lead, mailsByLead.get(compose.lead.id)!.slice(-1)[0]) : pitchFor(compose.lead)}
           onClose={() => setCompose(null)} onSent={(m) => onSent(compose.lead, m)} />
       )}

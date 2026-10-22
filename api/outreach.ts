@@ -98,7 +98,23 @@ export default async function handler(req: any, res: any) {
   const body = String(b.body || '').trim().slice(0, 8000);
   const inReplyTo = /^<[^<>\s]{3,250}>$/.test(String(b.inReplyTo || '')) ? String(b.inReplyTo) : '';
   const bookingLink = /^https:\/\/[^\s]+$/.test(String(b.bookingLink || '')) ? String(b.bookingLink).slice(0, 500) : null;
-  // leadId is optional: replying to a mail@ email from someone who isn't a lead yet.
+  const ccIn = [...new Set((Array.isArray(b.cc) ? b.cc : []).map((x: unknown) => String(x).trim().toLowerCase()).filter((x: string) => EMAIL_RE.test(x) && x.length <= 200 && !to.includes(x)))].slice(0, 6) as string[];
+  // Attachments: [{ name, type, data (base64) }], at most 5 files / 3 MB in total (Vercel takes ~4.5 MB per request).
+  const BLOCKED = /\.(exe|bat|cmd|com|scr|msi|vbs|js|jar|ps1|apk|sh|dll|reg|lnk|hta)$/i;
+  const files: { filename: string; type: string; content: string; size: number }[] = [];
+  let total = 0;
+  for (const a of (Array.isArray(b.attachments) ? b.attachments : []).slice(0, 6)) {
+    const filename = String(a?.name || '').replace(/[\r\n"\\/]+/g, ' ').trim().slice(0, 120);
+    const content = String(a?.data || '').replace(/^data:[^,]*,/, '');
+    if (!filename || !/^[A-Za-z0-9+/=]+$/.test(content)) return res.status(400).json({ error: 'One attachment could not be read. Remove it and add it again.' });
+    if (BLOCKED.test(filename)) return res.status(400).json({ error: `${filename}: program files can't be attached.` });
+    const size = Math.floor((content.length * 3) / 4);
+    total += size;
+    files.push({ filename, type: /^[\w.+-]+\/[\w.+-]+$/.test(String(a?.type || '')) ? String(a.type) : 'application/octet-stream', content, size });
+  }
+  if (files.length > 5) return res.status(400).json({ error: 'At most 5 attachments per email.' });
+  if (total > 3 * 1024 * 1024) return res.status(400).json({ error: 'Attachments are too big: 3 MB in total at most.' });
+  // leadId is optional: replying to a mail@ email from someone who isn't a lead yet, or a plain new email.
   if (!to.length) return res.status(400).json({ error: 'Add at least one valid email address.' });
   if (!subject || !body) return res.status(400).json({ error: 'Subject and message are needed.' });
 
@@ -124,7 +140,10 @@ export default async function handler(req: any, res: any) {
 
   const MAIN = 'mail@cyberhx.com';
   const fromAddr = person ? { email: person.send_as, name: `${person.name} from CyberHx` } : { email: MAIN, name: 'CyberHx' };
-  const cc = fromAddr.email === MAIN || to.includes(MAIN) ? [] : [{ email: MAIN, name: 'CyberHx' }];
+  const cc = [
+    ...ccIn.filter((e) => e !== MAIN).map((email) => ({ email })),
+    ...(fromAddr.email === MAIN || to.includes(MAIN) ? [] : [{ email: MAIN, name: 'CyberHx' }]),
+  ];
   const msgId = `<${crypto.randomUUID()}@cyberhx.com>`; // replies quote this, so they land in the right person's inbox
   const headers: Record<string, string> = { 'Message-ID': msgId, ...(inReplyTo ? { 'In-Reply-To': inReplyTo, References: inReplyTo } : {}) };
 
@@ -137,6 +156,7 @@ export default async function handler(req: any, res: any) {
         from: fromAddr, to: to.map((email) => ({ email })), ...(cc.length ? { cc } : {}),
         reply_to: { email: MAIN, name: 'CyberHx' },
         subject, text: body, html: toHtml(body), category: 'outreach', headers,
+        ...(files.length ? { attachments: files.map((f) => ({ content: f.content, filename: f.filename, type: f.type, disposition: 'attachment' })) } : {}),
       }),
     });
     const d: any = await r.json().catch(() => ({}));
@@ -161,7 +181,8 @@ export default async function handler(req: any, res: any) {
       const r = await fetch(`${url}/rest/v1/outreach_mails`, {
         method: 'POST',
         headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-        body: JSON.stringify({ lead_id: UUID_RE.test(leadId) ? leadId : null, to_emails: to, subject, body, booking_link: bookingLink, message_ids: [msgId, ...ids], provider: 'mailtrap', from_email: fromAddr.email, ...(person ? { sent_by_id: person.user_id } : {}) }),
+        body: JSON.stringify({ lead_id: UUID_RE.test(leadId) ? leadId : null, to_emails: to, subject, body, booking_link: bookingLink, message_ids: [msgId, ...ids], provider: 'mailtrap', from_email: fromAddr.email,
+          cc_emails: ccIn, attachments: files.map((f) => ({ name: f.filename, size: f.size, type: f.type })), ...(person ? { sent_by_id: person.user_id } : {}) }),
       });
       if (r.ok) mail = (await r.json())?.[0] || null;
       else console.error('outreach_mails insert failed', r.status, await r.text().catch(() => ''));
