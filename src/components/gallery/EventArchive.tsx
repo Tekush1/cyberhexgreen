@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import { ArrowUpRight, Trophy, Award, Maximize2 } from 'lucide-react';
 import { entryLabel, hasCount, nextEvent, type Event } from '../../data/events';
@@ -253,6 +254,9 @@ export const EventArchive = ({ events, onOpen }: { events: Event[]; onOpen: (i: 
                           Open event <ArrowUpRight size={15} />
                         </a>
                       )}
+                      <Link to={`/events/${e.slug}`} className="btn btn-ghost !min-h-[42px] !px-4 !text-sm">
+                        Event page
+                      </Link>
                       {e.social?.leaderboard && (
                         <a href={e.social.leaderboard} target="_blank" rel="noopener noreferrer" className="btn btn-ghost !min-h-[42px] !px-4 !text-sm">
                           <Trophy size={15} /> Leaderboard

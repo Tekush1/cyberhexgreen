@@ -2,6 +2,8 @@
 // Served at /sitemap.xml via a rewrite in vercel.json. Google reads this to
 // discover and re-crawl posts, so new posts show up without any manual step.
 
+import { events } from '../src/data/events.js';
+
 const SITE = 'https://cyberhx.com';
 
 const STATIC: { path: string; priority: number; changefreq: string }[] = [
@@ -48,6 +50,11 @@ export default async function handler(_req: any, res: any) {
     (p) =>
       `  <url><loc>${SITE}${p.path}</loc><lastmod>${today}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority></url>`,
   );
+
+  // One page per CTF (/events/<slug>): searching an event's name should land on it.
+  for (const e of events) {
+    urls.push(`  <url><loc>${SITE}/events/${xmlEscape(e.slug)}</loc><lastmod>${today}</lastmod><changefreq>${e.status === 'completed' ? 'monthly' : 'daily'}</changefreq><priority>${e.status === 'completed' ? 0.7 : 0.9}</priority></url>`);
+  }
 
   for (const p of rows) {
     const lastmod = (p.updated_at || p.published_at || '').slice(0, 10) || today;

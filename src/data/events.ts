@@ -3,6 +3,18 @@
 
 export interface Event {
   id: number;
+  /** URL of the event's own page: cyberhx.com/events/<slug>. Never change it once live (search engines index it). */
+  slug: string;
+  /** ISO dates for search engines (structured data). */
+  startDate: string;
+  endDate?: string;
+  /** Who runs it (shown on the page and in structured data). */
+  organizers?: { name: string; url?: string }[];
+  /** Extra words people search for, e.g. "nfsu ctf". */
+  searchTerms?: string[];
+  /** Physical venue, if any (an online-only event has none). */
+  venue?: string;
+  venueCity?: string;
   title: string;
   subtitle: string;
   description: string;
@@ -50,6 +62,13 @@ export const nextEvent = () => events.find((e) => e.status === 'upcoming' || e.s
 export const events: Event[] = [
   {
     id: 3,
+    slug: 'pinaka-ctf',
+    startDate: '2026-10-31T10:00:00+05:30',
+    endDate: '2026-11-01T10:00:00+05:30',
+    organizers: [{ name: 'National Forensic Sciences University, Chennai Campus' }, { name: 'CyberHx', url: 'https://cyberhx.com' }],
+    searchTerms: ['pinaka ctf', 'pinaka ctf 2026', 'nfsu ctf', 'nfsu chennai ctf', 'national ctf india 2026'],
+    venue: 'National Forensic Sciences University, Chennai Campus (final)',
+    venueCity: 'Chennai',
 
     title: 'Pinaka CTF',
 
@@ -114,6 +133,12 @@ export const events: Event[] = [
   },
   {
     id: 4,
+    slug: 'cyberheist',
+    startDate: '2026-10-31',
+    organizers: [{ name: 'Backslash, Thapar Institute of Engineering & Technology' }, { name: 'CyberHx', url: 'https://cyberhx.com' }],
+    searchTerms: ['cyberheist ctf', 'cyberheist thapar', 'backslash thapar ctf', 'tiet ctf 2026'],
+    venue: 'Thapar Institute of Engineering & Technology',
+    venueCity: 'Patiala',
     title: 'CyberHeist',
     subtitle: 'CTF by Backslash, the security society at TIET',
     description:
@@ -137,6 +162,11 @@ export const events: Event[] = [
   },
   {
     id: 2,
+    slug: 'null-origin-ctf',
+    startDate: '2026-09-18',
+    endDate: '2026-09-25',
+    organizers: [{ name: 'CyberHx', url: 'https://cyberhx.com' }],
+    searchTerms: ['null origin ctf', 'null origin ctf 2026', 'nullorigin ctf', 'international ctf 2026'],
   
     title: 'Null Origin CTF',
   
@@ -198,6 +228,10 @@ export const events: Event[] = [
   },
   {
     id: 1,
+    slug: 'zeroday-heist',
+    startDate: '2026-06',
+    organizers: [{ name: 'CyberHx', url: 'https://cyberhx.com' }],
+    searchTerms: ['zeroday heist', 'zeroday heist ctf', 'zero day heist ctf'],
     title: 'ZeroDay Heist',
     subtitle: "A Large-Scale Community-Driven Cybersecurity CTF",
 
@@ -254,3 +288,5 @@ export const events: Event[] = [
     },
   },
 ];
+
+export const eventBySlug = (slug: string) => events.find((e) => e.slug === slug);

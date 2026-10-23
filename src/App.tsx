@@ -19,6 +19,7 @@ const BlogPage = lazy(retryImport(() => import('./features/blog/BlogListPage')))
 const BlogPostPage = lazy(retryImport(() => import('./features/blog/BlogPostPage')));
 const BlogEditorPage = lazy(retryImport(() => import('./features/blog/EditorPage')));
 const AdminPage = lazy(retryImport(() => import('./pages/AdminPage').then(module => ({ default: module.default }))));
+const EventDetailPage = lazy(retryImport(() => import('./pages/EventDetailPage').then(module => ({ default: module.default }))));
 const CertificationsPage = lazy(retryImport(() => import('./pages/CertificationsPage').then(module => ({ default: module.CertificationsPage }))));
 const ResponsibleDisclosurePage = lazy(retryImport(() => import('./pages/ResponsibleDisclosurePage')));
 const HallOfFamePage = lazy(retryImport(() => import('./pages/HallOfFamePage')));
@@ -82,6 +83,7 @@ function App() {
               <Route path="/register" element={<RegistrationPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/events" element={<GalleryPage />} />
+              <Route path="/events/:slug" element={<EventDetailPage />} />
               <Route path="/certifications" element={<CertificationsPage />} />
               <Route path="/book-interview" element={<BookInterviewPage />} />
               <Route path="/meet/:code" element={<BookInterviewPage />} />

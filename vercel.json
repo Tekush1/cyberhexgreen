@@ -16,6 +16,17 @@
       "destination": "/api/prerender?slug=:slug"
     },
     {
+      "source": "/events/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|discordbot|telegrambot|embedly|pinterest|redditbot|applebot|bingbot|googlebot|google-inspectiontool|bingpreview|quora|vkshare|skypeuripreview|nuzzel|yandex|baiduspider|duckduckbot).*"
+        }
+      ],
+      "destination": "/api/event-page?slug=:slug"
+    },
+    {
       "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }

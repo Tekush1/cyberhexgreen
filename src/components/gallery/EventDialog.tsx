@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'framer-motion';
 import {
   ArrowUpRight,
@@ -274,6 +275,9 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
 
         {/* actions */}
         <div className="border-t border-white/[0.07] bg-ink/80 px-5 py-4 backdrop-blur sm:px-8">
+          <Link to={`/events/${event.slug}`} onClick={onClose} className="mb-2.5 flex min-h-[44px] items-center justify-center gap-1.5 text-sm font-semibold text-white/80 hover:text-white">
+            Open the full {event.title} page <ArrowUpRight size={15} />
+          </Link>
           {event.status !== 'completed' && (event.register || event.link) ? (
             <a
               href={event.register || event.link}

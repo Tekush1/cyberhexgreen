@@ -20,7 +20,7 @@ export const partners: Partner[] = [
     note: 'Institution of National Importance under the Ministry of Home Affairs, Government of India',
     event: 'Pinaka CTF · 31 Oct 2026',
     logo: '/events/nfsu-logo.webp',
-    to: '/events',
+    to: '/events/pinaka-ctf',
   },
   {
     name: 'Thapar Institute of Engineering & Technology',
@@ -28,7 +28,7 @@ export const partners: Partner[] = [
     note: 'Deemed to be University · CyberHeist, run by its Backslash society',
     event: 'CyberHeist (private) · 31 Oct 2026',
     logo: '/events/thapar-logo.webp',
-    to: '/events',
+    to: '/events/cyberheist',
   },
 ];
 
