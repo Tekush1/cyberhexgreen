@@ -43,7 +43,7 @@ export const playersText = (e: Event) =>
   hasCount(e)
     ? `${e.participants.replace(/\s*(hackers?|participants?|players?)\s*$/i, '').trim().replace(/\d{4,}/g, (n) => Number(n).toLocaleString('en-US'))} players`
     : [e.entry && `${e.entry} entry`, e.participants.toLowerCase()].filter(Boolean).join(' · ');
-export const nextEvent = () => [...events].reverse().find((e) => e.status === 'upcoming' || e.status === 'live');
+export const nextEvent = () => events.find((e) => e.status === 'upcoming' || e.status === 'live');
 
 export const events: Event[] = [
   {
@@ -109,6 +109,31 @@ export const events: Event[] = [
       website: 'https://pinakactf.com',
       leaderboard: 'https://ctf.cyberhx.com/leaderboard',
     },
+  },
+  {
+    id: 4,
+    title: 'CyberHeist',
+    subtitle: 'CTF by Backslash, the security society at TIET',
+    description:
+      'CyberHeist is a capture-the-flag competition organised by Backslash at Thapar Institute of Engineering & Technology (Deemed to be University), with CyberHx hosting the platform and running the event on the day.',
+    date: '31 October 2026',
+    duration: '',
+    participants: 'Registrations open',
+    shortDate: '31 Oct',
+    register: 'https://cyberheist.cyberhx.com',
+    prize: '',
+    tags: ['CTF', 'Jeopardy CTF', 'Thapar Institute'],
+    status: 'upcoming',
+    category: 'Hacking',
+    link: 'https://cyberheist.cyberhx.com',
+    highlights: ['Organised by Backslash, TIET', 'Hosted by CyberHx'],
+    location: 'Thapar Institute of Engineering & Technology',
+    image: '/events/cyberheist.webp',
+    hostLogos: [
+      { name: 'Thapar Institute of Engineering & Technology', logo: '/events/thapar-logo.webp' },
+      { name: 'Backslash, TIET', logo: '/events/backslash-logo.webp' },
+    ],
+    social: { website: 'https://cyberheist.cyberhx.com' },
   },
   {
     id: 2,

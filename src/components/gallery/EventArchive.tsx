@@ -267,8 +267,8 @@ export const EventArchive = ({ events, onOpen }: { events: Event[]; onOpen: (i: 
                   </div>
 
                   <div className="arc-big">
-                    <b className={cyan ? 'text-glow' : 'text-lime'}>{playersShort(e)}</b>
-                    <small>Players</small>
+                    <b className={cyan ? 'text-glow' : 'text-lime'}>{hasCount(e) ? playersShort(e) : e.shortDate || 'Soon'}</b>
+                    <small>{hasCount(e) ? 'Players' : e.entry ? `${e.entry} entry` : 'Registrations open'}</small>
                   </div>
                 </motion.article>
               </li>

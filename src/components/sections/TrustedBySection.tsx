@@ -25,8 +25,10 @@ export const partners: Partner[] = [
   {
     name: 'Thapar Institute of Engineering & Technology',
     short: 'TIET',
-    note: 'Deemed-to-be university in Patiala, Punjab',
-    event: 'CTF with CyberHx · coming up',
+    note: 'Deemed to be University · CyberHeist, run by its Backslash society',
+    event: 'CyberHeist · 31 Oct 2026',
+    logo: '/events/thapar-logo.webp',
+    to: '/events',
   },
 ];
 

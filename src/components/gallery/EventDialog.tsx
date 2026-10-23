@@ -99,7 +99,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
       ? { icon: <Users size={15} />, label: 'Players', value: event.participants }
       : { icon: <Users size={15} />, label: 'Entry', value: playersText(event).replace(/^./, (c) => c.toUpperCase()) },
     { icon: <MapPin size={15} />, label: 'Where', value: event.location },
-  ];
+  ].filter((f) => f.value);
 
   return (
     <motion.div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6">
