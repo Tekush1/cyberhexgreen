@@ -3,7 +3,7 @@
 //
 //   GET  /api/campaign?admin=providers                 -> { providers: [...with today/month usage], lanes, site }
 //   POST /api/campaign { action:'create', kind, name, template, vars, audience } -> { id, total, skipped }
-//        audience = {type:'all'} | {type:'tag', tag} | {type:'list', rows:[{email,name}], tag?}
+//        audience = {type:'all'} | {type:'tag', tag} | {type:'filter', filter:{gender,country,state,college,tag}} | {type:'list', rows:[{email,name}], tag?}
 //   POST /api/campaign { action:'send', id }           -> sends the next batch: { sent, failed, pending, status, note, batch }
 //   POST /api/campaign { action:'test', kind, template, vars, to } -> { provider }
 //   POST /api/campaign { action:'pause' | 'resume' | 'cancel' | 'retry', id }
@@ -131,12 +131,22 @@ export default async function handler(req: any, res: any) {
 
       const name = String(body.name || '').slice(0, 160);
       const a = body.audience || {};
-      const type = ['all', 'tag', 'list'].includes(a.type) ? a.type : 'all';
+      const type = ['all', 'tag', 'list', 'filter'].includes(a.type) ? a.type : '';
+      if (!type) return res.status(400).json({ error: 'Pick who gets this campaign.' });
       const tag = typeof a.tag === 'string' ? a.tag.trim().toLowerCase().replace(/[^a-z0-9:_\-. ]/g, '').slice(0, 60) : '';
       let audience: any = { type };
       if (type === 'tag') {
         if (!tag) return res.status(400).json({ error: 'Pick a tag.' });
         audience.tag = tag;
+      }
+      if (type === 'filter') {
+        // Subscribers filter (gender / country / state / college / group). Never widen it silently to "all".
+        const f = a.filter && typeof a.filter === 'object' ? a.filter : {};
+        const vals = (x: unknown) => (Array.isArray(x) ? x : []).map((v) => String(v).trim().slice(0, 120)).filter(Boolean).slice(0, 200);
+        const filter: Record<string, unknown> = {};
+        for (const k of ['gender', 'country', 'state', 'college'] as const) { const v = vals(f[k]); if (v.length) filter[k] = v; }
+        if (typeof f.tag === 'string' && f.tag.trim()) filter.tag = f.tag.trim().slice(0, 60);
+        audience = Object.keys(filter).length ? { type: 'filter', filter } : { type: 'all' };
       }
       if (type === 'list') {
         const rows = (Array.isArray(a.rows) ? a.rows : [])
