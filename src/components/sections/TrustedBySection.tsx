@@ -26,7 +26,7 @@ export const partners: Partner[] = [
     name: 'Thapar Institute of Engineering & Technology',
     short: 'TIET',
     note: 'Deemed to be University · CyberHeist, run by its Backslash society',
-    event: 'CyberHeist · 31 Oct 2026',
+    event: 'CyberHeist (private) · 31 Oct 2026',
     logo: '/events/thapar-logo.webp',
     to: '/events',
   },

@@ -15,7 +15,7 @@ export interface Event {
   category: 'Events' | 'Hacking' | 'Learning' | 'Teams';
   link?: string;
   /** Paid or free to enter (shown on upcoming events). */
-  entry?: 'Paid' | 'Free';
+  entry?: 'Paid' | 'Free' | 'Private';
   /** Short date for cards and banners, e.g. "31 Oct". */
   shortDate?: string;
   /** Where people register (upcoming events). */
@@ -37,12 +37,14 @@ export interface Event {
 }
 
 /** True when `participants` is a real count ("6000+ Hackers"), not a status like "Registrations open". */
+/** "Paid entry", "Free entry" or "Private event". */
+export const entryLabel = (e: Event) => (e.entry === 'Private' ? 'Private event' : e.entry ? `${e.entry} entry` : '');
 export const hasCount = (e: Event) => /\d/.test(e.participants);
 /** "6,000+ players", or for an upcoming event "Paid entry · registrations open". */
 export const playersText = (e: Event) =>
   hasCount(e)
     ? `${e.participants.replace(/\s*(hackers?|participants?|players?)\s*$/i, '').trim().replace(/\d{4,}/g, (n) => Number(n).toLocaleString('en-US'))} players`
-    : [e.entry && `${e.entry} entry`, e.participants.toLowerCase()].filter(Boolean).join(' · ');
+    : [entryLabel(e), e.participants.toLowerCase()].filter(Boolean).join(' · ');
 export const nextEvent = () => events.find((e) => e.status === 'upcoming' || e.status === 'live');
 
 export const events: Event[] = [
@@ -115,25 +117,23 @@ export const events: Event[] = [
     title: 'CyberHeist',
     subtitle: 'CTF by Backslash, the security society at TIET',
     description:
-      'CyberHeist is a capture-the-flag competition organised by Backslash at Thapar Institute of Engineering & Technology (Deemed to be University), with CyberHx hosting the platform and running the event on the day.',
+      'CyberHeist is a private capture-the-flag competition organised by Backslash at Thapar Institute of Engineering & Technology (Deemed to be University) for its students, with CyberHx hosting the platform and running the event on the day. It is not open for public registration.',
     date: '31 October 2026',
     duration: '',
-    participants: 'Registrations open',
+    participants: 'Invite only',
+    entry: 'Private',
     shortDate: '31 Oct',
-    register: 'https://cyberheist.cyberhx.com',
     prize: '',
     tags: ['CTF', 'Jeopardy CTF', 'Thapar Institute'],
     status: 'upcoming',
     category: 'Hacking',
-    link: 'https://cyberheist.cyberhx.com',
-    highlights: ['Organised by Backslash, TIET', 'Hosted by CyberHx'],
+    highlights: ['Private event for TIET', 'Organised by Backslash, TIET', 'Hosted by CyberHx'],
     location: 'Thapar Institute of Engineering & Technology',
     image: '/events/cyberheist.webp',
     hostLogos: [
       { name: 'Thapar Institute of Engineering & Technology', logo: '/events/thapar-logo.webp' },
       { name: 'Backslash, TIET', logo: '/events/backslash-logo.webp' },
     ],
-    social: { website: 'https://cyberheist.cyberhx.com' },
   },
   {
     id: 2,

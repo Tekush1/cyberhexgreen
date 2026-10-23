@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Local } from '../shared/Local';
 import { ArrowUpRight } from 'lucide-react';
 import { plans, builderCategories, builderPricing as P } from '../../data/hosting';
-import { events, hasCount } from '../../data/events';
+import { entryLabel, events, hasCount } from '../../data/events';
 
 // Example build shown as a receipt. Prices come from the builder data, so they stay in sync.
 const price = (cat: string, tier: string) =>
@@ -132,7 +132,7 @@ export const WhatWeDoSection = () => {
                     ) : (
                       <>
                         <p className="whitespace-nowrap font-display text-lg leading-6 text-lime">{e.shortDate || 'Soon'}</p>
-                        <p className="text-xs text-muted">{e.entry ? `${e.entry} entry` : 'Upcoming'}</p>
+                        <p className="text-xs text-muted">{entryLabel(e) || 'Upcoming'}</p>
                       </>
                     )}
                   </div>

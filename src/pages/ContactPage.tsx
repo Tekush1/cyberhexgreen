@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ArrowUpRight, Check, FileText, Loader2, Mail, MapPin, Upload, X } from 'lucide-react';
+import { ArrowUpRight, Check, FileText, Loader2, Mail, MapPin, Upload, X, MessageCircle, Phone } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
 import { Mascot } from '../components/shared/Mascot';
 import { isEmail, submitForm, uploadResume } from '../lib/forms';
@@ -386,7 +386,19 @@ export const ContactPage = () => {
         {/* Side info */}
         <aside className="space-y-5 lg:pt-2">
           <div className="rounded-3xl border border-white/[0.08] bg-[#080d1a] p-6">
-            <h2 className="font-semibold">Email us directly</h2>
+            <h2 className="font-semibold">Reach us directly</h2>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <a href="https://wa.me/919569472058?text=Hi%20CyberHx%2C%20I%27d%20like%20to%20talk%20about%20hosting%20a%20CTF."
+                target="_blank" rel="noopener noreferrer"
+                className="flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-[#25D366] px-3 text-sm font-bold text-[#04110a] transition hover:brightness-110">
+                <MessageCircle size={17} /> WhatsApp
+              </a>
+              <a href="tel:+919569472058"
+                className="flex min-h-[46px] items-center justify-center gap-2 rounded-xl border border-white/15 px-3 text-sm font-bold text-white transition hover:border-white/30">
+                <Phone size={16} /> Call
+              </a>
+            </div>
+            <p className="mt-2 text-center text-xs text-muted">+91 95694 72058 · business hours, IST</p>
             <ul className="mt-4 space-y-3">
               {DIRECT.map((d) => (
                 <li key={d.email}>

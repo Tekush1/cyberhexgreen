@@ -310,7 +310,7 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
             </div>
           ) : (
             <p className="flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-amber-500/30 bg-amber-400/10 font-semibold text-amber-200">
-              <Radio size={16} /> Coming soon
+              <Radio size={16} /> {event.entry === 'Private' ? 'Private event · invite only' : 'Coming soon'}
             </p>
           )}
         </div>

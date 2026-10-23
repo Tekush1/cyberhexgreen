@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import { ArrowUpRight, Trophy, Award, Maximize2 } from 'lucide-react';
-import { hasCount, nextEvent, type Event } from '../../data/events';
+import { entryLabel, hasCount, nextEvent, type Event } from '../../data/events';
 import { dateParts, durationShort, pad2, prizeShort } from './eventStyle';
 
 /* Events archive, dark band:
@@ -18,7 +18,7 @@ const fromHighlights = (e: Event, word: RegExp) => {
 /** "6000+" -> "6,000+" */
 const withCommas = (s: string) => s.replace(/\d{4,}/g, (n) => Number(n).toLocaleString('en-US'));
 const playersShort = (e: Event) =>
-  hasCount(e) ? withCommas(e.participants.replace(/\s*(hackers?|participants?|players?)\s*$/i, '').trim()) : e.entry ? `${e.entry} entry` : 'Open';
+  hasCount(e) ? withCommas(e.participants.replace(/\s*(hackers?|participants?|players?)\s*$/i, '').trim()) : entryLabel(e) || 'Open';
 const isOnlineWorld = (e: Event) => /global|worldwide/i.test(e.location);
 
 export const EventArchive = ({ events, onOpen }: { events: Event[]; onOpen: (i: number) => void }) => {
@@ -268,7 +268,7 @@ export const EventArchive = ({ events, onOpen }: { events: Event[]; onOpen: (i: 
 
                   <div className="arc-big">
                     <b className={cyan ? 'text-glow' : 'text-lime'}>{hasCount(e) ? playersShort(e) : e.shortDate || 'Soon'}</b>
-                    <small>{hasCount(e) ? 'Players' : e.entry ? `${e.entry} entry` : 'Registrations open'}</small>
+                    <small>{hasCount(e) ? 'Players' : entryLabel(e) || 'Registrations open'}</small>
                   </div>
                 </motion.article>
               </li>
