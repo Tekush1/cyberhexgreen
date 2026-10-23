@@ -5,9 +5,9 @@ import { SiteIcon, type IconName } from './shared/SiteIcon';
 import { Mascot } from './shared/Mascot';
 
 const links = [
-  { name: 'Events', to: '/gallery' },
+  { name: 'Events', to: '/events' },
   { name: 'Host a CTF', to: '/host-your-ctf' },
-  { name: 'Certifications', to: '/#certifications' },
+  { name: 'Certifications', to: '/certifications' },
   { name: 'Blog', to: '/blog' },
   { name: 'About', to: '/about' },
   { name: 'Contact', to: '/contact' },

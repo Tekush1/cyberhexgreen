@@ -19,7 +19,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import type { Event } from '../../data/events';
+import { hasCount, playersText, type Event } from '../../data/events';
 import { SiteIcon } from '../shared/SiteIcon';
 import { STATUS, prizeShort } from './eventStyle';
 
@@ -95,7 +95,9 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
   const facts = [
     { icon: <Calendar size={15} />, label: 'Date', value: event.date },
     { icon: <Clock size={15} />, label: 'Duration', value: event.duration },
-    { icon: <Users size={15} />, label: 'Players', value: event.participants },
+    hasCount(event)
+      ? { icon: <Users size={15} />, label: 'Players', value: event.participants }
+      : { icon: <Users size={15} />, label: 'Entry', value: playersText(event).replace(/^./, (c) => c.toUpperCase()) },
     { icon: <MapPin size={15} />, label: 'Where', value: event.location },
   ];
 
@@ -272,14 +274,14 @@ export function EventDialog({ event, onClose }: { event: Event; index: number; o
 
         {/* actions */}
         <div className="border-t border-white/[0.07] bg-ink/80 px-5 py-4 backdrop-blur sm:px-8">
-          {event.status === 'live' && event.link ? (
+          {event.status !== 'completed' && (event.register || event.link) ? (
             <a
-              href={event.link}
+              href={event.register || event.link}
               target="_blank"
               rel="noopener noreferrer"
               className="flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-red-500 font-bold text-white transition hover:bg-red-600"
             >
-              Register now <ArrowUpRight size={17} />
+              Register now{event.entry === 'Paid' ? ' · paid entry' : ''} <ArrowUpRight size={17} />
             </a>
           ) : event.status === 'completed' ? (
             <div className="grid grid-cols-2 gap-2.5">

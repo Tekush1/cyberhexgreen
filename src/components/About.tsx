@@ -41,11 +41,11 @@ const Terminal = () => {
           command: cmd,
           output: [
             'Available pages:',
-            'about/         - About us',
-            'themes/        - Challenge tracks',
-            'timeline/      - Event schedule',
-            'gallery/       - Photo gallery',
-            'prizes/        - Rewards & prizes',
+            'events/          - Our CTFs: upcoming and past',
+            'host-your-ctf/   - Packages and the CTF builder',
+            'certifications/  - CAPT and CPPT',
+            'blog/            - Write-ups and tutorials',
+            'contact/         - Talk to us',
             'flag.txt',
           ],
           type: 'success'

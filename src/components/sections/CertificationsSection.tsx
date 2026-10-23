@@ -34,7 +34,7 @@ const copy: Record<Cert['code'], ScreenCopy> = {
     cta: 'Get CPPT',
   },
   CAPT: {
-    kicker: 'THE FLAGSHIP · SPIRIT OF THE WOLF',
+    kicker: 'START HERE · SPIRIT OF THE WOLF',
     heading: ['Master the Fundamentals.', 'Hunt the Weakness.'],
     fullName: 'Certified Associate Penetration Tester',
     meta: ['Associate · Level 01'],

@@ -4,7 +4,7 @@ import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } fro
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Mascot } from '../shared/Mascot';
 import { CountUp } from '../shared/CountUp';
-import { builderPricing } from '../../data/hosting';
+import { builderPricing, plans } from '../../data/hosting';
 import { stats } from '../../data/stats';
 import { events } from '../../data/events';
 
@@ -88,12 +88,14 @@ export const HeroSection = () => {
           {latest && (
             <motion.div {...rise(0.05, 12)}>
               <Link
-                to="/gallery"
+                to="/events"
                 className="group inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/[0.1] bg-white/[0.04] py-1.5 pl-1.5 pr-4 text-sm text-white/80 backdrop-blur transition hover:border-white/25 hover:text-white"
               >
-                <span className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold text-ink">New</span>
+                <span className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold text-ink">{latest.status === 'completed' ? 'New' : 'Next'}</span>
                 <span className="truncate">
-                  {latest.title}: {latest.participants.toLowerCase()} over {latest.duration.toLowerCase()}
+                  {latest.status === 'completed'
+                    ? `${latest.title}: ${latest.participants.toLowerCase()}`
+                    : [latest.title, latest.shortDate, latest.entry === 'Paid' ? 'paid entry, registrations open' : 'registrations open'].filter(Boolean).join(' · ')}
                 </span>
                 <ArrowRight size={14} className="shrink-0 transition-transform group-hover:translate-x-0.5" />
               </Link>
@@ -117,15 +119,15 @@ export const HeroSection = () => {
           </h1>
 
           <motion.p {...rise(0.4)} className="mt-6 max-w-[34rem] text-lg leading-8 text-muted">
-            CyberHx runs capture-the-flag events for the global security community, and builds them for universities and companies worldwide
-            from ${builderPricing.hosting.usd} a round.
+            CyberHx runs capture-the-flag events for the global security community, and builds them for universities and companies worldwide.
+            Ready-made CTFs from ${Math.min(...plans.map((p) => p.usd))}, or hosting only from ${builderPricing.hosting.usd} if you bring your own challenges.
           </motion.p>
 
           <motion.div {...rise(0.5)} className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <Link to="/host-your-ctf#packages" className="btn btn-red group">
               Build your CTF <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <Link to="/gallery" className="btn btn-ghost">
+            <Link to="/events" className="btn btn-ghost">
               View our CTFs
             </Link>
           </motion.div>
@@ -194,8 +196,8 @@ export const HeroSection = () => {
           >
             <Link to="/host-your-ctf#packages" className="glass-card group flex items-center gap-3 px-3.5 py-2.5 transition hover:border-white/25">
               <span className="font-mono text-[11px] leading-4 text-white/55">
-                your CTF
-                <span className="block font-display text-lg leading-6 text-white">from ${builderPricing.hosting.usd}</span>
+                ready-made CTF
+                <span className="block font-display text-lg leading-6 text-white">from ${Math.min(...plans.map((p) => p.usd))}</span>
               </span>
               <ArrowUpRight size={16} className="text-lime transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>

@@ -9,7 +9,7 @@ const NotFoundPage = () => (
     <p className="mt-6 max-w-md font-mono text-white/45">1t!_c0ngr4t5 final part you are more than beginner</p>
     <div className="mt-10 flex flex-col gap-4 sm:flex-row">
       <Link to="/" className="btn btn-lime">Back to home</Link>
-      <Link to="/gallery" className="btn btn-ghost">Browse events</Link>
+      <Link to="/events" className="btn btn-ghost">Browse events</Link>
     </div>
   </div>
 );

@@ -14,6 +14,12 @@ export interface Event {
   status: 'live' | 'completed' | 'upcoming';
   category: 'Events' | 'Hacking' | 'Learning' | 'Teams';
   link?: string;
+  /** Paid or free to enter (shown on upcoming events). */
+  entry?: 'Paid' | 'Free';
+  /** Short date for cards and banners, e.g. "31 Oct". */
+  shortDate?: string;
+  /** Where people register (upcoming events). */
+  register?: string;
   highlights?: string[];
   location: string;
   image: string;
@@ -30,6 +36,15 @@ export interface Event {
   };
 }
 
+/** True when `participants` is a real count ("6000+ Hackers"), not a status like "Registrations open". */
+export const hasCount = (e: Event) => /\d/.test(e.participants);
+/** "6,000+ players", or for an upcoming event "Paid entry · registrations open". */
+export const playersText = (e: Event) =>
+  hasCount(e)
+    ? `${e.participants.replace(/\s*(hackers?|participants?|players?)\s*$/i, '').trim().replace(/\d{4,}/g, (n) => Number(n).toLocaleString('en-US'))} players`
+    : [e.entry && `${e.entry} entry`, e.participants.toLowerCase()].filter(Boolean).join(' · ');
+export const nextEvent = () => [...events].reverse().find((e) => e.status === 'upcoming' || e.status === 'live');
+
 export const events: Event[] = [
   {
     id: 3,
@@ -45,7 +60,13 @@ export const events: Event[] = [
 
     duration: '24 Hours',
 
-    participants: 'Open Registrations',
+    participants: 'Registrations open',
+
+    entry: 'Paid',
+
+    shortDate: '31 Oct',
+
+    register: 'https://pinakactf.com',
 
     prize: '₹1 Cr+',
 

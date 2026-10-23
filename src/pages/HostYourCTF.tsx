@@ -1,4 +1,5 @@
 import React from "react";
+import { TrustedBySection } from '../components/sections/TrustedBySection';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { SiteIcon, type IconName } from "../components/shared/SiteIcon";
 import { HeroCart } from "../components/shared/HeroCart";
@@ -1229,6 +1230,8 @@ export default function HostYourCTF() {
       </section>
 
       {/* Compare */}
+      <TrustedBySection compact />
+
       <section id="compare" className="scroll-mt-32 border-y border-line bg-panel/30">
         <div className="mx-auto max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
           <h2 className={h2}>What you get in each package</h2>
@@ -1634,7 +1637,7 @@ export default function HostYourCTF() {
       <section className="border-y border-line bg-panel/30">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:px-8">
           <div>
-            <SiteIcon name="windows" size={64} alt="" />
+            <SiteIcon name="gauge" size={64} alt="" />
             <h2 className={`${h2} mt-4`}>Every round comes with a host dashboard.</h2>
             <p className="mt-3 text-sm leading-6 text-muted">Watch the board, manage teams and send certificates from one screen.</p>
           </div>

@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowDown, ArrowRight, Instagram } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { events } from '../data/events';
+import { events, hasCount, playersText } from '../data/events';
 import { stats } from '../data/stats';
 import { builderPricing } from '../data/hosting';
 import { Mascot } from './shared/Mascot';
@@ -171,10 +171,10 @@ export const Gallery = () => {
                 </span>
                 <span className="min-w-0">
                   <span className="block font-mono text-[10px] uppercase tracking-[0.16em] text-white/45">
-                    {i === 0 ? 'Latest' : 'Previous'} · {dateParts(e.date).month} {dateParts(e.date).year}
+                    {e.status !== 'completed' ? 'Next' : i === 0 ? 'Latest' : 'Previous'} · {dateParts(e.date).month} {dateParts(e.date).year}
                   </span>
                   <span className="mt-0.5 block truncate font-display text-[15px] text-white group-hover:text-lime">{e.title}</span>
-                  <span className={`mt-0.5 block font-mono text-xs ${i === 0 ? 'text-lime' : 'text-glow'}`}>{e.participants.replace(/\s*(hackers?|participants?|players?)$/i, '').replace(/\d{4,}/g, (n) => Number(n).toLocaleString('en-US'))} players</span>
+                  <span className={`mt-0.5 block font-mono text-xs ${i === 0 ? 'text-lime' : 'text-glow'}`}>{hasCount(e) ? playersText(e) : [e.entry && `${e.entry} entry`, e.shortDate].filter(Boolean).join(' · ') || 'Registrations open'}</span>
                 </span>
               </motion.a>
             ))}

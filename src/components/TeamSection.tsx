@@ -79,7 +79,7 @@ function Badge({ m, id, tier, label, i }: { m: TeamMember; id: number; tier: Tea
                 <circle cx="50" cy="40" r="17" fill="currentColor" opacity=".18" />
                 <path d="M18 92c4-18 17-28 32-28s28 10 32 28" fill="currentColor" opacity=".18" />
               </svg>
-              <span className="badge-q font-display">?</span>
+              <span className="badge-q font-display" style={{ fontSize: "2.2em" }}>{initials(m.name)}</span>
             </span>
           ) : broken ? (
             <span className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_30%,rgba(198,241,53,0.22),transparent_65%),linear-gradient(180deg,#121c38,#070a14)] font-display text-[1.6em] text-white/85">

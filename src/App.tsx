@@ -19,7 +19,7 @@ const BlogPage = lazy(retryImport(() => import('./features/blog/BlogListPage')))
 const BlogPostPage = lazy(retryImport(() => import('./features/blog/BlogPostPage')));
 const BlogEditorPage = lazy(retryImport(() => import('./features/blog/EditorPage')));
 const AdminPage = lazy(retryImport(() => import('./pages/AdminPage').then(module => ({ default: module.default }))));
-const EventsPage = lazy(retryImport(() => import('./pages/EventsPage').then(module => ({ default: module.default }))));
+const CertificationsPage = lazy(retryImport(() => import('./pages/CertificationsPage').then(module => ({ default: module.CertificationsPage }))));
 const ResponsibleDisclosurePage = lazy(retryImport(() => import('./pages/ResponsibleDisclosurePage')));
 const HallOfFamePage = lazy(retryImport(() => import('./pages/HallOfFamePage')));
 const PrivacyPolicyPage = lazy(retryImport(() => import('./pages/PrivacyPolicyPage')));
@@ -81,7 +81,8 @@ function App() {
               <Route path="/book-session" element={<BookSessionPage />} />
               <Route path="/register" element={<RegistrationPage />} />
               <Route path="/admin" element={<AdminPage />} />
-              <Route path="/events" element={<EventsPage />} />
+              <Route path="/events" element={<GalleryPage />} />
+              <Route path="/certifications" element={<CertificationsPage />} />
               <Route path="/book-interview" element={<BookInterviewPage />} />
               <Route path="/meet/:code" element={<BookInterviewPage />} />
               {/* Security pages */}

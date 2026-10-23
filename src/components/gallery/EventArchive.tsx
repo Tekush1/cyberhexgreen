@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import { ArrowUpRight, Trophy, Award, Maximize2 } from 'lucide-react';
-import type { Event } from '../../data/events';
+import { hasCount, nextEvent, type Event } from '../../data/events';
 import { dateParts, durationShort, pad2, prizeShort } from './eventStyle';
 
 /* Events archive, dark band:
@@ -17,7 +17,8 @@ const fromHighlights = (e: Event, word: RegExp) => {
 };
 /** "6000+" -> "6,000+" */
 const withCommas = (s: string) => s.replace(/\d{4,}/g, (n) => Number(n).toLocaleString('en-US'));
-const playersShort = (e: Event) => withCommas(e.participants.replace(/\s*(hackers?|participants?|players?)\s*$/i, '').trim());
+const playersShort = (e: Event) =>
+  hasCount(e) ? withCommas(e.participants.replace(/\s*(hackers?|participants?|players?)\s*$/i, '').trim()) : e.entry ? `${e.entry} entry` : 'Open';
 const isOnlineWorld = (e: Event) => /global|worldwide/i.test(e.location);
 
 export const EventArchive = ({ events, onOpen }: { events: Event[]; onOpen: (i: number) => void }) => {
@@ -140,7 +141,8 @@ export const EventArchive = ({ events, onOpen }: { events: Event[]; onOpen: (i: 
             })}
           </div>
           <p className="border-t border-glow/[0.07] px-5 py-4 font-mono text-[13px] text-white/45">
-            <span className="text-lime">$</span> next_event --status <span className="text-white">announcing soon</span>
+            <span className="text-lime">$</span> next_event --status{' '}
+            <span className="text-white">{(() => { const n = nextEvent(); return n ? `"${n.title} · ${n.shortDate || n.date}${n.entry ? ` · ${n.entry.toLowerCase()}` : ''}"` : 'announcing soon'; })()}</span>
             <span className="arc-cursor" aria-hidden="true" />
           </p>
         </motion.div>
@@ -242,7 +244,11 @@ export const EventArchive = ({ events, onOpen }: { events: Event[]; onOpen: (i: 
                       ))}
                     </div>
                     <div className="mt-5 flex flex-wrap gap-2.5">
-                      {e.link && (
+                      {e.status !== 'completed' && e.register ? (
+                        <a href={e.register} target="_blank" rel="noopener noreferrer" className="btn btn-lime !min-h-[42px] !px-4 !text-sm">
+                          Register{e.entry === 'Paid' ? ' (paid)' : ''} <ArrowUpRight size={15} />
+                        </a>
+                      ) : e.link && (
                         <a href={e.link} target="_blank" rel="noopener noreferrer" className="btn btn-lime !min-h-[42px] !px-4 !text-sm">
                           Open event <ArrowUpRight size={15} />
                         </a>

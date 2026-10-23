@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Local } from '../shared/Local';
 import { ArrowUpRight } from 'lucide-react';
 import { plans, builderCategories, builderPricing as P } from '../../data/hosting';
-import { events } from '../../data/events';
+import { events, hasCount } from '../../data/events';
 
 // Example build shown as a receipt. Prices come from the builder data, so they stay in sync.
 const price = (cat: string, tier: string) =>
@@ -99,7 +99,7 @@ export const WhatWeDoSection = () => {
           </Link>
 
           {/* View our CTFs */}
-          <Link to="/gallery" className="sticker lift group relative flex flex-col overflow-hidden p-6 sm:p-8">
+          <Link to="/events" className="sticker lift group relative flex flex-col overflow-hidden p-6 sm:p-8">
             <SiteIcon
               name="ctf-green"
               size={150}
@@ -107,7 +107,7 @@ export const WhatWeDoSection = () => {
               className="pointer-events-none absolute -right-6 -top-6 origin-top-right rotate-12 scale-[0.62] opacity-90 transition-transform duration-500 group-hover:rotate-[4deg] sm:-right-5 sm:-top-4 sm:scale-100 sm:opacity-100"
             />
             <h3 className="font-display max-w-[11ch] text-3xl text-white sm:text-4xl">View our CTFs</h3>
-            <p className="mt-3 max-w-[24ch] leading-7 text-muted">Open to everyone. Here's what we've run so far.</p>
+            <p className="mt-3 max-w-[26ch] leading-7 text-muted">What's coming up, and what we've run so far.</p>
 
             <ul className="mt-7 space-y-3">
               {events.slice(0, 2).map((e) => (
@@ -124,8 +124,17 @@ export const WhatWeDoSection = () => {
                     <span className="absolute -bottom-[9px] -left-[9px] h-4 w-4 rounded-full border border-white/[0.08] bg-[#0a0f1d] [clip-path:inset(0_0_50%_0)]" />
                   </div>
                   <div className="w-24 shrink-0 px-4 py-3 text-right">
-                    <p className="font-display text-lg leading-6 text-lime">{compact(e.participants)}</p>
-                    <p className="text-xs text-muted">players</p>
+                    {hasCount(e) ? (
+                      <>
+                        <p className="font-display text-lg leading-6 text-lime">{compact(e.participants)}</p>
+                        <p className="text-xs text-muted">players</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="whitespace-nowrap font-display text-lg leading-6 text-lime">{e.shortDate || 'Soon'}</p>
+                        <p className="text-xs text-muted">{e.entry ? `${e.entry} entry` : 'Upcoming'}</p>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}
