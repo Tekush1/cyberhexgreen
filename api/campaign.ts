@@ -15,7 +15,7 @@ import {
   type CampaignKind, type CampaignTemplateId, type CampaignVars,
 } from '../shared/campaignTemplates.js';
 import { canAny } from '../server/staff.js';
-import { allProviders, checkProvider, isProviderId, LANES, PRIMARY_LANE, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
+import { allProviders, checkProvider, isProviderId, isTeamOnly, LANES, PRIMARY_LANE, route, rpc, sbGet, type OutMsg, type ProviderId } from '../server/mailer.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const KINDS: CampaignKind[] = ['event', 'newsletter', 'notification'];
@@ -74,6 +74,7 @@ export default async function handler(req: any, res: any) {
           ...p,
           usedToday: mine.filter((u) => u.day === today).reduce((a, u) => a + u.count, 0),
           usedMonth: mine.reduce((a, u) => a + u.count, 0),
+          teamOnly: isTeamOnly(p.id), // shown, but never used by campaigns
         };
       });
       return res.status(200).json({ providers, lanes: LANES, primaryLane: PRIMARY_LANE, site: site(), tablesMissing });
@@ -100,6 +101,7 @@ export default async function handler(req: any, res: any) {
       let only: ProviderId | undefined;
       if (body.provider && body.provider !== 'auto') {
         if (!isProviderId(body.provider)) return res.status(400).json({ error: 'Unknown email service.' });
+        if (isTeamOnly(body.provider)) return res.status(400).json({ error: 'This service is kept for team emails (meetings / Outreach). Pick another one, or Automatic.' });
         const info = allProviders().find((p) => p.id === body.provider)!;
         if (!info.configured) return res.status(400).json({ error: `${info.label} is not connected yet (add ${info.missingEnv.join(' + ')} in Vercel).` });
         only = body.provider;
@@ -175,7 +177,7 @@ export default async function handler(req: any, res: any) {
         const p = await rpc<any>(auth, 'mail_finish', { p_campaign: id, p_results: [] });
         return res.status(200).json({ ...p, batch: 0 });
       }
-      const r = await route(auth, c.kind as CampaignKind, rows, (row) => buildMsg(c.kind, c.template, c.vars || {}, row), isProviderId(c.provider) ? c.provider : undefined, senderName(c.vars || {}), (c.vars || {}).style !== 'designed');
+      const r = await route(auth, c.kind as CampaignKind, rows, (row) => buildMsg(c.kind, c.template, c.vars || {}, row), isProviderId(c.provider) && !isTeamOnly(c.provider) ? c.provider : undefined, senderName(c.vars || {}), (c.vars || {}).style !== 'designed');
       const results = [
         ...r.done.map((d) => ({ id: d.row.id, status: d.ok ? 'sent' : 'failed', provider: d.provider, message_id: d.id || null, error: d.ok ? null : d.error || 'failed' })),
         ...r.leftover.map((row) =>

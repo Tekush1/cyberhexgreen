@@ -15,6 +15,8 @@ import { AudienceFilter, describeFilter, type AudFilter } from './AudienceFilter
 interface Provider {
   id: string; label: string; configured: boolean; missingEnv: string[]; from: string;
   day: number | null; month: number | null; usedToday: number; usedMonth: number; dashboard: string;
+  /** Kept for team emails (meetings, Outreach): shown here, never used by campaigns. */
+  teamOnly?: boolean;
 }
 interface ProvidersRes { providers: Provider[]; lanes: Record<CampaignKind, string[]>; primaryLane?: string[]; site: string; tablesMissing?: boolean }
 /** Services that add tracking / marketing markup we can't turn off: Gmail tends to file their mail under Promotions. */
@@ -109,7 +111,7 @@ export const CampaignsPanel: React.FC = () => {
   const missing = prov?.tablesMissing || /mailing\.sql/.test(listErr);
   const [composerOpen, setComposerOpen] = useState(() => !!readAutosave());
   const [showPower, setShowPower] = useState(false);
-  const todayLeft = (prov?.providers || []).filter((p) => p.configured).reduce((x, p) => x + remainingToday(p), 0);
+  const todayLeft = (prov?.providers || []).filter((p) => p.configured && !p.teamOnly).reduce((x, p) => x + remainingToday(p), 0);
   useEffect(() => { if (preset) setComposerOpen(true); }, [preset]);
 
   return (
@@ -173,8 +175,9 @@ function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; er
       setChecks((c) => ({ ...c, [id]: `✗ ${e instanceof Error ? e.message : 'Check failed'}` }));
     }
   };
-  const list = prov?.providers || [];
-  const connected = list.filter((p) => p.configured);
+  const list = [...(prov?.providers || [])].sort((a, b) => Number(!!a.teamOnly) - Number(!!b.teamOnly));
+  const connected = list.filter((p) => p.configured && !p.teamOnly);
+  const teamOnly = list.filter((p) => p.teamOnly);
   const today = connected.reduce((a, p) => a + remainingToday(p), 0);
 
   return (
@@ -185,7 +188,8 @@ function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; er
           <p className="text-gray-500 text-xs mt-1">
             {prov ? (
               connected.length
-                ? <><b className="text-white">{connected.length}</b> of {list.length} services connected · you can still send about <b className="text-[#a3e635]">{fmtN(today)}</b> emails today</>
+                ? <><b className="text-white">{connected.length}</b> of {list.length - teamOnly.length} campaign services connected · you can still send about <b className="text-[#a3e635]">{fmtN(today)}</b> emails today
+                  {teamOnly.length > 0 && <> · {teamOnly.map((p) => p.label).join(' and ')} kept for team emails</>}</>
                 : <>No service connected yet. Add API keys in Vercel (see <code>MAILING_SETUP.md</code>).</>
             ) : err || 'Loading…'}
           </p>
@@ -206,12 +210,15 @@ function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; er
           const used = p.day !== null ? p.usedToday : p.usedMonth;
           const pct = cap ? Math.min(100, (used / cap) * 100) : 0;
           return (
-            <div key={p.id} className={`rounded-xl border p-2.5 ${p.configured ? 'border-white/10 bg-white/[0.02]' : 'border-dashed border-white/8 opacity-60'}`} title={p.configured ? `${p.from}` : `Not connected: add ${p.missingEnv.join(' + ')} in Vercel`}>
+            <div key={p.id} className={`rounded-xl border p-2.5 ${p.teamOnly ? 'border-dashed border-white/10 bg-transparent' : p.configured ? 'border-white/10 bg-white/[0.02]' : 'border-dashed border-white/8 opacity-60'}`}
+              title={p.teamOnly ? `${p.from} · kept for team emails, never used by campaigns` : p.configured ? `${p.from}` : `Not connected: add ${p.missingEnv.join(' + ')} in Vercel`}>
               <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${p.configured ? (left ? 'bg-[#a3e635]' : 'bg-amber-400') : 'bg-gray-600'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${p.teamOnly ? 'bg-[#0A84FF]' : p.configured ? (left ? 'bg-[#a3e635]' : 'bg-amber-400') : 'bg-gray-600'}`} />
                 <span className="text-xs text-white font-medium truncate">{p.label}</span>
               </div>
-              <p className="mt-1 text-[11px] text-gray-500 tabular-nums">{p.configured ? `${fmtN(left)} left ${p.day !== null ? 'today' : 'this month'}` : 'Not connected'}</p>
+              <p className="mt-1 text-[11px] text-gray-500 tabular-nums">
+                {p.teamOnly ? `Team only · ${p.id === 'mailtrap' ? 'Outreach' : 'meetings'}` : p.configured ? `${fmtN(left)} left ${p.day !== null ? 'today' : 'this month'}` : 'Not connected'}
+              </p>
               <div className="mt-1.5 h-1 rounded bg-white/5 overflow-hidden"><div className="h-full bg-[#a3e635]/70" style={{ width: `${pct}%` }} /></div>
             </div>
           );
@@ -259,7 +266,7 @@ function ProvidersCard({ prov, err, onRefresh }: { prov: ProvidersRes | null; er
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-gray-600">Limits count from 05:30 IST (midnight UTC). Resend keeps 30 emails a day free for interview emails. Change any limit with an env var like <code>BREVO_DAILY_LIMIT</code>.</p>
+          <p className="text-[11px] text-gray-600">Limits count from 05:30 IST (midnight UTC). Resend (meeting & interview emails) and Mailtrap (Outreach emails) are kept for the team and never used by campaigns. Change any limit with an env var like <code>BREVO_DAILY_LIMIT</code>.</p>
         </div>
       )}
     </div>
@@ -341,7 +348,7 @@ function Composer({ prov, onStarted, preset }: { prov: ProvidersRes | null; onSt
   const recipients = aud === 'filter' ? filterTotal ?? 0 : parsed.people.length;
   const plain = vars.style !== 'designed';
   const lane = (plain && prov?.primaryLane) || prov?.lanes[kind] || [];
-  const connected = (prov?.providers || []).filter((p) => p.configured);
+  const connected = (prov?.providers || []).filter((p) => p.configured && !p.teamOnly);
   const brandSender = BRAND_SENDERS[String(vars.sender ?? '')];
   const effVia = brandSender ? brandSender.provider : via;
   const brandInfo = brandSender ? (prov?.providers || []).find((p) => p.id === brandSender.provider) || null : null;

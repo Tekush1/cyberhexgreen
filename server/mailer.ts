@@ -338,11 +338,18 @@ const PROVIDERS: ProviderDef[] = [
   },
 ];
 
-/** Provider order per lane. Unconfigured providers are skipped; Resend is last so interviews keep their quota. */
+/**
+ * Kept for the team, never used by campaigns: Resend sends interview / meeting emails,
+ * Mailtrap sends Outreach emails (yashika@, pratyaksha@...). A campaign must never use up their daily limit.
+ */
+export const TEAM_ONLY: ProviderId[] = ['resend', 'mailtrap'];
+export const isTeamOnly = (id: unknown) => TEAM_ONLY.includes(id as ProviderId);
+
+/** Provider order per lane for campaigns. Unconfigured providers are skipped; team-only services are never here. */
 export const LANES: Record<Lane, ProviderId[]> = {
-  event: ['sender', 'brevo', 'mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend'],
-  newsletter: ['brevo', 'sender', 'mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend'],
-  notification: ['mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'brevo', 'sender', 'resend'],
+  event: ['sender', 'brevo', 'mailgun', 'mailjet', 'maileroo', 'smtp2go', 'ahasend'],
+  newsletter: ['brevo', 'sender', 'mailgun', 'mailjet', 'maileroo', 'smtp2go', 'ahasend'],
+  notification: ['mailgun', 'mailjet', 'maileroo', 'smtp2go', 'ahasend', 'brevo', 'sender'],
 };
 
 /**
@@ -350,7 +357,7 @@ export const LANES: Record<Lane, ProviderId[]> = {
  * rewriting) first. Brevo and Sender add tracking / marketing headers that push Gmail towards Promotions,
  * so they are only used when the others are full.
  */
-export const PRIMARY_LANE: ProviderId[] = ['mailgun', 'mailjet', 'mailtrap', 'maileroo', 'smtp2go', 'ahasend', 'resend', 'brevo', 'sender'];
+export const PRIMARY_LANE: ProviderId[] = ['mailgun', 'mailjet', 'maileroo', 'smtp2go', 'ahasend', 'brevo', 'sender'];
 /** Services that add tracking/marketing markup we can't switch off per email. */
 export const PROMO_PRONE: ProviderId[] = ['brevo', 'sender'];
 

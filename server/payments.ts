@@ -301,7 +301,8 @@ ${logo ? `<p>Logo: <a href="${esc(logo)}">${esc(logo)}</a></p>` : ''}
 }
 
 /** Receipts go through Sender first (as asked), then any other connected service so the buyer always gets one. */
-const RECEIPT_ORDER: ProviderId[] = ['sender', ...PRIMARY_LANE.filter((p) => p !== 'sender')];
+// Receipts matter more than campaigns: Resend is the last resort if every campaign service is full.
+const RECEIPT_ORDER: ProviderId[] = ['sender', ...PRIMARY_LANE.filter((p) => p !== 'sender'), 'resend'];
 
 async function afterPaid(o: OrderRow) {
   const calendarIds = await createCalendarEvents(o);
@@ -319,6 +320,6 @@ async function afterPaid(o: OrderRow) {
   }
 
   const t = teamEmail(o);
-  const team = await sendDirect([...PRIMARY_LANE], { to: env('PAYMENTS_NOTIFY_TO') || 'mail@cyberhx.com', name: 'CyberHx team', ...t, tracking: false }, 'CyberHx Payments');
+  const team = await sendDirect([...PRIMARY_LANE, 'resend'], { to: env('PAYMENTS_NOTIFY_TO') || 'mail@cyberhx.com', name: 'CyberHx team', ...t, tracking: false }, 'CyberHx Payments');
   await log(o.ref, o.razorpay_order_id, team.ok ? 'team.notified' : 'team.notify_failed', team.ok ? 'info' : 'warn', team.ok ? { provider: team.provider } : { errors: team.errors });
 }
