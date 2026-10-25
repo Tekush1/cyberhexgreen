@@ -40,6 +40,8 @@ type EditorSignals = {
   errors: number;
   busy: string;
   dragging: boolean;
+  /** First line when the editor opens on a fresh draft (not a restored one). */
+  greeting?: string;
 };
 export type CompanionSignals = ListSignals | PostSignals | EditorSignals;
 
@@ -121,7 +123,14 @@ export function BlogCompanion({ signals, raised = false }: { signals: CompanionS
       const s0 = sig.current;
       if (mode === 'list') act('wave', 'Welcome! Grab a read, or write your own.', 2600, null);
       if (mode === 'editor')
-        act(restRef.current, s0.mode === 'editor' && s0.choosing ? 'What are we writing today?' : 'Welcome back! Your draft is right where you left it.', undefined, null);
+        act(
+          restRef.current,
+          s0.mode === 'editor' && s0.choosing
+            ? 'What are we writing today?'
+            : (s0.mode === 'editor' && s0.greeting) || 'Welcome back! Your draft is right where you left it.',
+          undefined,
+          null,
+        );
       if (mode === 'post' && s0.mode === 'post' && s0.state === 'ready')
         act('reading', `Enjoy the read${s0.minutes ? ` · ${s0.minutes} min` : ''}.`, 2800, null);
     }, 350);

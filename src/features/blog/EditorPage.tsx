@@ -73,6 +73,15 @@ const emptyDraft = (eventSlug = ''): Draft => ({
   featured: false,
 });
 
+const withTemplate = (d: Draft, t: Template): Draft => ({
+  ...d,
+  title: d.title || t.title,
+  content: t.body,
+  category: t.category,
+  tags: t.tags.length ? t.tags : d.tags,
+});
+const CTF_TEMPLATE = TEMPLATES.find((t) => t.id === 'ctf');
+
 type Saved = { draft: Draft; email: string; at: number };
 const storeKey = (id?: string) => `cyberhx-blog-draft:${id ? `edit:${id}` : 'new'}`;
 const readLocal = (k: string): Saved | null => {
@@ -105,11 +114,13 @@ export default function EditorPage() {
   const [params] = useSearchParams();
   // /blog/write?event=pinaka-ctf (from an event page) starts a write-up already tied to that event.
   const eventParam = eventBySlug(params.get('event') || '') ? params.get('event')! : '';
+  // Coming from an event page there is nothing to pick: it's a CTF write-up for that event.
+  const startOnWriteup = !id && !!eventParam && !!CTF_TEMPLATE;
 
   const [draft, setDraft] = useState<Draft>(() => {
     const local = readLocal(key)?.draft;
     if (local) return eventParam && !local.event_slug ? { ...local, event_slug: eventParam } : local;
-    return emptyDraft(eventParam);
+    return startOnWriteup && CTF_TEMPLATE ? withTemplate(emptyDraft(eventParam), CTF_TEMPLATE) : emptyDraft(eventParam);
   });
   const [email, setEmail] = useState(() => readLocal(key)?.email ?? '');
   const [restored, setRestored] = useState(() => !id && !!readLocal(key));
@@ -118,7 +129,7 @@ export default function EditorPage() {
   const [postStatus, setPostStatus] = useState<PostStatus>('draft');
   const [categories, setCategories] = useState<string[]>(FALLBACK_CATEGORIES);
   const [view, setView] = useState<'write' | 'preview' | 'split'>('write');
-  const [chooseTemplate, setChooseTemplate] = useState(() => !id && !readLocal(key));
+  const [chooseTemplate, setChooseTemplate] = useState(() => !id && !readLocal(key) && !startOnWriteup);
   const [uploads, setUploads] = useState(0);
   const [busy, setBusy] = useState<'' | 'publish' | 'draft' | 'submit' | 'delete'>('');
   const [errors, setErrors] = useState<string[]>([]);
@@ -456,7 +467,7 @@ export default function EditorPage() {
   };
 
   const applyTemplate = (t: Template) => {
-    setDraft((d) => ({ ...d, title: d.title || t.title, content: t.body, category: t.category, tags: t.tags.length ? t.tags : d.tags }));
+    setDraft((d) => withTemplate(d, t));
     setChooseTemplate(false);
     requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Title"]')?.focus());
   };
@@ -898,6 +909,7 @@ export default function EditorPage() {
           errors: errors.length,
           busy,
           dragging: coverDrag || bodyDrag,
+          greeting: startOnWriteup && !restored ? `A ${eventBySlug(eventParam)?.title ?? 'CTF'} write-up? Let's go! Start with a clear title.` : undefined,
         }}
       />
 
