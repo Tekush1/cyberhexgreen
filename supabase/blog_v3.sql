@@ -20,6 +20,7 @@ ALTER TABLE public.article_submissions ADD COLUMN IF NOT EXISTS author_url text 
 ALTER TABLE public.article_submissions ADD COLUMN IF NOT EXISTS difficulty text;
 ALTER TABLE public.article_submissions ADD COLUMN IF NOT EXISTS event_slug text;
 
+-- Postgres regex repetition counts stop at 255, so the URL length is checked on its own.
 DO $$
 DECLARE t text;
 BEGIN
@@ -27,7 +28,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = t || '_v3_check') THEN
       EXECUTE format($f$ALTER TABLE public.%I ADD CONSTRAINT %I CHECK (
         length(author_bio) <= 300
-        AND (author_url = '' OR author_url ~ '^https://[^[:space:]"''<>]{3,300}$')
+        AND (author_url = '' OR (length(author_url) <= 308 AND author_url ~ '^https://[^[:space:]"''<>]{3,}$'))
         AND (difficulty IS NULL OR difficulty IN ('easy', 'medium', 'hard', 'insane'))
         AND (event_slug IS NULL OR event_slug ~ '^[a-z0-9-]{1,60}$'))$f$, t, t || '_v3_check');
     END IF;
