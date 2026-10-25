@@ -34,8 +34,31 @@ export interface Post {
   likes: number;
   featured: boolean;
   status: PostStatus;
+  /** Set by the database from author_name ("Kushagra Dwivedi" -> "kushagra-dwivedi"); links to /blog/author/<slug>. */
+  author_slug: string | null;
+  author_bio: string;
+  author_url: string;
+  /** CTF write-ups only. */
+  difficulty: Difficulty | null;
+  /** The CyberHx event this post is about (/events/<slug>). */
+  event_slug: string | null;
 }
-export type PostCard = Omit<Post, 'content' | 'updated_at' | 'status'>;
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
+export type PostCard = Omit<Post, 'content' | 'updated_at' | 'status' | 'author_bio' | 'author_url'>;
+
+/** A writer, from the public view blog_authors (published posts only). */
+export interface Author {
+  slug: string;
+  name: string;
+  avatar: string | null;
+  role: string | null;
+  bio: string | null;
+  url: string | null;
+  posts: number;
+  likes: number;
+  views: number;
+  last_post: string | null;
+}
 
 export interface Category {
   id: string;
@@ -44,7 +67,7 @@ export interface Category {
 }
 
 const CARD_FIELDS =
-  'id,title,slug,excerpt,cover_image,category,tags,author_name,author_avatar,author_role,published_at,read_time,views,likes,featured';
+  'id,title,slug,excerpt,cover_image,category,tags,author_name,author_avatar,author_role,author_slug,published_at,read_time,views,likes,featured,difficulty,event_slug';
 
 /** A friendly message for any Supabase error. */
 export const explain = (e: unknown): string => {
@@ -134,15 +157,68 @@ export async function getPost(slug: string) {
   return data as Post | null;
 }
 
+/** Up to 3 posts to read next: same category first, then the newest others, never the post itself. */
 export async function relatedPosts(post: Pick<Post, 'id' | 'category'>) {
-  const { data } = await supabase
+  const [same, latest] = await Promise.all([
+    supabase.from('blog_posts').select(CARD_FIELDS).eq('status', 'published').eq('category', post.category)
+      .neq('id', post.id).order('published_at', { ascending: false }).limit(3),
+    supabase.from('blog_posts').select(CARD_FIELDS).eq('status', 'published').neq('id', post.id)
+      .order('published_at', { ascending: false }).limit(6),
+  ]);
+  const seen = new Set<string>();
+  return ([...(same.data ?? []), ...(latest.data ?? [])] as PostCard[])
+    .filter((p) => !seen.has(p.id) && seen.add(p.id))
+    .slice(0, 3);
+}
+
+/** How many published posts each category has (empty categories are left out). */
+export async function categoryCounts() {
+  const { data, error } = await supabase.from('blog_category_counts').select('category,posts');
+  if (error) throw error;
+  return new Map(((data ?? []) as { category: string; posts: number }[]).map((r) => [r.category, r.posts]));
+}
+
+/** Writers ranked by published posts, then likes. */
+export async function listAuthors(limit = 6) {
+  const { data, error } = await supabase
+    .from('blog_authors')
+    .select('*')
+    .order('posts', { ascending: false })
+    .order('likes', { ascending: false })
+    .order('views', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Author[];
+}
+
+export async function getAuthor(slug: string) {
+  const { data, error } = await supabase.from('blog_authors').select('*').eq('slug', slug).maybeSingle();
+  if (error) throw error;
+  return data as Author | null;
+}
+
+export async function postsByAuthor(slug: string) {
+  const { data, error } = await supabase
     .from('blog_posts')
     .select(CARD_FIELDS)
     .eq('status', 'published')
-    .eq('category', post.category)
-    .neq('id', post.id)
+    .eq('author_slug', slug)
     .order('published_at', { ascending: false })
-    .limit(3);
+    .limit(60);
+  if (error) throw error;
+  return (data ?? []) as PostCard[];
+}
+
+/** Write-ups and posts about one CyberHx event (/events/<slug>). */
+export async function postsForEvent(eventSlug: string) {
+  const { data, error } = await supabase
+    .from('blog_posts')
+    .select(CARD_FIELDS)
+    .eq('status', 'published')
+    .eq('event_slug', eventSlug)
+    .order('published_at', { ascending: false })
+    .limit(12);
+  if (error) throw error;
   return (data ?? []) as PostCard[];
 }
 
@@ -172,9 +248,21 @@ export interface Draft {
   author_name: string;
   author_role: string;
   author_avatar: string;
+  author_bio: string;
+  author_url: string;
+  difficulty: Difficulty | '';
+  event_slug: string;
   slug: string;
   featured: boolean;
 }
+
+/** Only https links are kept (LinkedIn, GitHub, a personal site). */
+export const cleanUrl = (u: string) => {
+  const t = u.trim();
+  if (!t) return '';
+  const withScheme = /^https?:\/\//i.test(t) ? t.replace(/^http:/i, 'https:') : `https://${t}`;
+  return /^https:\/\/[^\s"'<>]{3,300}$/.test(withScheme) ? withScheme : '';
+};
 
 /** Community writers: send for review. Email is private and only admins can read it. */
 export async function submitForReview(d: Draft, email: string) {
@@ -189,6 +277,10 @@ export async function submitForReview(d: Draft, email: string) {
     author_email: email.trim(),
     author_role: d.author_role.trim() || 'Contributor',
     author_avatar: d.author_avatar,
+    author_bio: d.author_bio.trim().slice(0, 300),
+    author_url: cleanUrl(d.author_url),
+    difficulty: d.category === 'CTF Writeups' && d.difficulty ? d.difficulty : null,
+    event_slug: d.event_slug || null,
     status: 'pending',
   });
   if (error) throw error;
@@ -207,8 +299,12 @@ export async function savePost(d: Draft, status: PostStatus, id?: string): Promi
     author_name: d.author_name.trim() || 'CyberHx Team',
     author_role: d.author_role.trim() || 'CyberHx',
     author_avatar: d.author_avatar,
+    author_bio: d.author_bio.trim().slice(0, 300),
+    author_url: cleanUrl(d.author_url),
+    difficulty: d.category === 'CTF Writeups' && d.difficulty ? d.difficulty : null,
+    event_slug: d.event_slug || null,
     featured: d.featured,
-    read_time: readTime(d.content),
+    read_time: readTime(d.content), // the database recomputes this from the text
     status,
   };
   let slug = slugify(d.slug || d.title);
@@ -218,7 +314,8 @@ export async function savePost(d: Draft, status: PostStatus, id?: string): Promi
       ? await db.from('blog_posts').update(payload).eq('id', id).select('*').single()
       : await db
           .from('blog_posts')
-          .insert({ ...payload, published_at: new Date().toISOString() })
+          // A draft has no publish date yet; it is stamped below when it first goes live.
+          .insert({ ...payload, published_at: status === 'published' ? new Date().toISOString() : null })
           .select('*')
           .single();
     if (!res.error) {

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { PostCard as Card } from './api';
-import { formatDate } from './utils';
+import { authorLabel, DIFFICULTY, formatDate, isAnonymous, sameText } from './utils';
 
 // Four on-brand gradients. A post with no uploaded cover still gets an
 // intentional one, picked from its text so it stays the same every time.
@@ -38,12 +38,27 @@ export const DefaultCover = ({ seed = '', label, className = '' }: { seed?: stri
   );
 };
 
-export const Cover = ({ src, alt, seed, label, className = '' }: { src?: string; alt: string; seed?: string; label?: string; className?: string }) =>
+/** The whole image is always visible (diagrams and screenshots are never cut off); the space around it is
+ *  filled with a soft, blurred copy of the same picture. */
+export const Cover = ({ src, alt, seed, label, className = '', eager }: { src?: string; alt: string; seed?: string; label?: string; className?: string; eager?: boolean }) =>
   src ? (
-    <img src={src} alt={alt} loading="lazy" className={`h-full w-full object-cover ${className}`} />
+    <div className={`relative h-full w-full overflow-hidden bg-[#0b1020] ${className}`}>
+      <img src={src} alt="" aria-hidden="true" loading={eager ? 'eager' : 'lazy'} decoding="async" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl saturate-150" />
+      <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="relative h-full w-full object-contain" />
+    </div>
   ) : (
     <DefaultCover seed={seed} label={label} className={className} />
   );
+
+/** "CTF Writeups · Medium" style label row for cards. */
+export const Kicker = ({ post, className = '' }: { post: Pick<Card, 'category' | 'difficulty'>; className?: string }) => (
+  <p className={`flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-lime ${className}`}>
+    {post.category}
+    {post.difficulty && DIFFICULTY[post.difficulty] && (
+      <span className={`rounded-full border px-2 py-0.5 text-[10.5px] tracking-[0.08em] ${DIFFICULTY[post.difficulty].cls}`}>{DIFFICULTY[post.difficulty].label}</span>
+    )}
+  </p>
+);
 
 export const Byline = ({ post, small }: { post: Pick<Card, 'author_name' | 'author_avatar' | 'published_at' | 'read_time'>; small?: boolean }) => (
   <div className={`flex items-center gap-2.5 ${small ? 'text-xs' : 'text-sm'} text-white/45`}>
@@ -51,11 +66,11 @@ export const Byline = ({ post, small }: { post: Pick<Card, 'author_name' | 'auth
       <img src={post.author_avatar} alt="" className={`${small ? 'h-7 w-7' : 'h-9 w-9'} rounded-full object-cover ring-1 ring-white/10`} />
     ) : (
       <span className={`${small ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm'} flex items-center justify-center rounded-full bg-lime/20 font-bold text-lime`}>
-        {post.author_name?.[0]?.toUpperCase() || 'C'}
+        {isAnonymous(post.author_name) ? '?' : post.author_name[0].toUpperCase()}
       </span>
     )}
     <span className="min-w-0">
-      <span className="block truncate font-semibold text-white/80">{post.author_name}</span>
+      <span className="block truncate font-semibold text-white/80">{authorLabel(post.author_name)}</span>
       <span className="block">
         {formatDate(post.published_at)} · {post.read_time} min read
       </span>
@@ -72,9 +87,9 @@ export const PostCard = ({ post }: { post: Card }) => (
       <Cover src={post.cover_image} alt="" seed={post.slug} label={post.category} className="transition-transform duration-500 group-hover:scale-105" />
     </div>
     <div className="flex flex-1 flex-col p-5 sm:p-6">
-      <p className="text-xs font-semibold uppercase tracking-wide text-lime">{post.category}</p>
+      <Kicker post={post} />
       <h3 className="font-display mt-2 line-clamp-2 text-xl leading-snug text-white">{post.title}</h3>
-      <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/55">{post.excerpt}</p>
+      {!sameText(post.excerpt, post.title) && <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/55">{post.excerpt}</p>}
       <div className="mt-auto border-t border-white/[0.06] pt-5">
         <Byline post={post} small />
       </div>

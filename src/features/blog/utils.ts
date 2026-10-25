@@ -57,3 +57,28 @@ export const tocFrom = (md: string) => {
       return { level: m[1].length, text, id };
     });
 };
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Drops a first line that only repeats the post title ("# Title" or plain "Title"): the page already shows it as the heading. */
+export const stripLeadingTitle = (md: string, title: string) => {
+  const m = /^\s*(?:#{1,2}\s+)?([^\n]+)\n+/.exec(md);
+  return m && norm(m[1]) === norm(title) ? md.slice(m[0].length) : md;
+};
+
+/** True when two texts say the same thing (e.g. an excerpt that only repeats the title). */
+export const sameText = (a?: string | null, b?: string | null) => !!a && !!b && norm(a) === norm(b);
+
+export const isAnonymous = (name?: string | null) => !name || /^(anon|anonymous|unknown)$/i.test(name.trim());
+/** "anonymous" -> "Anonymous contributor"; any other name as written. */
+export const authorLabel = (name?: string | null) => (isAnonymous(name) ? 'Anonymous contributor' : name!.trim());
+
+export const DIFFICULTY: Record<'easy' | 'medium' | 'hard' | 'insane', { label: string; cls: string }> = {
+  easy: { label: 'Easy', cls: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300' },
+  medium: { label: 'Medium', cls: 'border-amber-300/30 bg-amber-300/10 text-amber-200' },
+  hard: { label: 'Hard', cls: 'border-orange-400/35 bg-orange-400/10 text-orange-300' },
+  insane: { label: 'Insane', cls: 'border-red-400/35 bg-red-500/10 text-red-300' },
+};
+
+/** "linkedin.com/in/someone" for a link label. */
+export const prettyUrl = (u: string) => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');

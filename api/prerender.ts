@@ -71,8 +71,19 @@ function mdToHtml(md: string): string {
 type Post = {
   title: string; slug: string; excerpt: string; content: string; cover_image: string;
   category: string; tags: string[]; author_name: string; published_at: string | null;
-  updated_at: string | null; read_time: number;
+  updated_at: string | null; read_time: number; author_slug?: string | null; event_slug?: string | null;
 };
+
+const norm = (t: string) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const isAnon = (n: string) => !n || /^(anon|anonymous|unknown)$/i.test(n.trim());
+/** Drop a first line that only repeats the title (the page already has it as the <h1>). */
+const stripTitle = (md: string, title: string) => {
+  const m = /^\s*(?:#{1,2}\s+)?([^\n]+)\n+/.exec(md);
+  return m && norm(m[1]) === norm(title) ? md.slice(m[0].length) : md;
+};
+const firstParagraph = (md: string) =>
+  (md.replace(/```[\s\S]*?```/g, '').split(/\n{2,}/).map((x) => x.trim()).find((x) => x && !/^(#|!\[|>|-|\*|\d+\.)/.test(x)) || '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().slice(0, 280);
 
 async function getPost(slug: string): Promise<Post | null> {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -80,7 +91,7 @@ async function getPost(slug: string): Promise<Post | null> {
   if (!url || !key) return null;
   try {
     const res = await fetch(
-      `${url}/rest/v1/blog_posts?select=title,slug,excerpt,content,cover_image,category,tags,author_name,published_at,updated_at,read_time&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`,
+      `${url}/rest/v1/blog_posts?select=*&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return null;
@@ -106,7 +117,11 @@ export default async function handler(req: any, res: any) {
   }
 
   const img = post.cover_image && /^https?:\/\//.test(post.cover_image) ? post.cover_image : `${SITE}/og-image.png`;
+  post.content = stripTitle(post.content, post.title);
+  if (!post.excerpt || norm(post.excerpt) === norm(post.title)) post.excerpt = firstParagraph(post.content);
   const desc = (post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`).slice(0, 300);
+  const authorName = isAnon(post.author_name) ? 'Anonymous contributor' : post.author_name;
+  const authorUrl = post.author_slug && !isAnon(post.author_name) ? `${SITE}/blog/author/${post.author_slug}` : '';
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -115,7 +130,7 @@ export default async function handler(req: any, res: any) {
     image: [img],
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at || post.published_at || undefined,
-    author: { '@type': 'Person', name: post.author_name },
+    author: { '@type': 'Person', name: authorName, ...(authorUrl ? { url: authorUrl } : {}) },
     publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/og-image.png` } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
     articleSection: post.category,
@@ -160,7 +175,8 @@ ${(post.tags || []).map((t) => `<meta property="article:tag" content="${esc(t)}"
 <article>
 <nav><a href="${SITE}/">Home</a> › <a href="${SITE}/blog">Blog</a> › <a href="${SITE}/blog?category=${encodeURIComponent(post.category)}">${esc(post.category)}</a></nav>
 <h1>${esc(post.title)}</h1>
-<p>By ${esc(post.author_name)} · ${Number(post.read_time) || 1} min read</p>
+<p>By ${authorUrl ? `<a href="${authorUrl}">${esc(authorName)}</a>` : esc(authorName)} · ${Number(post.read_time) || 1} min read</p>
+${post.event_slug && /^[a-z0-9-]+$/.test(post.event_slug) ? `<p>About the CTF: <a href="${SITE}/events/${post.event_slug}">${esc(post.event_slug.replace(/-/g, ' '))}</a></p>` : ''}
 ${post.excerpt ? `<p>${esc(post.excerpt)}</p>` : ''}
 <img src="${esc(img)}" alt="${esc(post.title)}" width="1200">
 ${mdToHtml(post.content)}

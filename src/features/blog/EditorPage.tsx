@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react';
 import { Seo } from '../seo/Seo';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Bold,
@@ -39,7 +39,9 @@ import {
   type Draft,
   type PostStatus,
 } from './api';
-import { excerptFrom, readTime, slugify, wordCount } from './utils';
+import { DIFFICULTY, excerptFrom, readTime, slugify, wordCount } from './utils';
+import { cleanUrl, type Difficulty } from './api';
+import { eventBySlug, events } from '../../data/events';
 
 const FALLBACK_CATEGORIES = [
   'Scam Alert',
@@ -53,7 +55,7 @@ const FALLBACK_CATEGORIES = [
   'News & Updates',
 ];
 
-const emptyDraft = (): Draft => ({
+const emptyDraft = (eventSlug = ''): Draft => ({
   title: '',
   excerpt: '',
   content: '',
@@ -63,6 +65,10 @@ const emptyDraft = (): Draft => ({
   author_name: '',
   author_role: '',
   author_avatar: '',
+  author_bio: '',
+  author_url: '',
+  difficulty: '',
+  event_slug: eventSlug,
   slug: '',
   featured: false,
 });
@@ -96,8 +102,15 @@ export default function EditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const key = storeKey(id);
+  const [params] = useSearchParams();
+  // /blog/write?event=pinaka-ctf (from an event page) starts a write-up already tied to that event.
+  const eventParam = eventBySlug(params.get('event') || '') ? params.get('event')! : '';
 
-  const [draft, setDraft] = useState<Draft>(() => readLocal(key)?.draft ?? emptyDraft());
+  const [draft, setDraft] = useState<Draft>(() => {
+    const local = readLocal(key)?.draft;
+    if (local) return eventParam && !local.event_slug ? { ...local, event_slug: eventParam } : local;
+    return emptyDraft(eventParam);
+  });
   const [email, setEmail] = useState(() => readLocal(key)?.email ?? '');
   const [restored, setRestored] = useState(() => !id && !!readLocal(key));
   const [admin, setAdmin] = useState<boolean | null>(null);
@@ -156,6 +169,10 @@ export default function EditorPage() {
           author_name: p.author_name,
           author_role: p.author_role,
           author_avatar: p.author_avatar ?? '',
+          author_bio: p.author_bio ?? '',
+          author_url: p.author_url ?? '',
+          difficulty: (p.difficulty ?? '') as Difficulty | '',
+          event_slug: p.event_slug ?? '',
           slug: p.slug,
           featured: p.featured,
         };
@@ -368,6 +385,7 @@ export default function EditorPage() {
     if (words < 30) p.push('Write a bit more: at least 30 words.');
     if (!draft.category) p.push('Pick a category.');
     if (uploads) p.push('Wait for uploads to finish.');
+    if (draft.author_url.trim() && !cleanUrl(draft.author_url)) p.push('Your link does not look right. Paste the full LinkedIn or website address.');
     if (forReview) {
       if (draft.author_name.trim().length < 2) p.push('Add your name.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) p.push('Add a valid email so we can reach you.');
@@ -430,7 +448,7 @@ export default function EditorPage() {
 
   const startOver = () => {
     writeLocal(key, null);
-    setDraft(emptyDraft());
+    setDraft(emptyDraft(eventParam));
     setEmail('');
     setRestored(false);
     setSlugTouched(false);
@@ -719,6 +737,15 @@ export default function EditorPage() {
                     <label className={labelCls} htmlFor="ed-role">Role (optional)</label>
                     <input id="ed-role" className={inputCls} value={draft.author_role} onChange={(e) => set('author_role', e.target.value)} placeholder="Student, CTF player, analyst…" maxLength={60} />
                   </div>
+                  <div>
+                    <label className={labelCls} htmlFor="ed-bio">One line about you (optional)</label>
+                    <textarea id="ed-bio" rows={2} maxLength={300} className={`${inputCls} resize-none leading-6`} value={draft.author_bio} onChange={(e) => set('author_bio', e.target.value)} placeholder="B.Tech CSE, plays CTFs with team X, into web and forensics." />
+                  </div>
+                  <div>
+                    <label className={labelCls} htmlFor="ed-url">LinkedIn or website (optional)</label>
+                    <input id="ed-url" inputMode="url" className={inputCls} value={draft.author_url} onChange={(e) => set('author_url', e.target.value)} placeholder="linkedin.com/in/your-name" maxLength={300} />
+                  </div>
+                  <p className="text-xs leading-5 text-muted">Shown under your post and on your writer page, with all your posts.</p>
                 </div>
               </div>
             )}
@@ -732,6 +759,35 @@ export default function EditorPage() {
                     <option value="">Choose one</option>
                     {categories.map((c) => <option key={c}>{c}</option>)}
                   </select>
+                </div>
+
+                {draft.category === 'CTF Writeups' && (
+                  <div>
+                    <span className={labelCls} id="ed-diff-l">Challenge difficulty</span>
+                    <div role="radiogroup" aria-labelledby="ed-diff-l" className="flex flex-wrap gap-1.5">
+                      {([['', 'Not set'], ...Object.entries(DIFFICULTY).map(([k, v]) => [k, v.label])] as [string, string][]).map(([k, label]) => (
+                        <button
+                          key={k || 'none'}
+                          type="button"
+                          role="radio"
+                          aria-checked={draft.difficulty === k}
+                          onClick={() => set('difficulty', k as Difficulty | '')}
+                          className={`rounded-lg border-2 px-2.5 py-1 text-xs font-semibold transition ${draft.difficulty === k ? 'border-glow bg-glow/10 text-white' : 'border-line text-muted hover:text-white'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className={labelCls} htmlFor="ed-event">Is it about a CyberHx CTF?</label>
+                  <select id="ed-event" className={inputCls} value={draft.event_slug} onChange={(e) => set('event_slug', e.target.value)}>
+                    <option value="">No, not about one of our events</option>
+                    {events.map((ev) => <option key={ev.slug} value={ev.slug}>{ev.title} ({ev.date})</option>)}
+                  </select>
+                  {draft.event_slug && <p className="mt-1.5 text-xs leading-5 text-muted">Your post will also show on the {eventBySlug(draft.event_slug)?.title} event page.</p>}
                 </div>
 
                 <div>
@@ -781,6 +837,14 @@ export default function EditorPage() {
                         <label className={labelCls} htmlFor="ed-ar">Role</label>
                         <input id="ed-ar" className={inputCls} value={draft.author_role} onChange={(e) => set('author_role', e.target.value)} placeholder="CyberHx" />
                       </div>
+                    </div>
+                    <div>
+                      <label className={labelCls} htmlFor="ed-abio">Author bio</label>
+                      <textarea id="ed-abio" rows={2} maxLength={300} className={`${inputCls} resize-none leading-6`} value={draft.author_bio} onChange={(e) => set('author_bio', e.target.value)} placeholder="One line about the writer" />
+                    </div>
+                    <div>
+                      <label className={labelCls} htmlFor="ed-aurl">Author link</label>
+                      <input id="ed-aurl" inputMode="url" className={inputCls} value={draft.author_url} onChange={(e) => set('author_url', e.target.value)} placeholder="linkedin.com/in/…" maxLength={300} />
                     </div>
                     <label className="flex cursor-pointer items-center justify-between rounded-xl border-2 border-line bg-ink px-3.5 py-2.5 text-sm">
                       <span>Feature on the blog page</span>

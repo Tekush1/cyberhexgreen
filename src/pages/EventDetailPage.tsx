@@ -1,10 +1,12 @@
 import { Link, useParams } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowUpRight, Award, Calendar, ChevronRight, Clock, Flag, Globe, Instagram, Linkedin, ListOrdered, Lock, MapPin, Trophy, Twitter, Users } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
 import { entryLabel, eventBySlug, events, hasCount, playersText, type Event } from '../data/events';
 import { absImage, eventBreadcrumb, eventDescription, eventJsonLd, eventKeywords, eventTitle } from '../data/eventSeo';
 import NotFoundPage from './NotFoundPage';
+import { postsForEvent, type PostCard as Card } from '../features/blog/api';
+import { PostCard } from '../features/blog/PostCard';
 
 /* /events/:slug — one page per CTF, so a search for the event's name lands here.
    Data: src/data/events.ts. Crawlers get a server-rendered copy from api/event-page.ts. */
@@ -28,6 +30,13 @@ function Fact({ icon, label, value }: { icon: ReactNode; label: string; value: s
 export default function EventDetailPage() {
   const { slug = '' } = useParams();
   const e = eventBySlug(slug);
+  const [writeups, setWriteups] = useState<Card[]>([]);
+  useEffect(() => {
+    let alive = true;
+    setWriteups([]);
+    if (e) postsForEvent(e.slug).then((p) => alive && setWriteups(p)).catch(() => undefined);
+    return () => { alive = false; };
+  }, [e]);
   if (!e) return <NotFoundPage />;
 
   const pill = statusPill(e);
@@ -160,6 +169,30 @@ export default function EventDetailPage() {
               )}
             </aside>
           </div>
+
+          {/* Write-ups and posts about this event (blog posts tagged with it) */}
+          <section aria-labelledby="writeups-h" className="mt-16 border-t border-white/[0.07] pt-10">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 id="writeups-h" className="font-display text-2xl text-white">{e.title} write-ups</h2>
+                <p className="mt-1 text-white/50">
+                  {writeups.length
+                    ? 'How players solved the challenges, from the CyberHx blog.'
+                    : e.status === 'completed'
+                      ? `No write-ups yet. Played ${e.title}? Be the first to share how you solved a challenge.`
+                      : isPrivate
+                        ? 'Write-ups from players will show here after the event.'
+                        : 'After the CTF, players can share how they solved each challenge. They will show up here.'}
+                </p>
+              </div>
+              <Link to={`/blog/write?event=${e.slug}`} className="btn btn-ghost">Write a {e.title} write-up</Link>
+            </div>
+            {writeups.length > 0 && (
+              <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {writeups.map((p) => <PostCard key={p.id} post={p} />)}
+              </div>
+            )}
+          </section>
 
           <section aria-labelledby="more-h" className="mt-16 border-t border-white/[0.07] pt-10">
             <div className="flex items-end justify-between gap-4">

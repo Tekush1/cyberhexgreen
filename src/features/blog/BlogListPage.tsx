@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { PenLine, Search, X } from 'lucide-react';
-import { explain, isConfigured, listCategories, listPosts, PAGE_SIZE, type Category, type PostCard as Card } from './api';
+import { Award, PenLine, Search, X } from 'lucide-react';
+import { categoryCounts, explain, isConfigured, listAuthors, listCategories, listPosts, PAGE_SIZE, type Author, type Category, type PostCard as Card } from './api';
 import { Byline, CardSkeleton, Cover, PostCard } from './PostCard';
+import { compactNumber, sameText } from './utils';
 import { Seo } from '../seo/Seo';
 import { BlogCompanion } from './BlogCompanion';
 
@@ -14,6 +15,8 @@ export default function BlogListPage() {
 
   const [search, setSearch] = useState(q);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [counts, setCounts] = useState<Map<string, number> | null>(null);
+  const [writers, setWriters] = useState<Author[]>([]);
   const [posts, setPosts] = useState<Card[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -24,7 +27,19 @@ export default function BlogListPage() {
   useEffect(() => {
     document.title = 'Blog · CyberHx';
     listCategories().then(setCategories).catch(() => undefined);
+    categoryCounts().then(setCounts).catch(() => undefined);
+    listAuthors(6).then(setWriters).catch(() => undefined);
   }, []);
+
+  // Only categories that have posts (plus the one picked in the URL), each with its count.
+  const chips = useMemo(() => {
+    const all = categories.map((c) => c.name);
+    const extra = counts ? [...counts.keys()].filter((n) => !all.includes(n)) : [];
+    return [...all, ...extra]
+      .filter((n) => !counts || (counts.get(n) ?? 0) > 0 || n === category)
+      .sort((a, b) => (counts ? (counts.get(b) ?? 0) - (counts.get(a) ?? 0) : 0) || a.localeCompare(b));
+  }, [categories, counts, category]);
+  const totalPosts = counts ? [...counts.values()].reduce((a, b) => a + b, 0) : null;
 
   // Keep the box in sync when the URL changes (back button, tag links).
   useEffect(() => setSearch(q), [q]);
@@ -152,19 +167,21 @@ export default function BlogListPage() {
             )}
           </label>
           <div className="hide-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:flex-wrap lg:px-0">
-            {[{ id: '', name: 'All' }, ...categories].map((c) => {
-              const on = (c.name === 'All' && !category) || c.name === category;
+            {['', ...chips].map((name) => {
+              const on = name === category;
+              const n = name ? counts?.get(name) : totalPosts;
               return (
                 <button
-                  key={c.name}
+                  key={name || 'all'}
                   type="button"
-                  onClick={() => setFilter('category', c.name === 'All' ? '' : c.name)}
+                  onClick={() => setFilter('category', name)}
                   aria-pressed={on}
-                  className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${
                     on ? 'border-lime bg-lime text-ink' : 'border-white/10 bg-white/[0.04] text-white/60 hover:border-white/25 hover:text-white'
                   }`}
                 >
-                  {c.name}
+                  {name || 'All'}
+                  {typeof n === 'number' && <span className={`text-xs tabular-nums ${on ? 'text-ink/60' : 'text-white/35'}`}>{n}</span>}
                 </button>
               );
             })}
@@ -223,7 +240,7 @@ export default function BlogListPage() {
               className="group mb-10 grid overflow-hidden rounded-[28px] border border-white/[0.07] bg-white/[0.04] shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_30px_70px_-34px_rgba(16,24,40,0.3)] lg:grid-cols-[1.2fr_1fr]"
             >
               <div className="aspect-[16/9] overflow-hidden lg:aspect-[16/11]">
-                <Cover src={featured.cover_image} alt="" seed={featured.slug} label={featured.category} className="transition-transform duration-700 group-hover:scale-105" />
+                <Cover src={featured.cover_image} alt="" eager seed={featured.slug} label={featured.category} className="transition-transform duration-700 group-hover:scale-[1.03]" />
               </div>
               <div className="flex flex-col justify-center p-7 sm:p-10">
                 <p className="text-sm font-semibold uppercase tracking-wide text-lime">
@@ -231,7 +248,7 @@ export default function BlogListPage() {
                   {featured.category}
                 </p>
                 <h2 className="font-display mt-3 text-3xl leading-tight text-white sm:text-4xl">{featured.title}</h2>
-                <p className="mt-4 line-clamp-3 leading-7 text-white/55">{featured.excerpt}</p>
+                {!sameText(featured.excerpt, featured.title) && <p className="mt-4 line-clamp-3 leading-7 text-white/55">{featured.excerpt}</p>}
                 <div className="mt-7 border-t border-white/[0.06] pt-6">
                   <Byline post={featured} />
                 </div>
@@ -256,6 +273,38 @@ export default function BlogListPage() {
             <p className="mt-12 text-center text-sm text-white/45">You've reached the end.</p>
           )}
         </div>
+
+        {/* Top writers */}
+        {!filtering && writers.length > 0 && (
+          <section aria-labelledby="writers-h" className="mt-20">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="writers-h" className="font-display text-3xl text-white">Top writers</h2>
+                <p className="mt-1 text-white/50">The people behind the posts. Write one and you're on this list.</p>
+              </div>
+              <Link to="/blog/write" className="text-sm font-semibold text-lime hover:underline">Write for CyberHx →</Link>
+            </div>
+            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {writers.map((w, i) => (
+                <li key={w.slug}>
+                  <Link to={`/blog/author/${w.slug}`} className="group flex items-center gap-4 rounded-3xl border border-white/[0.07] bg-white/[0.04] p-4 transition hover:-translate-y-0.5 hover:border-white/15">
+                    {w.avatar
+                      ? <img src={w.avatar} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
+                      : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-lime/20 text-lg font-bold text-lime">{w.name[0]?.toUpperCase()}</span>}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5 font-semibold text-white group-hover:text-lime">
+                        <span className="truncate">{w.name}</span>
+                        {i < 3 && <Award size={15} className="shrink-0 text-lime" aria-label="Top writer" />}
+                      </span>
+                      {w.role && <span className="block truncate text-sm text-white/45">{w.role}</span>}
+                      <span className="mt-1 block text-xs text-white/40">{w.posts} post{w.posts === 1 ? '' : 's'} · {compactNumber(w.views)} reads · {compactNumber(w.likes)} likes</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
       <BlogCompanion signals={{ mode: 'list', state, total: Math.max(total, posts.length), filtering, q, category, tag }} />
     </div>

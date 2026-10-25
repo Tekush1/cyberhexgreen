@@ -9,7 +9,19 @@ import { absImage, eventBreadcrumb, eventDescription, eventJsonLd, eventKeywords
 const esc = (s: string) => String(s).replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&#39;', '"': '&quot;' }[c] as string));
 const ld = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
-export default function handler(req: any, res: any) {
+async function writeups(slug: string): Promise<{ title: string; slug: string; author_name: string }[]> {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return [];
+  try {
+    const r = await fetch(`${url}/rest/v1/blog_posts?select=title,slug,author_name&status=eq.published&event_slug=eq.${encodeURIComponent(slug)}&order=published_at.desc&limit=20`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+    return r.ok ? ((await r.json()) as { title: string; slug: string; author_name: string }[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export default async function handler(req: any, res: any) {
   const slug = String(req.query?.slug || '').toLowerCase();
   const e = eventBySlug(slug);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -18,6 +30,7 @@ export default function handler(req: any, res: any) {
   if (!e) {
     return res.status(404).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Event not found · CyberHx</title><meta name="robots" content="noindex"><link rel="canonical" href="${SITE}/events"></head><body>Event not found. <a href="${SITE}/events">See all CyberHx events</a>.</body></html>`);
   }
+  const posts = await writeups(e.slug);
   const title = eventTitle(e);
   const desc = eventDescription(e);
   const url = eventUrl(e);
@@ -62,6 +75,7 @@ ${e.highlights?.length ? `<ul>${e.highlights.map((h) => `<li>${esc(h)}</li>`).jo
 <p>Categories: ${e.tags.map(esc).join(', ')}</p>
 ${e.register && e.status !== 'completed' && e.entry !== 'Private' ? `<p><a href="${esc(e.register)}">Register for ${esc(e.title)}</a></p>` : ''}
 ${e.social?.leaderboard ? `<p><a href="${esc(e.social.leaderboard)}">${esc(e.title)} leaderboard</a></p>` : ''}
+${posts.length ? `<h2>${esc(e.title)} write-ups</h2><ul>${posts.map((p) => `<li><a href="${SITE}/blog/${esc(p.slug)}">${esc(p.title)}</a> · ${esc(p.author_name)}</li>`).join('')}</ul>` : ''}
 <h2>More CTFs by CyberHx</h2>
 <ul>${events.filter((x) => x.slug !== e.slug).map((x) => `<li><a href="${SITE}/events/${x.slug}">${esc(x.title)}</a> · ${esc(x.date)}</li>`).join('')}</ul>
 <p><a href="${SITE}/host-your-ctf">Host your own CTF with CyberHx</a></p>

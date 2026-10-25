@@ -42,6 +42,19 @@ async function posts(): Promise<Row[]> {
   }
 }
 
+async function authors(): Promise<{ slug: string; last_post: string | null }[]> {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return [];
+  try {
+    const res = await fetch(`${url}/rest/v1/blog_authors?select=slug,last_post&limit=2000`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+    if (!res.ok) return [];
+    return ((await res.json()) as { slug: string; last_post: string | null }[]).filter((a) => /^[a-z0-9-]+$/.test(a.slug));
+  } catch {
+    return [];
+  }
+}
+
 export default async function handler(_req: any, res: any) {
   const rows = await posts();
   const today = new Date().toISOString().slice(0, 10);
@@ -54,6 +67,11 @@ export default async function handler(_req: any, res: any) {
   // One page per CTF (/events/<slug>): searching an event's name should land on it.
   for (const e of events) {
     urls.push(`  <url><loc>${SITE}/events/${xmlEscape(e.slug)}</loc><lastmod>${today}</lastmod><changefreq>${e.status === 'completed' ? 'monthly' : 'daily'}</changefreq><priority>${e.status === 'completed' ? 0.7 : 0.9}</priority></url>`);
+  }
+
+  // Writer pages (/blog/author/<slug>) for everyone with a published post.
+  for (const a of await authors()) {
+    urls.push(`  <url><loc>${SITE}/blog/author/${xmlEscape(a.slug)}</loc><lastmod>${(a.last_post || '').slice(0, 10) || today}</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>`);
   }
 
   for (const p of rows) {

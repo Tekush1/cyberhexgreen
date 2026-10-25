@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Eye, Heart, Link2, Linkedin, PenLine, Twitter } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Award, Calendar, Check, Eye, Globe, Heart, Link2, Linkedin, PenLine, ShieldCheck, Twitter } from 'lucide-react';
 import { Mascot } from '../../components/shared/Mascot';
+import { SubscribeForm } from '../../components/shared/SubscribeForm';
 import { Markdown } from './Markdown';
-import { addView, checkAdmin, explain, getPost, likePost, relatedPosts, type Post, type PostCard as Card } from './api';
-import { Byline, Cover, PostCard } from './PostCard';
+import { addView, checkAdmin, explain, getAuthor, getPost, likePost, listAuthors, relatedPosts, type Author, type Post, type PostCard as Card } from './api';
+import { Byline, Cover, Kicker, PostCard } from './PostCard';
 import { Seo, breadcrumbLd, SITE } from '../seo/Seo';
-import { compactNumber, tocFrom } from './utils';
+import { authorLabel, compactNumber, excerptFrom, isAnonymous, prettyUrl, sameText, stripLeadingTitle, tocFrom } from './utils';
 import { BlogCompanion } from './BlogCompanion';
+import { eventBySlug, nextEvent } from '../../data/events';
+import { certifications, pentestLabUrl } from '../../data/pentest';
 
 const likedKey = (id: string) => `cyberhx-liked:${id}`;
 const safeGet = (k: string, store: Storage = localStorage) => {
@@ -44,6 +47,8 @@ export default function BlogPostPage() {
   const [progress, setProgress] = useState(0);
   const [activeId, setActiveId] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [author, setAuthor] = useState<Author | null>(null);
+  const [topWriter, setTopWriter] = useState(false);
 
   useEffect(() => {
     checkAdmin().then(setIsAdmin);
@@ -64,7 +69,13 @@ export default function BlogPostPage() {
         setLikes(p.likes);
         setLiked(safeGet(likedKey(p.id)) === '1');
         setState('ready');
-        relatedPosts(p).then((r) => alive && setRelated(r));
+        relatedPosts(p).then((r) => alive && setRelated(r)).catch(() => undefined);
+        setAuthor(null);
+        setTopWriter(false);
+        if (p.author_slug && !isAnonymous(p.author_name)) {
+          getAuthor(p.author_slug).then((a) => alive && setAuthor(a)).catch(() => undefined);
+          listAuthors(3).then((top) => alive && setTopWriter(top.some((a) => a.slug === p.author_slug))).catch(() => undefined);
+        }
         // Count one view per post per browser session.
         const seen = `cyberhx-viewed:${p.id}`;
         if (!safeGet(seen, sessionStorage)) {
@@ -97,7 +108,9 @@ export default function BlogPostPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [post]);
 
-  const toc = useMemo(() => (post ? tocFrom(post.content) : []), [post]);
+  // The post body without a first line that only repeats the title.
+  const body = useMemo(() => (post ? stripLeadingTitle(post.content, post.title) : ''), [post]);
+  const toc = useMemo(() => tocFrom(body), [body]);
 
   // Highlight the section being read.
   useEffect(() => {
@@ -184,27 +197,34 @@ export default function BlogPostPage() {
   ];
 
   const absImg = post.cover_image && /^https?:\/\//.test(post.cover_image) ? post.cover_image : undefined;
+  const summary = post.excerpt && !sameText(post.excerpt, post.title) ? post.excerpt : excerptFrom(body, 200);
+  const authorPath = post.author_slug && !isAnonymous(post.author_name) ? `/blog/author/${post.author_slug}` : '';
+  const event = post.event_slug ? eventBySlug(post.event_slug) : undefined;
+  const upcoming = nextEvent();
+  const nextUp = event && event.status !== 'completed' ? event : upcoming;
+  const cppt = certifications.find((c) => c.code === 'CPPT');
   const articleLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
-    description: post.excerpt,
+    description: summary,
     image: [absImg || `${SITE}/og-image.png`],
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at || post.published_at || undefined,
-    author: { '@type': 'Person', name: post.author_name },
+    author: { '@type': 'Person', name: authorLabel(post.author_name), ...(authorPath ? { url: `${SITE}${authorPath}` } : {}) },
     publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/og-image.png` } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE}/blog/${post.slug}` },
     articleSection: post.category,
     keywords: (post.tags || []).join(', ') || undefined,
-    wordCount: post.content.split(/\s+/).filter(Boolean).length,
+    wordCount: body.split(/\s+/).filter(Boolean).length,
+    ...(event ? { about: { '@type': 'Event', name: event.title, url: `${SITE}/events/${event.slug}` } } : {}),
   };
 
   return (
     <div className="min-h-screen bg-ink pb-24 pt-16 text-white sm:pt-[72px]">
       <Seo
         title={`${post.title} · CyberHx Blog`}
-        description={post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`}
+        description={summary || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`}
         path={`/blog/${post.slug}`}
         image={absImg}
         type="article"
@@ -228,13 +248,20 @@ export default function BlogPostPage() {
               </Link>
             )}
           </div>
-          <Link to={`/blog?category=${encodeURIComponent(post.category)}`} className="mt-8 inline-block text-sm font-semibold uppercase tracking-wide text-lime hover:underline">
-            {post.category}
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link to={`/blog?category=${encodeURIComponent(post.category)}`} className="hover:opacity-80">
+              <Kicker post={post} className="text-sm" />
+            </Link>
+            {event && (
+              <Link to={`/events/${event.slug}`} className="inline-flex items-center gap-1.5 rounded-full border border-glow/30 bg-glow/[0.07] px-3 py-1 text-xs font-semibold text-glow transition hover:border-glow/60">
+                <Calendar size={13} /> {event.title}
+              </Link>
+            )}
+          </div>
           <h1 className="font-display mt-3 text-4xl leading-[1.08] text-white sm:text-5xl">{post.title}</h1>
-          {post.excerpt && <p className="mt-5 text-xl leading-8 text-white/55">{post.excerpt}</p>}
+          {post.excerpt && !sameText(post.excerpt, post.title) && <p className="mt-5 text-xl leading-8 text-white/55">{post.excerpt}</p>}
           <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-white/10 py-4">
-            <Byline post={post} />
+            {authorPath ? <Link to={authorPath} className="rounded-xl transition hover:opacity-80"><Byline post={post} /></Link> : <Byline post={post} />}
             <span className="flex items-center gap-1.5 text-sm text-white/50">
               <Eye size={15} /> {compactNumber(post.views)} views
             </span>
@@ -244,7 +271,7 @@ export default function BlogPostPage() {
         {post.cover_image && (
           <div className="mx-auto mt-10 max-w-5xl px-5 sm:px-6">
             <div className="aspect-[2/1] overflow-hidden rounded-3xl border border-white/10 shadow-sm">
-              <Cover src={post.cover_image} alt="" seed={post.slug} label={post.category} />
+              <Cover src={post.cover_image} alt={post.title} eager seed={post.slug} label={post.category} />
             </div>
           </div>
         )}
@@ -274,7 +301,7 @@ export default function BlogPostPage() {
           </nav>
 
           <div id="post-body" className="min-w-0">
-            <Markdown tone="dark">{post.content}</Markdown>
+            <Markdown tone="dark">{body}</Markdown>
 
             {post.tags?.length > 0 && (
               <div className="mt-12 flex flex-wrap gap-2">
@@ -309,15 +336,76 @@ export default function BlogPostPage() {
                 ))}
               </div>
             </div>
+
+            {/* About the writer */}
+            <section aria-labelledby="writer-h" className="mt-8 flex flex-col gap-5 rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 sm:flex-row sm:p-6">
+              {post.author_avatar
+                ? <img src={post.author_avatar} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
+                : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-lime/20 text-2xl font-bold text-lime">{isAnonymous(post.author_name) ? '?' : post.author_name[0].toUpperCase()}</span>}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">Written by</p>
+                <h2 id="writer-h" className="mt-1 flex flex-wrap items-center gap-2 text-xl font-semibold text-white">
+                  {authorPath ? <Link to={authorPath} className="hover:text-lime">{authorLabel(post.author_name)}</Link> : authorLabel(post.author_name)}
+                  {topWriter && <span className="inline-flex items-center gap-1 rounded-full border border-lime/30 bg-lime/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-lime"><Award size={12} /> Top writer</span>}
+                </h2>
+                {(author?.role || post.author_role) && <p className="text-sm text-white/50">{author?.role || post.author_role}</p>}
+                {(post.author_bio || author?.bio) && <p className="mt-3 leading-7 text-white/70">{post.author_bio || author?.bio}</p>}
+                {isAnonymous(post.author_name) && <p className="mt-3 leading-7 text-white/60">A member of the CyberHx community who chose not to share their name.</p>}
+                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                  {(post.author_url || author?.url) && (
+                    <a href={post.author_url || author!.url!} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1.5 font-semibold text-glow hover:underline">
+                      {/linkedin\.com/i.test(post.author_url || author?.url || '') ? <Linkedin size={15} /> : <Globe size={15} />}
+                      {prettyUrl(post.author_url || author!.url!)}
+                    </a>
+                  )}
+                  {authorPath && author && (
+                    <Link to={authorPath} className="inline-flex items-center gap-1 font-semibold text-white/80 hover:text-white">
+                      {author.posts > 1 ? `All ${author.posts} posts` : 'Writer page'} · {compactNumber(author.views)} reads <ArrowUpRight size={14} />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </section>
           </div>
           <div className="hidden xl:block" />
         </div>
       </article>
 
+      {/* What next: the event, the lab, the newsletter */}
+      <section aria-labelledby="next-h" className="mx-auto mt-20 max-w-6xl px-5 sm:px-6">
+        <h2 id="next-h" className="font-display text-2xl text-white">Liked this? Go hands-on.</h2>
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          {nextUp && (
+            <Link to={`/events/${nextUp.slug}`} className="group flex flex-col overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.04] transition hover:-translate-y-1 hover:border-white/15">
+              <img src={nextUp.image} alt="" loading="lazy" className="aspect-[969/431] w-full object-cover" />
+              <span className="flex flex-1 flex-col p-5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-amber-200">{nextUp.status === 'completed' ? 'Our last CTF' : nextUp.entry === 'Private' ? 'Coming up · private' : 'Next CTF'}</span>
+                <span className="font-display mt-1.5 text-xl text-white group-hover:text-lime">{nextUp.title}</span>
+                <span className="mt-1 text-sm text-white/50">{nextUp.date}{nextUp.entry && nextUp.entry !== 'Private' ? ` · ${nextUp.entry.toLowerCase()} entry` : ''}</span>
+                <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-white/85">See the event <ArrowUpRight size={15} /></span>
+              </span>
+            </Link>
+          )}
+          <a href={pentestLabUrl} target="_blank" rel="noopener noreferrer" className="group flex flex-col rounded-3xl border border-white/[0.08] bg-[linear-gradient(160deg,#121a33,#0b1020_60%)] p-5 transition hover:-translate-y-1 hover:border-white/15">
+            <ShieldCheck size={26} className="text-glow" />
+            <span className="mt-4 text-xs font-semibold uppercase tracking-wide text-glow">Pentest Lab</span>
+            <span className="font-display mt-1.5 text-xl text-white group-hover:text-glow">Practise on real machines</span>
+            <span className="mt-1 text-sm leading-6 text-white/55">Targets mapped to MITRE ATT&amp;CK, then earn CAPT or CPPT{cppt ? ` (from $${Math.min(...certifications.map((c) => c.usd))})` : ''}.</span>
+            <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-white/85">Open the lab <ArrowUpRight size={15} /></span>
+          </a>
+          <div className="flex flex-col rounded-3xl border border-lime/20 bg-lime/[0.04] p-5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-lime">Newsletter</span>
+            <span className="font-display mt-1.5 text-xl text-white">New posts and CTFs, in your inbox</span>
+            <span className="mt-1 text-sm leading-6 text-white/55">Write-ups, scam alerts and event dates.</span>
+            <div className="mt-auto pt-4"><SubscribeForm source="blog" /></div>
+          </div>
+        </div>
+      </section>
+
       {/* Related */}
       {related.length > 0 && (
         <section className="mx-auto mt-20 max-w-6xl px-5 sm:px-6">
-          <h2 className="font-display text-2xl text-white">More in {post.category}</h2>
+          <h2 className="font-display text-2xl text-white">Keep reading</h2>
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((p) => <PostCard key={p.id} post={p} />)}
           </div>

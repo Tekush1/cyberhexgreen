@@ -32,6 +32,8 @@ const makeComponents = (tone: Tone): Components => {
   const th = dark ? 'bg-panel text-white' : 'bg-[#f4f6f1] text-ink';
 
   return {
+    // A "# heading" inside a post is shown as a section heading: the page has one h1, the post title.
+    h1: ({ node: _n, ...p }) => <h2 className={`font-display mt-14 scroll-mt-28 text-2xl sm:text-3xl ${heading}`} {...p} />,
     h2: ({ node: _n, ...p }) => <h2 className={`font-display mt-14 scroll-mt-28 text-2xl sm:text-3xl ${heading}`} {...p} />,
     h3: ({ node: _n, ...p }) => <h3 className={`mt-10 scroll-mt-28 text-xl font-bold ${heading}`} {...p} />,
     h4: ({ node: _n, ...p }) => <h4 className={`mt-8 text-lg font-semibold ${heading}`} {...p} />,

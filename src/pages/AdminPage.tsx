@@ -121,11 +121,12 @@ interface Submission {
   author_email: string; author_role: string; cover_image: string;
   status: 'pending' | 'approved' | 'rejected';
   submitted_at: string;
+  author_bio?: string; author_url?: string; difficulty?: string | null; event_slug?: string | null;
 }
 
 interface BlogPost {
   id: string; title: string; slug: string; category: string;
-  author_name: string; published_at: string; views: number;
+  author_name: string; published_at: string | null; views: number;
   likes: number; featured: boolean; status: string;
 }
 
@@ -235,6 +236,14 @@ const SubmissionCard = ({ sub, onApprove, onReject, onDelete, loading }: {
             )}
             {sub.author_email && (
               <p className="text-gray-500 text-xs mt-3">📧 {sub.author_email}</p>
+            )}
+            {(sub.author_bio || sub.author_url || sub.difficulty || sub.event_slug) && (
+              <div className="mt-2 space-y-1 text-xs text-gray-500">
+                {sub.author_bio && <p>Bio: {sub.author_bio}</p>}
+                {sub.author_url && <p>Link: <a href={sub.author_url} target="_blank" rel="noopener noreferrer nofollow" className="text-[#0A84FF] hover:underline">{sub.author_url}</a></p>}
+                {sub.difficulty && <p>Difficulty: {sub.difficulty}</p>}
+                {sub.event_slug && <p>Event: {sub.event_slug}</p>}
+              </div>
             )}
           </motion.div>
         )}
@@ -561,7 +570,7 @@ const AdminPage: React.FC = () => {
                         {post.featured && <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">⭐ Featured</span>}
                       </div>
                       <h3 className="text-white font-medium text-sm truncate">{post.title}</h3>
-                      <p className="text-gray-500 text-xs mt-0.5">{post.author_name} · {fmtDate(post.published_at)}</p>
+                      <p className="text-gray-500 text-xs mt-0.5">{post.author_name} · {post.published_at ? fmtDate(post.published_at) : 'Not published yet'}</p>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0">
                       <span className="flex items-center gap-1"><Eye size={12} />{post.views}</span>
