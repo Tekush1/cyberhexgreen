@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FileSignature, MapPin, Mail, ArrowUpRight, Globe } from 'lucide-react';
-import { Handshake, Building2, Shield, Server, BookOpen, Megaphone, Trophy, Users, Cpu } from '../components/shared/icons';
+import { Handshake, Building2, Bug, Server, BookOpen, Megaphone, Trophy, Users, Cpu } from '../components/shared/icons';
 
 /**
  * Add a new entry here every time a partnership / MOU is signed.
@@ -79,7 +79,7 @@ const colabTypes = [
     desc: 'Joint research, tool development, or open-source projects in offensive/defensive security.',
   },
   {
-    icon: Shield,
+    icon: Bug,
     title: 'Security Audits & Reviews',
     desc: 'Collaborate on security reviews, vulnerability research, or responsible disclosure programmes.',
   },

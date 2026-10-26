@@ -1,7 +1,7 @@
 import React from 'react';
 import { SiteIcon } from '../components/shared/SiteIcon';
 import { ExternalLink, Mail } from 'lucide-react';
-import { Shield, Award, Star } from '../components/shared/icons';
+import { Trophy, Award, Star } from '../components/shared/icons';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { HallOfFame } from '../components/HallOfFame';
@@ -99,7 +99,6 @@ const HallOfFamePage = () => {
               to="/responsible-disclosure"
               className="inline-flex items-center gap-2 border border-gray-700 text-gray-400 hover:text-primary hover:border-primary/40 transition-all px-4 py-2 rounded-lg text-sm flex-shrink-0"
             >
-              <Shield size={14} />
               Disclosure policy
             </Link>
           </div>
@@ -172,7 +171,7 @@ const HallOfFamePage = () => {
       {/* CTA */}
       <section className="py-16 border-t border-gray-900">
         <div className="max-w-2xl mx-auto px-6 lg:px-8 text-center">
-          <Shield size={28} className="text-primary mx-auto mb-4" />
+          <Trophy size={28} className="text-primary mx-auto mb-4" />
           <h3 className="text-white text-xl font-bold mb-3">Want to be on this page?</h3>
           <p className="text-gray-500 text-sm mb-6">
             Find and responsibly disclose a security vulnerability in our platform and earn your place in the Hall of Fame.
@@ -181,7 +180,6 @@ const HallOfFamePage = () => {
             to="/responsible-disclosure"
             className="inline-flex items-center gap-2 bg-primary text-black font-semibold px-6 py-3 rounded-lg hover:bg-primary/90 transition-all text-sm"
           >
-            <Shield size={15} />
             Read disclosure policy
           </Link>
         </div>

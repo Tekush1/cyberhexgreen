@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, MapPin, ArrowRight, Send, CheckCircle, AlertCircle } from 'lucide-react';
-import { Briefcase, Users, Star, Shield, Code, Brain, Target } from './shared/icons';
+import { Briefcase, Users, Star, Bug, Code, Brain, Target } from './shared/icons';
 
 interface HiringPopupProps {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export const HiringPopup: React.FC<HiringPopupProps> = ({ isOpen, onClose }) => 
     {
       id: 'cybersecurity-intern',
       title: 'Cybersecurity Intern',
-      icon: <Shield className="w-6 h-6" />,
+      icon: <Bug className="w-6 h-6" />,
       description: 'Work on security research, vulnerability assessment, and threat analysis',
       requirements: ['Basic knowledge of cybersecurity', 'Familiarity with Linux', 'Interest in ethical hacking'],
       duration: '3-6 months',

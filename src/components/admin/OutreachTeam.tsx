@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Loader2, Pencil, Plus, ShieldAlert, X } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Clock, Loader2, Pencil, Plus, X } from 'lucide-react';
 import { sbInsert, sbRows, sbRpc, sbWrite } from './mailingApi';
 import { device, place, type SignIn } from './SignInActivity';
 
@@ -248,7 +248,7 @@ export function TeamView({ people, leads, mails, onReload, onOpen, onHours, onTo
                       {rows.map((r) => (
                         <li key={r.id} className={`flex flex-wrap items-baseline gap-x-2 text-[13px] ${r.ok ? 'text-white/75' : 'text-[#FF9F9A]'}`}>
                           <span className="tabular-nums font-medium">{istTime(r.at)}</span>
-                          {!r.ok && <span className="inline-flex items-center gap-1"><ShieldAlert size={12} />Wrong password</span>}
+                          {!r.ok && <span className="inline-flex items-center gap-1"><AlertTriangle size={12} />Wrong password</span>}
                           <span className="text-white/45">{place(r) || 'Unknown place'} · {device(r.user_agent)}</span>
                         </li>
                       ))}

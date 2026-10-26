@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { Check, ExternalLink, Loader2, RefreshCw, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
+import { Check, ExternalLink, KeyRound, Loader2, RefreshCw, Trash2, UserPlus, Users } from 'lucide-react';
 import { sbRows, sbRpc } from './mailingApi';
 import { SignInActivity, place, type SignIn } from './SignInActivity';
 import { ROLES, type Role } from './roles';
@@ -83,7 +83,7 @@ export function TeamPanel() {
     <div className="space-y-6">
       {/* What each role can open */}
       <section aria-labelledby="roles-h" className="bg-[#0a0f1a] border border-white/8 rounded-2xl p-5">
-        <h2 id="roles-h" className="text-white font-semibold flex items-center gap-2"><ShieldCheck size={18} className="text-[#a3e635]" />Roles</h2>
+        <h2 id="roles-h" className="text-white font-semibold flex items-center gap-2"><KeyRound size={18} className="text-[#a3e635]" />Roles</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {ASSIGNABLE.map((r) => (
             <div key={r} className="rounded-xl border border-white/8 bg-[#05080f] p-4">

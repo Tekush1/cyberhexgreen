@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Clock, CheckCircle, ChevronDown, ChevronUp, ExternalLink, FileText } from 'lucide-react';
-import { Shield, AlertTriangle, Eye, Lock, Award } from '../components/shared/icons';
+import { Bug, AlertTriangle, Eye, Lock, Award } from '../components/shared/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Mascot } from '../components/shared/Mascot';
@@ -109,7 +109,7 @@ const ResponsibleDisclosurePage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-4 py-1.5 rounded-full mb-8"
           >
-            <Shield size={13} />
+            <Bug size={13} />
             Security Policy · RFC 9116 Compliant
           </motion.div>
           <motion.h1
@@ -334,7 +334,7 @@ Any remediation ideas you have.
 
         {/* Footer CTA */}
         <div className="border border-gray-800 rounded-2xl p-8 text-center">
-          <Shield size={32} className="text-primary mx-auto mb-4" />
+          <Bug size={32} className="text-primary mx-auto mb-4" />
           <h3 className="text-white text-xl font-bold mb-3">Found something?</h3>
           <p className="text-gray-500 text-sm mb-6 max-w-md mx-auto">
             Do not hesitate to reach out. Good security research makes everyone safer — including us.

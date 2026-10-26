@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Briefcase, Award, Star, Users, Rocket, Shield, Terminal, BookOpen, Zap, GamepadIcon } from '../components/shared/icons';
+import { Trophy, Briefcase, Award, Star, Users, Rocket, Flag, Handshake, Terminal, BookOpen, Zap, GamepadIcon } from '../components/shared/icons';
 import { motion } from 'framer-motion';
 import { SiteIcon } from '../components/shared/SiteIcon';
 
@@ -17,7 +17,7 @@ export const PrizesPage = () => {
       title: "Cyber Champion",
       amount: "₹10,000",
       description: "For the most innovative cybersecurity solution",
-      icon: <SiteIcon name="shield" size={48} alt="" />,
+      icon: <SiteIcon name="podium" size={48} alt="" />,
       benefits: [
         "Free CyberHx Pro membership (1 year)",
         "Direct mentorship from security experts",
@@ -80,7 +80,7 @@ export const PrizesPage = () => {
 
   const learningBenefits = [
     {
-      icon: <Shield className="w-8 h-8" />,
+      icon: <Flag className="w-8 h-8" />,
       title: "CyberHx Platform Access",
       description: "Exclusive access to our comprehensive cybersecurity learning platform",
       features: ["50+ CTF Challenges", "20+ Virtual Labs", "100+ Learning Modules", "AI-Powered Tutoring"]
@@ -303,7 +303,7 @@ export const PrizesPage = () => {
                   whileHover={{ scale: 1.1, y: -5 }}
                   transition={{ type: "spring", stiffness: 400 }}
                 >
-                  <Shield className="w-8 h-8 text-primary mx-auto mb-2" />
+                  <Handshake className="w-8 h-8 text-primary mx-auto mb-2" />
                 </motion.div>
                 <p className="text-white font-medium">Industry Partnerships</p>
                 <p className="text-gray-400 text-sm">Direct connections to top security firms</p>
@@ -349,7 +349,6 @@ export const PrizesPage = () => {
               className="inline-flex items-center bg-primary text-dark-300 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary transition-colors"
             >
               Explore CyberHx Platform
-              <Shield className="ml-2 w-5 h-5" />
             </a>
             
             <a

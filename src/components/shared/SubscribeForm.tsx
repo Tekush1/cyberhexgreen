@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 
-/** Newsletter sign-up. Saves to Supabase through /api/subscribe (people can unsubscribe from any email). */
-export function SubscribeForm({ source = 'footer' }: { source?: string }) {
+/** Newsletter sign-up. Saves to Supabase through /api/subscribe (people can unsubscribe from any email).
+ *  `stacked` keeps the field above the button at every width (for narrow cards). */
+export function SubscribeForm({ source = 'footer', stacked = false }: { source?: string; stacked?: boolean }) {
   const [email, setEmail] = useState('');
   const [trap, setTrap] = useState('');
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
@@ -39,7 +40,7 @@ export function SubscribeForm({ source = 'footer' }: { source?: string }) {
   return (
     <form onSubmit={submit} className="w-full" noValidate>
       <label htmlFor={`sub-${source}`} className="sr-only">Email address</label>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className={`flex flex-col gap-2 ${stacked ? '' : 'sm:flex-row'}`}>
         <input
           id={`sub-${source}`}
           type="email"
@@ -49,7 +50,8 @@ export function SubscribeForm({ source = 'footer' }: { source?: string }) {
           placeholder="you@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-white placeholder:text-white/35 outline-none transition-colors focus:border-lime/60"
+          // flex-1 only in the row layout: in a column it would squash the field to one line of text.
+          className={`h-12 w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-white placeholder:text-white/35 outline-none transition-colors focus:border-lime/60 ${stacked ? '' : 'sm:flex-1'}`}
         />
         {/* Honeypot: hidden from people, bots fill it in. */}
         <input type="text" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} className="hidden" aria-hidden="true" />

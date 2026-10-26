@@ -1,5 +1,5 @@
 /**
- * Illustrated replacements for the decorative lucide icons (shield, skull, trophy, …).
+ * Illustrated replacements for the decorative lucide icons (skull, trophy, …).
  * Same names as lucide so a page only has to change its import line.
  * They render the CyberHx PNG artwork, roughly twice the old size, with no box around it.
  * Small UI icons (arrows, chevrons, calendar, mail, social logos) stay on lucide.
@@ -29,7 +29,8 @@ const make = (name: IconName) => {
   return Icon;
 };
 
-export const Shield = make('shield');
+// No shield artwork anywhere on the site: security topics use the bug, padlock or target art.
+export const Bug = make('bug');
 export const Skull = make('ghost');
 export const Terminal = make('code');
 export const Code = make('code-light');
@@ -42,7 +43,7 @@ export const Star = make('podium-flat');
 export const Rocket = make('hacker-climb');
 export const Brain = make('gear');
 export const Cpu = make('gear');
-export const Lock = make('shield');
+export const Lock = make('padlock');
 export const Radio = make('satellite');
 export const Briefcase = make('toolbox');
 export const Sparkles = make('hexagon');

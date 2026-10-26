@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Award, Calendar, Check, Eye, Globe, Heart, Link2, Linkedin, PenLine, ShieldCheck, Twitter } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Award, Calendar, Check, ChevronRight, Eye, Globe, Heart, Link2, Linkedin, PenLine, Twitter } from 'lucide-react';
 import { Mascot } from '../../components/shared/Mascot';
 import { SubscribeForm } from '../../components/shared/SubscribeForm';
 import { Markdown } from './Markdown';
@@ -11,6 +11,40 @@ import { authorLabel, compactNumber, excerptFrom, isAnonymous, prettyUrl, sameTe
 import { BlogCompanion } from './BlogCompanion';
 import { eventBySlug, nextEvent } from '../../data/events';
 import { certifications, pentestLabUrl } from '../../data/pentest';
+
+/* "What next" tiles, Apple-style: copy on top, the picture peeking up from the bottom edge. */
+const TILE =
+  'group relative flex flex-col overflow-hidden rounded-[28px] bg-[#101012] ring-1 ring-inset ring-white/[0.07] transition-shadow duration-300 hover:ring-white/[0.14]';
+const TILE_TITLE = 'mt-2 text-[22px] font-semibold leading-snug tracking-[-0.01em] text-white';
+const TILE_TEXT = 'mt-2 text-[15px] leading-6 text-white/55';
+const TILE_LINK = 'mt-4 inline-flex items-center gap-0.5 text-[15px] font-medium text-[#2997ff] underline-offset-4 group-hover:underline';
+const PEEK = 'translate-y-4 motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:group-hover:translate-y-1';
+
+/** A small Mac-style lab window: the same look as the Pentest Lab section on the home page. */
+function LabWindow() {
+  return (
+    <div aria-hidden="true" className="mt-auto px-7 pt-8">
+      <div className={`overflow-hidden rounded-t-[14px] border border-b-0 border-[#3a3a3c] bg-[#1c1c1e] shadow-[0_-24px_60px_-30px_rgba(198,241,53,0.4)] ${PEEK}`}>
+        <div className="flex items-center gap-1.5 border-b border-[#3a3a3c] bg-[#2c2c2e] px-3 py-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+          <span className="flex-1 text-center text-[11px] text-white/45">pentestlab.cyberhx.com</span>
+          <span className="w-[38px]" />
+        </div>
+        <div className="space-y-1 bg-[#0d0d0f] px-4 pb-8 pt-4 font-mono text-[12px] leading-5 text-white/80">
+          <p className="truncate"><span className="text-lime">$</span> nmap -sV 10.10.14.7</p>
+          <p className="truncate whitespace-pre text-white/40">{'22/tcp  open  ssh'}</p>
+          <p className="truncate whitespace-pre text-white/40">{'80/tcp  open  http'}</p>
+          <p>
+            <span className="text-lime">$</span> sudo -l
+            <span className="ml-1 inline-block h-3.5 w-[7px] translate-y-[3px] bg-lime/80 motion-safe:animate-pulse" />
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const likedKey = (id: string) => `cyberhx-liked:${id}`;
 const safeGet = (k: string, store: Storage = localStorage) => {
@@ -372,32 +406,40 @@ export default function BlogPostPage() {
       </article>
 
       {/* What next: the event, the lab, the newsletter */}
-      <section aria-labelledby="next-h" className="mx-auto mt-20 max-w-6xl px-5 sm:px-6">
-        <h2 id="next-h" className="font-display text-2xl text-white">Liked this? Go hands-on.</h2>
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <section aria-labelledby="next-h" className="mx-auto mt-24 max-w-6xl px-5 sm:px-6">
+        <h2 id="next-h" className="font-display text-3xl leading-tight text-white sm:text-4xl">
+          Liked this? <span className="text-white/40">Go hands-on.</span>
+        </h2>
+        <div className="mt-8 grid gap-5 lg:grid-cols-3">
           {nextUp && (
-            <Link to={`/events/${nextUp.slug}`} className="group flex flex-col overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.04] transition hover:-translate-y-1 hover:border-white/15">
-              <img src={nextUp.image} alt="" loading="lazy" className="aspect-[969/431] w-full object-cover" />
-              <span className="flex flex-1 flex-col p-5">
-                <span className="text-xs font-semibold uppercase tracking-wide text-amber-200">{nextUp.status === 'completed' ? 'Our last CTF' : nextUp.entry === 'Private' ? 'Coming up · private' : 'Next CTF'}</span>
-                <span className="font-display mt-1.5 text-xl text-white group-hover:text-lime">{nextUp.title}</span>
-                <span className="mt-1 text-sm text-white/50">{nextUp.date}{nextUp.entry && nextUp.entry !== 'Private' ? ` · ${nextUp.entry.toLowerCase()} entry` : ''}</span>
-                <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-white/85">See the event <ArrowUpRight size={15} /></span>
-              </span>
+            <Link to={`/events/${nextUp.slug}`} className={TILE}>
+              <div className="p-7 pb-0">
+                <p className="text-[13px] font-semibold text-amber-200">{nextUp.status === 'completed' ? 'Our last CTF' : nextUp.entry === 'Private' ? 'Coming up · private' : 'Next CTF'}</p>
+                <h3 className={TILE_TITLE}>{nextUp.title}</h3>
+                <p className={TILE_TEXT}>{nextUp.date}{nextUp.entry && nextUp.entry !== 'Private' ? ` · ${nextUp.entry.toLowerCase()} entry` : ''}</p>
+                <span className={TILE_LINK}>See the event <ChevronRight size={16} /></span>
+              </div>
+              <div className="mt-auto px-7 pt-8">
+                <img src={nextUp.image} alt="" loading="lazy" className={`aspect-[969/431] w-full rounded-t-[14px] object-cover shadow-[0_-24px_60px_-30px_rgba(251,191,36,0.4)] ${PEEK}`} />
+              </div>
             </Link>
           )}
-          <a href={pentestLabUrl} target="_blank" rel="noopener noreferrer" className="group flex flex-col rounded-3xl border border-white/[0.08] bg-[linear-gradient(160deg,#121a33,#0b1020_60%)] p-5 transition hover:-translate-y-1 hover:border-white/15">
-            <ShieldCheck size={26} className="text-glow" />
-            <span className="mt-4 text-xs font-semibold uppercase tracking-wide text-glow">Pentest Lab</span>
-            <span className="font-display mt-1.5 text-xl text-white group-hover:text-glow">Practise on real machines</span>
-            <span className="mt-1 text-sm leading-6 text-white/55">Targets mapped to MITRE ATT&amp;CK, then earn CAPT or CPPT{cppt ? ` (from $${Math.min(...certifications.map((c) => c.usd))})` : ''}.</span>
-            <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-white/85">Open the lab <ArrowUpRight size={15} /></span>
+          <a href={pentestLabUrl} target="_blank" rel="noopener noreferrer" className={TILE}>
+            <div className="p-7 pb-0">
+              <p className="text-[13px] font-semibold text-lime">Pentest Lab</p>
+              <h3 className={TILE_TITLE}>Practise on real machines.</h3>
+              <p className={TILE_TEXT}>
+                Targets mapped to MITRE ATT&amp;CK. Then earn CAPT or CPPT{cppt ? `, from $${Math.min(...certifications.map((c) => c.usd))}` : ''}.
+              </p>
+              <span className={TILE_LINK}>Explore the lab <ChevronRight size={16} /></span>
+            </div>
+            <LabWindow />
           </a>
-          <div className="flex flex-col rounded-3xl border border-lime/20 bg-lime/[0.04] p-5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-lime">Newsletter</span>
-            <span className="font-display mt-1.5 text-xl text-white">New posts and CTFs, in your inbox</span>
-            <span className="mt-1 text-sm leading-6 text-white/55">Write-ups, scam alerts and event dates.</span>
-            <div className="mt-auto pt-4"><SubscribeForm source="blog" /></div>
+          <div className="flex flex-col rounded-[28px] bg-[#101012] p-7 ring-1 ring-inset ring-white/[0.07]">
+            <p className="text-[13px] font-semibold text-lime">Newsletter</p>
+            <h3 className={TILE_TITLE}>New posts and CTFs, in your inbox.</h3>
+            <p className={TILE_TEXT}>Write-ups, scam alerts and event dates. No spam.</p>
+            <div className="mt-auto pt-6"><SubscribeForm source="blog" stacked /></div>
           </div>
         </div>
       </section>

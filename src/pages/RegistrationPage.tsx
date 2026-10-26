@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, Book, Code, Brain, Loader, Check, ArrowRight } from 'lucide-react';
-import { Shield } from '../components/shared/icons';
+import { User, Mail, Phone, Book, Code, Brain, Bug, Loader, Check, ArrowRight } from 'lucide-react';
 import { submitForm } from '../lib/forms';
 
 export const RegistrationPage = () => {
@@ -31,7 +30,7 @@ export const RegistrationPage = () => {
       description: 'Dive into AI, ML, and data science'
     },
     {
-      icon: <Shield className="w-6 h-6" />,
+      icon: <Bug className="w-6 h-6" />,
       name: 'Cybersecurity',
       description: 'Learn ethical hacking and security practices'
     }

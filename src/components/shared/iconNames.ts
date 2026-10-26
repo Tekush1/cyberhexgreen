@@ -7,7 +7,6 @@ export type IconName =
   | 'user'
   | 'network'
   | 'gear'
-  | 'shield'
   | 'ctf-orange'
   | 'ctf-green'
   | 'docker'

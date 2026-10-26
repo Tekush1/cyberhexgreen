@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MapPin, Monitor, RefreshCw, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, MapPin, Monitor, RefreshCw } from 'lucide-react';
 
 /* Admin → Team → Sign-in activity (owners only; data: public.staff_logins, written by /api/staff). */
 
@@ -60,7 +60,7 @@ export function SignInActivity({ rows, loading, err, onRefresh }: { rows: SignIn
 
       {failed24h > 0 && (
         <p className="mt-3 flex items-center gap-2 rounded-xl bg-[#FF453A]/12 border border-[#FF453A]/30 px-3 py-2 text-[13px] text-[#FF9F9A]">
-          <ShieldAlert size={15} /> {failed24h} failed sign-in attempt{failed24h > 1 ? 's' : ''} in the last 24 hours.
+          <AlertTriangle size={15} /> {failed24h} failed sign-in attempt{failed24h > 1 ? 's' : ''} in the last 24 hours.
         </p>
       )}
 

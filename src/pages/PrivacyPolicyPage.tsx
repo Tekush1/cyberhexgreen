@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Shield, ChevronRight } from 'lucide-react';
+import { Lock, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const LAST_UPDATED = '16 June 2026';
@@ -171,7 +171,7 @@ const PrivacyPolicyPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-4 py-1.5 rounded-full mb-6"
           >
-            <Shield size={13} />
+            <Lock size={13} />
             Legal · Privacy Policy
           </motion.div>
           <motion.h1

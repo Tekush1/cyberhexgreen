@@ -1,13 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Terminal, Code, Trophy, Target, Users, Calendar, ArrowRight, Zap, GamepadIcon, BookOpen, Award, Cpu, Lock } from 'lucide-react';
+import { Flag, Terminal, Code, Trophy, Target, Users, Calendar, ArrowRight, Zap, GamepadIcon, BookOpen, Award, Cpu, Lock } from 'lucide-react';
 
 export const TimelinePage = () => {
   const events = [
     {
       phase: "Phase 1",
       date: "July 2025",
-      icon: <Shield className="w-6 h-6" />,
+      icon: <Flag className="w-6 h-6" />,
       title: "CTF Platform Launch",
       description: "Interactive Capture The Flag challenges",
       color: "#00ff41",
@@ -458,7 +458,7 @@ export const TimelinePage = () => {
               whileHover={{ scale: 1.1, y: -10 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+              <Target className="w-12 h-12 text-primary mx-auto mb-4" />
             </motion.div>
             <h2 className="text-2xl font-bold text-white mb-4">Join the CyberHx Learning Revolution</h2>
             <p className="text-gray-400 max-w-2xl mx-auto mb-6">
