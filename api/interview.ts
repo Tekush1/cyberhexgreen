@@ -652,7 +652,7 @@ export default async function handler(req: any, res: any) {
         }
         const all = await listBookings();
         const items = outreachOnly ? all.filter((i: any) => i.kind === 'ctf' && i.owner === who!.id) : all;
-        const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
+        const origin = (process.env.SITE_URL || 'https://cyberhx.com').replace(/\/$/, '');
         const pending = await listPendingLinks(String(req.headers.authorization), origin, new Set(items.map((i: any) => i.inviteId)));
         return res.status(200).json({ items, pending });
       }
@@ -684,7 +684,7 @@ export default async function handler(req: any, res: any) {
           ...(Number(dur) > 0 ? { d: cleanDur(dur, 0) || undefined } : {}),
           ...(cleanKind === 'ctf' && who ? { o: who.id, oe: who.email } : {}),
         };
-        const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
+        const origin = (process.env.SITE_URL || 'https://cyberhx.com').replace(/\/$/, '');
         const code = await storeShortLink(String(req.headers.authorization), payload);
         if (code) return res.status(200).json({ link: `${origin}/meet/${code}`, short: true });
         // fallback: self-contained encrypted link (long, but works with no database setup)
@@ -858,7 +858,7 @@ export default async function handler(req: any, res: any) {
           ...(m.mins > 0 ? { d: cleanDur(m.mins, 0) || undefined } : {}),
           ...(m.priv.owner ? { o: String(m.priv.owner), ...(m.priv.oe ? { oe: String(m.priv.oe) } : {}) } : {}),
         };
-        const origin = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
+        const origin = (process.env.SITE_URL || 'https://cyberhx.com').replace(/\/$/, '');
         const code = await storeShortLink(auth, payload);
         const link = code ? `${origin}/meet/${code}` : `${origin}/book-interview?t=${signToken(payload)}`;
         await gcal(`/calendars/${cal}/events/${encodeURIComponent(id)}?sendUpdates=all`, { method: 'DELETE' });

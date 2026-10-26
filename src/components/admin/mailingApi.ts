@@ -142,8 +142,14 @@ export function parsePeople(text: string): { people: Person[]; bad: number; dupe
 
 export const cleanTag = (t: string) => t.trim().toLowerCase().replace(/[^a-z0-9:_\-. ]/g, '').replace(/\s+/g, '-').slice(0, 60);
 
+/** A cell that starts with = + - @ (or a tab/CR) runs as a formula in Excel; a leading ' keeps it as text. */
+const csvCell = (c: string | number | null | undefined) => {
+  const s = String(c ?? '');
+  return `"${(typeof c === 'string' && /^[=+\-@\t\r]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`;
+};
+
 export function downloadCsv(filename: string, rows: (string | number)[][]) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv = rows.map((r) => r.map(csvCell).join(',')).join('\n');
   const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
   const a = document.createElement('a');
   a.href = url;

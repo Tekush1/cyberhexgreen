@@ -5,10 +5,12 @@
 //   POST /api/subscribe?unsub=<token>                         -> one-click unsubscribe from the mail app (RFC 8058)
 //   GET  /api/subscribe?unsub=<token>                         -> redirects to the /unsubscribe page (never unsubscribes on GET)
 
-import { allow, clientIp } from '../server/payments.js';
+import { allow, clientIp, db } from '../server/payments.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Where a public sign-up can come from. Anything else is saved as "website" (never "import" or "admin"). */
+const SOURCES = new Set(['website', 'footer', 'blog', 'home', 'events', 'popup']);
 
 async function call(fn: string, args: object) {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -57,8 +59,10 @@ export default async function handler(req: any, res: any) {
     const email = String(body.email || '').trim().toLowerCase();
     if (!EMAIL_RE.test(email) || email.length > 200) return res.status(400).json({ error: 'Please enter a valid email address.' });
     const name = String(body.name || '').replace(/[\u0000-\u001f\u007f,;:<>"\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
-    const source = String(body.source || 'website').replace(/[^\w\-: ]/g, '').slice(0, 60) || 'website';
-    const out = await call('mail_subscribe', { p_email: email, p_name: name, p_source: source });
+    const source = SOURCES.has(String(body.source)) ? String(body.source) : 'website';
+    // Through the server only: the database function needs the server secret, so nobody can skip
+    // the honeypot and the per-visitor limit by calling it straight from the browser.
+    const out = await db<string>('mail_subscribe', { p_email: email, p_name: name, p_source: source });
     if (out === 'unsubscribed') return res.status(409).json({ error: 'This email unsubscribed earlier. To join again, write to mail@cyberhx.com from that address.' });
     if (out === 'busy') return res.status(429).json({ error: 'Too many sign-ups right now. Please try again later.' });
     if (out !== 'ok') return res.status(400).json({ error: 'Please enter a valid email address.' });

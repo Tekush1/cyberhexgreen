@@ -589,7 +589,7 @@ function LeadDetails({ l, onSave, onToast, mails: sent, replies, onCompose, onRe
         <Action icon={<Copy size={18} />} label="Copy pitch" onClick={() => copy(`Subject: ${pitch.subject}\n\n${pitch.body}`, 'Pitch copied')} />
         {mails.length > 0 && <Action icon={<AtSign size={18} />} label="Copy email" onClick={() => copy(mails.join(', '), 'Email copied')} />}
         {phone && <Action icon={<Phone size={18} />} label="Call" href={`tel:${phone}`} />}
-        {l.link && <Action icon={<Compass size={18} />} label="Event" href={l.link} external />}
+        {l.link && /^https?:\/\//i.test(l.link) && <Action icon={<Compass size={18} />} label="Event" href={l.link} external />}
       </div>
 
       {/* Status */}

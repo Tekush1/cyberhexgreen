@@ -4,7 +4,7 @@
 //   Secret  the same value as RAZORPAY_WEBHOOK_SECRET in Vercel
 //   Events  payment.captured, payment.failed, order.paid
 
-import { db, fulfill, hmacHex, log, PayError, safeEqual, webhookSecret } from '../server/payments.js';
+import { allow, clientIp, db, fulfill, hmacHex, log, PayError, safeEqual, webhookSecret } from '../server/payments.js';
 
 // Razorpay signs the raw body, so read it before anything parses it.
 export const config = { api: { bodyParser: false } };
@@ -29,7 +29,8 @@ export default async function handler(req: any, res: any) {
   const raw = await rawBody(req);
   const sig = String(req.headers['x-razorpay-signature'] || '');
   if (!sig || !safeEqual(hmacHex(secret, raw), sig)) {
-    await log(null, null, 'webhook.bad_signature', 'error', { bytes: raw.length });
+    // Logged, but only a few per sender per hour, so junk requests can't push real events out of the payment log.
+    if (await allow('webhook.badsig', clientIp(req), 5, 3600)) await log(null, null, 'webhook.bad_signature', 'error', { bytes: raw.length });
     return res.status(400).json({ error: 'Invalid signature' });
   }
 

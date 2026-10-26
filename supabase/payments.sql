@@ -10,7 +10,11 @@
 -- The website's server has no service-role key. It writes through the pay_* functions below,
 -- which only work with the secret stored in app_secrets. The LAST query of this file prints
 -- that secret: put it in Vercel as PAYMENTS_DB_SECRET.
--- Safe to run again.
+--
+-- !! DO NOT RE-RUN ON THE LIVE DATABASE !!
+-- This is the ORIGINAL setup. The live pay_* functions were hardened later (security_audit_oct17.sql,
+-- security_audit_oct26.sql: promo reservation, grants, re-reservation before capture). Running this file
+-- again would put the old, weaker versions back. For a brand-new project, run it and then those two files.
 -- ============================================================
 
 -- ---------- server secret ----------

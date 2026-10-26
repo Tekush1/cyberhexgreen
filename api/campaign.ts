@@ -232,7 +232,10 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'Unknown action.' });
   } catch (e) {
     console.error('campaign error', e);
+    // Database and provider error text stays in the server log; staff get a plain message.
+    const msg = e instanceof Error ? e.message : '';
+    if (/not authori[sz]ed|permission denied|42501/i.test(msg)) return res.status(403).json({ error: "You don't have access to campaigns." });
     // 500 (not 502): Cloudflare replaces 502 bodies.
-    return res.status(500).json({ error: e instanceof Error ? e.message : 'Something went wrong.' });
+    return res.status(500).json({ error: /^Could not update the campaign \(\d+\)\.$/.test(msg) ? msg : 'Something went wrong. Please try again in a minute.' });
   }
 }

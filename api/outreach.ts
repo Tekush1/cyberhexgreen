@@ -100,17 +100,27 @@ export default async function handler(req: any, res: any) {
   const bookingLink = /^https:\/\/[^\s]+$/.test(String(b.bookingLink || '')) ? String(b.bookingLink).slice(0, 500) : null;
   const ccIn = [...new Set((Array.isArray(b.cc) ? b.cc : []).map((x: unknown) => String(x).trim().toLowerCase()).filter((x: string) => EMAIL_RE.test(x) && x.length <= 200 && !to.includes(x)))].slice(0, 6) as string[];
   // Attachments: [{ name, type, data (base64) }], at most 5 files / 3 MB in total (Vercel takes ~4.5 MB per request).
-  const BLOCKED = /\.(exe|bat|cmd|com|scr|msi|vbs|js|jar|ps1|apk|sh|dll|reg|lnk|hta)$/i;
+  // Only everyday documents, images and archives (an allow-list: .html, .svg and other active files can run
+  // code when opened, and would go out from our own domain). The type comes from the extension, not the browser.
+  const ALLOWED: Record<string, string> = {
+    pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    odt: 'application/vnd.oasis.opendocument.text', ods: 'application/vnd.oasis.opendocument.spreadsheet', odp: 'application/vnd.oasis.opendocument.presentation',
+    rtf: 'application/rtf', txt: 'text/plain', csv: 'text/csv', md: 'text/markdown',
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', zip: 'application/zip',
+  };
   const files: { filename: string; type: string; content: string; size: number }[] = [];
   let total = 0;
   for (const a of (Array.isArray(b.attachments) ? b.attachments : []).slice(0, 6)) {
     const filename = String(a?.name || '').replace(/[\r\n"\\/]+/g, ' ').trim().slice(0, 120);
     const content = String(a?.data || '').replace(/^data:[^,]*,/, '');
     if (!filename || !/^[A-Za-z0-9+/=]+$/.test(content)) return res.status(400).json({ error: 'One attachment could not be read. Remove it and add it again.' });
-    if (BLOCKED.test(filename)) return res.status(400).json({ error: `${filename}: program files can't be attached.` });
+    const type = ALLOWED[(filename.match(/\.([A-Za-z0-9]+)$/)?.[1] || '').toLowerCase()];
+    if (!type) return res.status(400).json({ error: `${filename}: this kind of file can't be attached. Send PDF, Word, Excel, PowerPoint, text, image or ZIP files.` });
     const size = Math.floor((content.length * 3) / 4);
     total += size;
-    files.push({ filename, type: /^[\w.+-]+\/[\w.+-]+$/.test(String(a?.type || '')) ? String(a.type) : 'application/octet-stream', content, size });
+    files.push({ filename, type, content, size });
   }
   if (files.length > 5) return res.status(400).json({ error: 'At most 5 attachments per email.' });
   if (total > 3 * 1024 * 1024) return res.status(400).json({ error: 'Attachments are too big: 3 MB in total at most.' });

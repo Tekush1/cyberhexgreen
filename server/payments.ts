@@ -10,6 +10,7 @@
 // which only accept PAYMENTS_DB_SECRET.
 
 import crypto from 'node:crypto';
+import net from 'node:net';
 import { esc, layout, textVersion } from '../shared/emailTemplates.js';
 import { formatMinor, type PayCurrency } from '../shared/ctfPricing.js';
 import { PRIMARY_LANE, sendDirect, type ProviderId } from './mailer.js';
@@ -30,21 +31,39 @@ export function paymentsReady(): { ok: boolean; missing: string[] } {
 }
 export const razorpayKeyId = () => env('RAZORPAY_KEY_ID');
 
-/** The visitor's IP: Cloudflare's header first (the site sits behind Cloudflare), then Vercel's. */
+/** Cloudflare's edge ranges (https://www.cloudflare.com/ips/, checked 26 Oct 2026). */
+const CLOUDFLARE = new net.BlockList();
+for (const c of ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18',
+  '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14',
+  '172.64.0.0/13', '131.0.72.0/22']) CLOUDFLARE.addSubnet(c.split('/')[0], Number(c.split('/')[1]), 'ipv4');
+for (const c of ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32'])
+  CLOUDFLARE.addSubnet(c.split('/')[0], Number(c.split('/')[1]), 'ipv6');
+const fromCloudflare = (ip: string) => {
+  try { return net.isIP(ip) !== 0 && CLOUDFLARE.check(ip, net.isIP(ip) === 6 ? 'ipv6' : 'ipv4'); } catch { return false; }
+};
+
+/**
+ * The visitor's IP. Vercel sets x-real-ip to whoever connected to it (visitors can't override it). The site sits
+ * behind Cloudflare, so that address is usually a Cloudflare edge, and the visitor is in cf-connecting-ip.
+ * cf-connecting-ip is only believed when the request really came from Cloudflare: a request sent straight to the
+ * Vercel origin could put any address in it and dodge every per-IP limit.
+ */
 export function clientIp(req: any): string {
   const h = (k: string) => { const v = req.headers?.[k]; return String(Array.isArray(v) ? v[0] : v || '').split(',')[0].trim(); };
-  return (h('cf-connecting-ip') || h('x-real-ip') || h('x-forwarded-for') || 'unknown').slice(0, 64);
+  const edge = h('x-real-ip') || h('x-vercel-forwarded-for');
+  const cf = h('cf-connecting-ip');
+  return ((cf && edge && fromCloudflare(edge) ? cf : edge) || 'unknown').slice(0, 64);
 }
 
 /**
- * Fixed-window rate limit kept in the database (rate_hit). Fails OPEN if the database can't be reached,
- * so a hiccup never blocks real buyers.
+ * Fixed-window rate limit kept in the database (rate_hit). By default it fails OPEN if the database can't be
+ * reached, so a hiccup never blocks real buyers; pass failClosed for limits that guard secrets (promo codes).
  */
-export async function allow(bucket: string, key: string, limit: number, seconds: number): Promise<boolean> {
+export async function allow(bucket: string, key: string, limit: number, seconds: number, failClosed = false): Promise<boolean> {
   try {
     return (await db<boolean>('rate_hit', { p_bucket: bucket, p_key: key, p_limit: limit, p_seconds: seconds })) !== false;
   } catch {
-    return true;
+    return !failClosed;
   }
 }
 
@@ -127,7 +146,7 @@ export async function usdToInr(): Promise<number> {
 export interface OrderRow {
   id: string; ref: string; status: string; kind: string; title: string; items: { label: string; usd: number | null }[];
   total_usd: number; currency: PayCurrency; list_minor: number; amount_minor: number; promo_code: string | null; percent_off: number | null;
-  razorpay_order_id: string; razorpay_payment_id: string | null; payment_method: string | null;
+  promo_reserved: boolean; razorpay_order_id: string; razorpay_payment_id: string | null; payment_method: string | null;
   name: string; email: string; phone: string; organization: string; event_name: string; event_date: string; finale_date: string;
   start_time: string; time_zone: string; event_format: string; location: string; participants: string; theme: string; message: string;
   logo_path: string; hours: number; finale_hours: number; paid_at: string | null; calendar_event_id: string | null; receipt_sent_at: string | null;
@@ -153,6 +172,21 @@ export async function fulfill(rzpOrderId: string, paymentId: string, source: 'br
   if (Number(payment.amount) !== order.amount_minor || payment.currency !== order.currency) {
     await log(order.ref, rzpOrderId, 'payment.amount_mismatch', 'error', { paymentId, paid: payment.amount, currency: payment.currency, expected: order.amount_minor, source });
     throw new PayError(400, 'Payment amount does not match the order.');
+  }
+  // A discount code whose reserved use was given back (an earlier checkout for this order was closed or failed)
+  // must be reserved again before the money is taken. Otherwise one single-use code could pay for many orders:
+  // reserve, close, reserve on a new order, close… then pay every order.
+  if (order.promo_code && !order.promo_reserved) {
+    const again = await db<boolean>('pay_reserve_again', { p_rzp_order: rzpOrderId });
+    if (!again) {
+      if (payment.status === 'authorized') {
+        await log(order.ref, rzpOrderId, 'promo.used_up', 'error', { paymentId, code: order.promo_code, source });
+        await db('pay_update', { p_rzp_order: rzpOrderId, p_patch: { status: 'failed', failure_reason: `Code ${order.promo_code} was already used up, so the payment was not taken.` } });
+        throw new PayError(409, 'This discount code has already been used, so your payment was not taken. Any amount your bank is holding is released automatically. Please contact us at mail@cyberhx.com.');
+      }
+      // Already captured (auto-capture is on): the money is in. Flag it so the team can decide on a refund.
+      await log(order.ref, rzpOrderId, 'promo.overused', 'error', { paymentId, code: order.promo_code, status: payment.status, source });
+    }
   }
   if (payment.status === 'authorized') {
     try {

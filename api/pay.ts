@@ -120,24 +120,32 @@ export default async function handler(req: any, res: any) {
   const limit = async (n: number, seconds: number) => {
     if (!(await allow(`pay.${action}`, ip, n, seconds))) throw new PayError(429, 'Too many attempts. Please wait a few minutes and try again.');
   };
+  /**
+   * Every promo-code check (quote AND create) counts against the same limits: per visitor, and site-wide for
+   * guessers that rotate IP addresses. These fail closed: no database, no code checks.
+   */
+  const codeGuard = async () => {
+    if (!str(body.code, 40)) return;
+    if (!(await allow('pay.code', ip, 15, 600, true)) || !(await allow('pay.code.all', '*', 200, 600, true)))
+      throw new PayError(429, 'Too many attempts. Please wait a few minutes and try again.');
+  };
   try {
     if (action === 'quote') {
       // Prices are public; only guessing promo codes is limited.
-      if (str(body.code, 40)) {
-        await limit(15, 600);
-        // Also a site-wide cap, for guessers that rotate IP addresses.
-        if (!(await allow('pay.code.all', '*', 200, 600))) throw new PayError(429, 'Too many attempts. Please wait a few minutes and try again.');
-      }
+      await codeGuard();
       return res.status(200).json(quoteJson(await quote(req, body)));
     }
 
     if (action === 'create') {
       await limit(10, 600); // before anything reaches Razorpay
+      await codeGuard();
       if (body.acceptTerms !== true) throw new PayError(400, 'Please agree to the Terms of Service to continue.');
       const q = await quote(req, body);
       if (q.priced.quoted) throw new PayError(400, 'Custom challenges are priced by quote, so this order cannot be paid online.');
-      if (q.codeError) throw new PayError(400, q.codeError);
+      // The whole form is checked before the code, so a code can't be tested with an empty form
+      // ("code not valid" vs "enter your name" would tell a guesser which codes exist).
       const f = cleanForm(body.form, q.priced);
+      if (q.codeError) throw new PayError(400, q.codeError);
       const ref = `CHX-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
       const free = q.amountMinor === 0;
 
