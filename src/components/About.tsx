@@ -61,7 +61,7 @@ const Terminal = () => {
               ' | |   | | | |_ ',
               ' |_|   |_| |___|',
               '',
-              'Null0rigin{y8u_d1d_',
+              'CyberHeist{welcome_home_champion}',
             ],
             type: 'success'
           };
