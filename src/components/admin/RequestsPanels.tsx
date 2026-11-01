@@ -115,6 +115,7 @@ const FORM_LABEL: Record<string, string> = {
   registration: 'Hackathon registration',
   mentor: 'Mentor application',
   session: 'Session booking',
+  feedback: 'Blog feedback',
   other: 'Other',
 };
 

@@ -19,6 +19,7 @@ const BlogPage = lazy(retryImport(() => import('./features/blog/BlogListPage')))
 const BlogPostPage = lazy(retryImport(() => import('./features/blog/BlogPostPage')));
 const BlogEditorPage = lazy(retryImport(() => import('./features/blog/EditorPage')));
 const BlogAuthorPage = lazy(retryImport(() => import('./features/blog/AuthorPage')));
+const BlogFeedbackPage = lazy(retryImport(() => import('./features/blog/FeedbackPage')));
 const AdminPage = lazy(retryImport(() => import('./pages/AdminPage').then(module => ({ default: module.default }))));
 const EventDetailPage = lazy(retryImport(() => import('./pages/EventDetailPage').then(module => ({ default: module.default }))));
 const CertificationsPage = lazy(retryImport(() => import('./pages/CertificationsPage').then(module => ({ default: module.CertificationsPage }))));
@@ -75,6 +76,7 @@ function App() {
               <Route path="/blog/write" element={<BlogEditorPage />} />
               <Route path="/blog/edit/:id" element={<BlogEditorPage />} />
               <Route path="/blog/author/:slug" element={<BlogAuthorPage />} />
+              <Route path="/blog/feedback" element={<BlogFeedbackPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/prizes" element={<PrizesPage />} />
               <Route path="/collaborations" element={<CollaborationsPage />} />

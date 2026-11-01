@@ -143,9 +143,14 @@ export default function BlogListPage() {
               CTF write-ups, scam breakdowns and tutorials from the CyberHx community.
             </p>
           </div>
-          <Link to="/blog/write" className="btn btn-lime self-start md:self-auto">
-            <PenLine size={17} /> Write a post
-          </Link>
+          <div className="flex items-center gap-5 self-start md:self-auto">
+            <Link to="/blog/feedback" className="text-sm font-semibold text-white/60 transition hover:text-white">
+              Share feedback
+            </Link>
+            <Link to="/blog/write" className="btn btn-lime">
+              <PenLine size={17} /> Write a post
+            </Link>
+          </div>
         </header>
 
         {/* Search + categories */}
