@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Seo } from '../features/seo/Seo';
 import { MeetingsPanel, type MeetingKind, type MeetingPrefill } from '../components/admin/MeetingsPanel';
 import { ApplicationsPanel, CtfRequestsPanel, InboxPanel } from '../components/admin/RequestsPanels';
+import { FeedbackPanel } from '../components/admin/FeedbackPanel';
 import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
 import { EmailsPanel } from '../components/admin/EmailsPanel';
 import { CampaignsPanel } from '../components/admin/CampaignsPanel';
@@ -471,6 +472,7 @@ const AdminPage: React.FC = () => {
           className={`${allowed.length < 2 ? 'hidden' : 'flex'} ios-noscroll sticky top-[70px] sm:top-[86px] z-30 mb-6 w-fit max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-white/[0.08] bg-[#1c1c1e]/70 p-[3px] backdrop-blur-2xl`}>
           {([
             { id: 'inbox', label: 'Inbox', badge: newCounts.inbox },
+            { id: 'feedback', label: 'Feedback', badge: 0 },
             { id: 'submissions', label: 'Blog submissions', badge: stats.pending },
             { id: 'posts', label: 'Published Posts', badge: 0 },
             { id: 'meetings', label: 'Meetings', badge: 0 },
@@ -536,6 +538,7 @@ const AdminPage: React.FC = () => {
 
         {go(tab) === 'meetings' && <MeetingsPanel prefill={prefill} />}
         {go(tab) === 'inbox' && <InboxPanel onSchedule={goSchedule} onChanged={loadCounts} />}
+        {go(tab) === 'feedback' && <FeedbackPanel />}
         {go(tab) === 'applications' && <ApplicationsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {go(tab) === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {go(tab) === 'availability' && (me.role === 'outreach' ? <AvailabilityPanel row={2} /> : <AvailabilityPanel canSwitch={me.role === 'owner'} />)}
