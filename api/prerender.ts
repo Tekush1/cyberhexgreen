@@ -109,9 +109,9 @@ export default async function handler(req: any, res: any) {
 
   // /blog/feedback is a page, not a post: give link previews its own title instead of "Post not found".
   if (slug === 'feedback') {
-    const t = 'Feedback — CyberHx Blog';
-    const d = 'Tell the CyberHx team what you think of the blog: a post you liked, something that is broken, or an idea for what we should write next.';
-    res.status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${t}</title><meta name="description" content="${d}"><link rel="canonical" href="${SITE}/blog/feedback"><meta property="og:type" content="website"><meta property="og:site_name" content="CyberHx"><meta property="og:title" content="${t}"><meta property="og:description" content="${d}"><meta property="og:url" content="${SITE}/blog/feedback"><meta property="og:image" content="${SITE}/og-image.png"><meta name="twitter:card" content="summary_large_image"></head><body><h1>Tell us what you think.</h1><p>${d}</p><p><a href="${SITE}/blog">Visit the CyberHx blog</a></p></body></html>`);
+    const t = 'Pinaka CTF 2026 Feedback — CyberHx';
+    const d = '24 hours of Pinaka CTF 2026. Tell us which challenge you loved, how the platform felt, and whether you want more events on CyberHx.';
+    res.status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${t}</title><meta name="description" content="${d}"><link rel="canonical" href="${SITE}/blog/feedback"><meta property="og:type" content="website"><meta property="og:site_name" content="CyberHx"><meta property="og:title" content="${t}"><meta property="og:description" content="${d}"><meta property="og:url" content="${SITE}/blog/feedback"><meta property="og:image" content="${SITE}/og-image.png"><meta name="twitter:card" content="summary_large_image"></head><body><h1>24 hours. Your verdict.</h1><p>${d}</p><p><a href="${SITE}/blog">Visit the CyberHx blog</a></p></body></html>`);
     return;
   }
 

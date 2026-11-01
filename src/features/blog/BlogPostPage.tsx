@@ -400,13 +400,6 @@ export default function BlogPostPage() {
                 </div>
               </div>
             </section>
-
-            <p className="mt-6 text-sm text-white/45">
-              Spotted a mistake, or have a thought on this post?{' '}
-              <Link to={`/blog/feedback?post=${encodeURIComponent(post.slug)}`} className="font-semibold text-white/75 underline-offset-4 hover:text-white hover:underline">
-                Send feedback
-              </Link>
-            </p>
           </div>
           <div className="hidden xl:block" />
         </div>
