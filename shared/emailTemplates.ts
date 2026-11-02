@@ -406,6 +406,8 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
       const rank = Number(v.rank) || 0;
       const top10 = (v.tier || (rank && rank <= 10 ? 10 : 50)) <= 10;
       const tierName = top10 ? 'Top 10' : 'Top 50';
+      // Each event wears its own colour: Null Origin is red; otherwise gold for Top 10, lime for Top 50.
+      const accent = /null\s*origin/i.test(event) ? '#ff4545' : top10 ? '#f5c542' : C.lime;
       const amount = pct >= 100 ? 'Free' : `${pct}% off`;
       const until = v.expires && /^\d{4}-\d{2}-\d{2}$/.test(v.expires)
         ? new Date(`${v.expires}T12:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -414,7 +416,7 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
       const gift = pct >= 100 ? `a free ${product}` : `${pct}% off ${product}`;
       subject = top10 && rank ? `Rank #${rank} at ${event}: ${gift} for ${team}` : `${tierName} at ${event}: ${gift} for ${team}`;
       o = {
-        accent: top10 ? '#f5c542' : C.lime,
+        accent,
         preheader: `${team} finished ${rank ? `#${rank}` : tierName} at ${event}. Your voucher is inside.`,
         eyebrow: `${tierName} · ${event}`,
         heading: top10 ? (rank ? `Rank #${rank}. Exceptional work, ${team}.` : `Top 10. Exceptional work, ${team}.`) : `Top 50. Well played, ${team}.`,
@@ -425,7 +427,7 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
             : `Out of every team that played ${event}, ${team} finished${rank ? ` at rank #${rank},` : ''} inside the Top 50. That takes skill, patience and a lot of late hours, and we noticed.`,
           `So here is something to take the next step with: ${pct >= 100 ? `the ${product}, on us` : `${pct}% off the ${product}`}.`,
         ],
-        voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, product, code: (v.code || '').trim() || '—', expires: until, accent: top10 ? '#f5c542' : C.lime },
+        voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, product, code: (v.code || '').trim() || '—', expires: until, accent },
         cta: { label: 'Redeem your voucher', url: redeem },
         note: v.note || 'Enter the code at checkout. It belongs to your team, so keep it private.',
       };
