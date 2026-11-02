@@ -47,8 +47,6 @@ export interface TemplateInfo {
   isCustom?: boolean;
   /** Sent automatically by Reschedule / Cancel; not offered in the composer. */
   auto?: boolean;
-  /** Only offered in Admin -> Emails (New email), not on meeting cards. */
-  standaloneOnly?: boolean;
 }
 
 export const TEMPLATES: TemplateInfo[] = [
@@ -61,7 +59,7 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: 'custom', label: 'Custom message', hint: 'Write your own', isCustom: true },
   { id: 'moved', label: 'Meeting moved', hint: 'Sent when you move a meeting', auto: true },
   { id: 'cancelled', label: 'Meeting cancelled', hint: 'Sent when you cancel a meeting', auto: true },
-  { id: 'team_voucher', label: 'Voucher', hint: 'Reward a team with a code', standaloneOnly: true },
+  { id: 'team_voucher', label: 'Team voucher', hint: 'Sent from Admin -> Vouchers', auto: true },
 ];
 
 export const MAX_FIELD = { name: 80, title: 120, note: 1500, subject: 150, body: 5000, link: 500, team: 80, code: 60, product: 80, event: 80 };

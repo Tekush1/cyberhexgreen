@@ -4,6 +4,7 @@ import { Seo } from '../features/seo/Seo';
 import { MeetingsPanel, type MeetingKind, type MeetingPrefill } from '../components/admin/MeetingsPanel';
 import { ApplicationsPanel, CtfRequestsPanel, InboxPanel } from '../components/admin/RequestsPanels';
 import { FeedbackPanel } from '../components/admin/FeedbackPanel';
+import { VouchersPanel } from '../components/admin/VouchersPanel';
 import { AvailabilityPanel } from '../components/admin/AvailabilityPanel';
 import { EmailsPanel } from '../components/admin/EmailsPanel';
 import { CampaignsPanel } from '../components/admin/CampaignsPanel';
@@ -481,6 +482,7 @@ const AdminPage: React.FC = () => {
             { id: 'payments', label: 'Payments', badge: 0 },
             { id: 'availability', label: me?.role === 'outreach' ? 'Call hours' : 'Availability', badge: 0 },
             { id: 'emails', label: 'Emails', badge: 0 },
+            { id: 'vouchers', label: 'Vouchers', badge: 0 },
             { id: 'campaigns', label: 'Campaigns', badge: 0 },
             { id: 'subscribers', label: 'Subscribers', badge: 0 },
             { id: 'outreach', label: 'Outreach', badge: 0 },
@@ -543,6 +545,7 @@ const AdminPage: React.FC = () => {
         {go(tab) === 'ctf' && <CtfRequestsPanel onSchedule={goSchedule} onChanged={loadCounts} />}
         {go(tab) === 'availability' && (me.role === 'outreach' ? <AvailabilityPanel row={2} /> : <AvailabilityPanel canSwitch={me.role === 'owner'} />)}
         {go(tab) === 'emails' && <EmailsPanel />}
+        {go(tab) === 'vouchers' && <VouchersPanel />}
         {go(tab) === 'campaigns' && <CampaignsPanel />}
         {go(tab) === 'subscribers' && <SubscribersPanel />}
 
