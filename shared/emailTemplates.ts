@@ -1,7 +1,7 @@
 // CyberHx email templates. Used by api/email.ts (to send) and the admin panel (to preview).
 // Plain TypeScript with no imports, so it runs the same in the browser and in a Vercel function.
 
-export type TemplateId = 'booking' | 'confirmation' | 'reminder' | 'reschedule' | 'shortlisted' | 'followup' | 'custom' | 'moved' | 'cancelled';
+export type TemplateId = 'booking' | 'confirmation' | 'reminder' | 'reschedule' | 'shortlisted' | 'followup' | 'custom' | 'moved' | 'cancelled' | 'team_voucher';
 
 export interface EmailVars {
   /** Recipient's name; empty for group emails ("Hi there"). */
@@ -20,6 +20,21 @@ export interface EmailVars {
   /** Custom template only. */
   subject?: string;
   body?: string;
+  /** Team voucher only (Admin -> Emails -> Team vouchers). */
+  team?: string;
+  rank?: number;
+  code?: string;
+  /** Percent off, 1-100. */
+  discount?: number;
+  /** What the voucher is for, e.g. "CAPT certification". */
+  product?: string;
+  /** Event the team placed in, e.g. "Pinaka CTF 2026". */
+  event?: string;
+  /** Last day the code works (YYYY-MM-DD). */
+  expires?: string;
+  redeemUrl?: string;
+  /** Rank cut-off of the team's tier: 10 for Top 10, 50 for Top 50. */
+  tier?: number;
 }
 
 export interface TemplateInfo {
@@ -44,9 +59,10 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: 'custom', label: 'Custom message', hint: 'Write your own', isCustom: true },
   { id: 'moved', label: 'Meeting moved', hint: 'Sent when you move a meeting', auto: true },
   { id: 'cancelled', label: 'Meeting cancelled', hint: 'Sent when you cancel a meeting', auto: true },
+  { id: 'team_voucher', label: 'Team voucher', hint: 'Sent from Team vouchers', auto: true },
 ];
 
-export const MAX_FIELD = { name: 80, title: 120, note: 1500, subject: 150, body: 5000, link: 500 };
+export const MAX_FIELD = { name: 80, title: 120, note: 1500, subject: 150, body: 5000, link: 500, team: 80, code: 60, product: 80, event: 80 };
 
 /** Brands an email can be sent as. */
 export const BRANDS = {
@@ -110,6 +126,27 @@ export interface Layout {
   signer?: string;
   /** Simple, letter-style email (no card, button or images): Gmail puts these in Primary far more often. */
   plain?: boolean;
+  /** A voucher ticket (discount, product, code) shown after the paragraphs. */
+  voucher?: { label: string; amount: string; product: string; code: string; expires?: string; accent?: string };
+  /** Accent for the top stripe and eyebrow (default lime). */
+  accent?: string;
+}
+
+/** The voucher ticket: big discount, product, and the code in a dashed coupon. Email-safe tables only. */
+function voucherBlock(v: NonNullable<Layout['voucher']>) {
+  const a = v.accent || C.lime;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 26px;border:2px dashed ${a};border-radius:16px;border-collapse:separate;background:#0d1524;">
+  <tr><td style="padding:24px 22px 4px;text-align:center;">
+    <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:${a};">${esc(v.label)}</p>
+    <p style="margin:12px 0 0;font-size:46px;line-height:1;font-weight:800;letter-spacing:-.03em;color:#ffffff;">${esc(v.amount)}</p>
+    <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:${C.text};">on ${esc(v.product)}</p>
+  </td></tr>
+  <tr><td style="padding:18px 22px 24px;text-align:center;">
+    <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:${C.muted};">Your voucher code</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;"><tr><td style="padding:13px 18px;border-radius:10px;background:#05070c;border:1px solid ${C.line};font-family:'SFMono-Regular',Menlo,Consolas,'Courier New',monospace;font-size:19px;font-weight:700;letter-spacing:.06em;color:${a};word-break:break-all;">${esc(v.code)}</td></tr></table>
+    ${v.expires ? `<p style="margin:12px 0 0;font-size:12px;color:${C.muted};">Valid until ${esc(v.expires)}</p>` : ''}
+  </td></tr>
+</table>`;
 }
 
 /** Letter-style HTML: looks like a normal email someone typed, which is what inbox filters expect from a person. */
@@ -137,6 +174,7 @@ ${unsub}
 export function layout(o: Layout) {
   if (o.plain) return plainLayout(o);
   const B = BRANDS[o.brand || 'cyberhx'];
+  const accent = o.accent || C.lime;
   const p = o.paragraphs
     .filter(Boolean)
     .map((t) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${C.text};">${esc(t).replace(/\n/g, '<br>')}</p>`)
@@ -172,13 +210,13 @@ export function layout(o: Layout) {
       <span style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#ffffff;">${esc(B.logo[0])}<span style="color:${C.lime};">${esc(B.logo[1])}</span></span>
     </td></tr>
     <tr><td style="background:${C.card};border:1px solid ${C.line};border-radius:16px;overflow:hidden;">
-      <div style="height:4px;background:${C.lime};font-size:0;line-height:0;">&nbsp;</div>${
+      <div style="height:4px;background:${accent};font-size:0;line-height:0;">&nbsp;</div>${
         safeUrl(o.image) ? `<img src="${esc(safeUrl(o.image))}" alt="" width="560" style="display:block;width:100%;height:auto;border:0;">` : ''
       }
       <div style="padding:32px 32px 12px;">
-        <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:${C.lime};">${esc(o.eyebrow)}</p>
+        <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:${accent};">${esc(o.eyebrow)}</p>
         <h1 style="margin:0 0 20px;font-size:26px;line-height:1.2;font-weight:800;color:#ffffff;">${esc(o.heading)}</h1>
-        ${p}${details}${cta}${note}
+        ${p}${o.voucher ? voucherBlock(o.voucher) : ''}${details}${cta}${note}
         <p style="margin:8px 0 20px;font-size:15px;line-height:1.6;color:${C.text};">Regards,<br>${o.signer ? `<strong>${esc(o.signer)}</strong><br>Team ${esc(B.name)}` : `<strong>Team ${esc(B.name)}</strong>`}</p>
       </div>
     </td></tr>
@@ -202,6 +240,7 @@ export function textVersion(o: Layout) {
     o.heading,
     '',
     ...o.paragraphs.filter(Boolean),
+    ...(o.voucher ? ['', `${o.voucher.label}: ${o.voucher.amount} on ${o.voucher.product}`, `Your voucher code: ${o.voucher.code}`, o.voucher.expires ? `Valid until ${o.voucher.expires}` : '', ''] : []),
     ...(o.details || []).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`),
     o.cta && safeUrl(o.cta.url) ? `\n${o.cta.label}: ${safeUrl(o.cta.url)}` : '',
     o.note?.trim() ? `\n${o.note.trim()}` : '',
@@ -359,6 +398,40 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
         note: v.note,
       };
       break;
+    case 'team_voucher': {
+      const team = (v.team || '').trim() || 'your team';
+      const event = (v.event || '').trim() || 'our CTF';
+      const product = (v.product || '').trim() || 'CAPT certification';
+      const pct = Math.min(100, Math.max(1, Math.round(Number(v.discount) || 80)));
+      const rank = Number(v.rank) || 0;
+      const top10 = (v.tier || (rank && rank <= 10 ? 10 : 50)) <= 10;
+      const tierName = top10 ? 'Top 10' : 'Top 50';
+      const amount = pct >= 100 ? 'Free' : `${pct}% off`;
+      const until = v.expires && /^\d{4}-\d{2}-\d{2}$/.test(v.expires)
+        ? new Date(`${v.expires}T12:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '';
+      const redeem = safeUrl(v.redeemUrl) || 'https://pentestlab.cyberhx.com';
+      subject = top10
+        ? `Rank #${rank || '10'} at ${event}: ${pct >= 100 ? 'a free' : `${pct}% off`} ${product} for ${team}`
+        : `Top 50 at ${event}: ${pct}% off ${product} for ${team}`;
+      o = {
+        accent: top10 ? '#f5c542' : C.lime,
+        preheader: `${team} finished ${rank ? `#${rank}` : tierName} at ${event}. Your voucher is inside.`,
+        eyebrow: `${tierName} · ${event}`,
+        heading: top10 ? `Rank #${rank || '—'}. Exceptional work, ${team}.` : `Top 50. Well played, ${team}.`,
+        paragraphs: [
+          `Hi ${team},`,
+          top10
+            ? `Out of every team that played ${event}, ${team} finished at rank #${rank}. That is a place earned at the keyboard, one flag at a time, and it deserves more than a line on a scoreboard.`
+            : `Out of every team that played ${event}, ${team} finished${rank ? ` at rank #${rank},` : ''} inside the Top 50. That takes skill, patience and a lot of late hours, and we noticed.`,
+          `So here is something to take the next step with: ${pct >= 100 ? `the ${product}, on us` : `${pct}% off the ${product}`}.`,
+        ],
+        voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, product, code: (v.code || '').trim() || '—', expires: until, accent: top10 ? '#f5c542' : C.lime },
+        cta: { label: 'Redeem your voucher', url: redeem },
+        note: v.note || 'Enter the code at checkout. It belongs to your team, so keep it private.',
+      };
+      break;
+    }
     case 'custom':
     default: {
       subject = (v.subject || '').trim() || 'A message from CyberHx';

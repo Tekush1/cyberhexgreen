@@ -1,7 +1,8 @@
 // Vercel serverless function: send a CyberHx email through Resend (admin only).
 //
 //   POST /api/email   (header `Authorization: Bearer <Supabase admin session token>`)
-//        { template, to: string[] | recipients: [{ email, name }], vars: { name, title, start, end, meetLink, bookingLink, note, subject, body } }
+//        { template, to: string[] | recipients: [{ email, name, vars? }], vars: { name, title, start, end, meetLink, bookingLink, note, subject, body } }
+//        team_voucher: shared vars { event, product, expires, redeemUrl, note }; each recipient's vars { team, rank, tier, code, discount }
 //        -> { sent: number }
 //   GET  /api/email?admin=log[&after=<id>]  -> { items: [{ id, to, subject, createdAt, lastEvent }], hasMore }
 //        (needs a Resend key with Full access; opens/clicks need tracking turned on for the domain in Resend)
@@ -20,6 +21,20 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 100; // Resend batch limit
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
+
+/** Per-team fields of a voucher email (each recipient carries its own team, rank and code). */
+function voucherVars(raw: unknown): Partial<EmailVars> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const v = raw as Record<string, unknown>;
+  const num = (x: unknown, lo: number, hi: number) => { const n = Math.round(Number(x)); return Number.isFinite(n) && n >= lo && n <= hi ? n : undefined; };
+  return {
+    team: str(v.team, MAX_FIELD.team).trim(),
+    code: str(v.code, MAX_FIELD.code).replace(/[^\w\-]/g, ''),
+    rank: num(v.rank, 1, 10000),
+    tier: num(v.tier, 1, 10000),
+    discount: num(v.discount, 1, 100),
+  };
+}
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
@@ -66,13 +81,17 @@ export default async function handler(req: any, res: any) {
 
   // Either `recipients: [{ email, name }]` (each email gets its own name) or `to: string[]`.
   const seen = new Set<string>();
-  const list: { email: string; name: string }[] = [];
+  const list: { email: string; name: string; own?: Partial<EmailVars> }[] = [];
   const raw: unknown[] = Array.isArray(body.recipients) ? body.recipients : Array.isArray(body.to) ? body.to : [];
   for (const x of raw) {
     const email = String(typeof x === 'object' && x ? (x as any).email : x).trim().toLowerCase();
     if (!EMAIL_RE.test(email) || email.length > 200 || seen.has(email)) continue;
     seen.add(email);
-    list.push({ email, name: typeof x === 'object' && x ? str((x as any).name, MAX_FIELD.name).trim() : '' });
+    list.push({
+      email,
+      name: typeof x === 'object' && x ? str((x as any).name, MAX_FIELD.name).trim() : '',
+      own: template === 'team_voucher' && typeof x === 'object' && x ? voucherVars((x as any).vars) : undefined,
+    });
   }
   if (!list.length) return res.status(400).json({ error: 'Add at least one valid email address.' });
   if (list.length > MAX_RECIPIENTS) return res.status(400).json({ error: `At most ${MAX_RECIPIENTS} recipients at a time.` });
@@ -89,7 +108,15 @@ export default async function handler(req: any, res: any) {
     note: str(v.note, MAX_FIELD.note),
     subject: str(v.subject, MAX_FIELD.subject),
     body: str(v.body, MAX_FIELD.body),
+    // Team voucher: shared settings (each team's own team / rank / code come per recipient)
+    product: str(v.product, MAX_FIELD.product),
+    event: str(v.event, MAX_FIELD.event),
+    expires: /^\d{4}-\d{2}-\d{2}$/.test(String(v.expires || '')) ? String(v.expires) : '',
+    redeemUrl: str(v.redeemUrl, MAX_FIELD.link),
   };
+  if (template === 'team_voucher' && list.some((r) => !r.own?.team || !r.own?.code || !r.own?.discount)) {
+    return res.status(400).json({ error: 'Every team needs a name, a voucher code and a discount.' });
+  }
   if (template === 'custom' && (!vars.subject?.trim() || !vars.body?.trim())) {
     return res.status(400).json({ error: 'Custom emails need a subject and a message.' });
   }
@@ -99,8 +126,8 @@ export default async function handler(req: any, res: any) {
   const shared = perName ? null : renderEmail(template, vars);
 
   // One email per person, so nobody sees the other recipients; each one greets that person by name.
-  const batch = list.map(({ email, name }) => {
-    const mail = shared || renderEmail(template, { ...vars, name });
+  const batch = list.map(({ email, name, own }) => {
+    const mail = shared || renderEmail(template, { ...vars, name, ...(own || {}) });
     return {
       from,
       to: [email],

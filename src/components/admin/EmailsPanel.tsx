@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, AlertTriangle, Check, Search, Mail, Info, Loader2 } from 'lucide-react';
 import { TOKEN_KEY, fmtDateTime, timeAgo } from './adminApi';
 import { EmailComposer } from './EmailComposer';
+import { TeamVouchers } from './TeamVouchers';
 
 interface SentEmail {
   id: string;
@@ -140,6 +141,9 @@ export const EmailsPanel: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Leaderboard vouchers */}
+      <TeamVouchers />
 
       {/* Sent log */}
       <div>
