@@ -434,7 +434,7 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
             `As a thank-you from all of us at CyberHx, your team gets ${pct >= 100 ? `the ${product} at no cost` : `${pct}% off the ${product}`}.`,
           ],
           details: [['Your team code', code], ['Valid until', until]],
-          note: `You can use it at ${redeem}. The code belongs to your team, so please keep it private.${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
+          note: `You can use it at ${redeem}. ${top10 ? 'The code belongs to your team, so please keep it private.' : 'Up to 4 members of your team can redeem this code, so share it only with your team.'}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
         };
         break;
       }
@@ -453,7 +453,7 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
         ],
         voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, product, code: (v.code || '').trim() || '—', expires: until, accent },
         cta: { label: 'Redeem your voucher', url: redeem },
-        note: v.note || 'Enter the code at checkout. It belongs to your team, so keep it private.',
+        note: v.note || (top10 ? 'Enter the code at checkout. It belongs to your team, so keep it private.' : 'Enter the code at checkout. Up to 4 members of your team can redeem it, so share it only with your team.'),
       };
       break;
     }
