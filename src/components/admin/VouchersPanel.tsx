@@ -19,11 +19,11 @@ const ONE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORE = 'cx_vouchers_v2';
 const GOLD = '#f5c542';
 
-interface Settings { event: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number; plain: boolean; signer: string }
+interface Settings { event: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number; plain: boolean; signer: string; via: 'mail' | 'resend' }
 interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; problems: string[] }
 type Mode = 'board' | 'one';
 
-const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '' };
+const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '', via: 'mail' };
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/70';
 const label = 'block text-[12px] font-medium text-white/55 mb-1.5';
@@ -83,7 +83,7 @@ async function post(body: object) {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) { sessionStorage.removeItem(TOKEN_KEY); window.location.reload(); throw new Error('Session expired.'); }
   if (!res.ok) throw new Error(data.error || `Request failed (HTTP ${res.status}).`);
-  return data as { sent: number };
+  return data as { sent: number; failed?: string[] };
 }
 
 /** The email exactly as it will arrive, at full height (no scrollbar inside the frame). */
@@ -145,6 +145,10 @@ export const VouchersPanel: React.FC = () => {
   const keyOf = (r: { team: string; code: string }) => `${set.event}|${r.team.toLowerCase()}|${r.code}`;
   const tierOf = (rank: number) => (rank > 0 && rank <= 10 ? 10 : 50);
   const shared = { event: set.event, product: set.product.trim() || 'CAPT certification', expires: set.expires, redeemUrl: set.redeemUrl.trim(), plain: set.plain, signer: set.signer.trim() };
+  /** Every send goes out from the address picked under "Send from". */
+  const send = (b: object) => post({ ...b, via: set.via });
+  const perRequest = set.via === 'mail' ? 20 : 100;
+  const failedNote = (f?: string[]) => (f?.length ? ` Not delivered to: ${f.join(', ')}.` : '');
   const teamVars = (team: string, rank: number, tier: 10 | 50, code: string) => ({ team, rank: rank || undefined, tier, code, discount: tier === 10 ? set.top10 : set.top50 });
 
   // ----- Whole leaderboard -----
@@ -176,8 +180,9 @@ export const VouchersPanel: React.FC = () => {
     if (!ONE_EMAIL.test(testTo.trim())) { setMsg({ ok: false, text: 'Type the email address to send the test to.' }); return; }
     setBusy('test'); setMsg(null);
     try {
-      await post({ template: 'team_voucher', recipients: [{ email: testTo.trim(), name: pv.team, vars: teamVars(pv.team, pv.rank, pv.tier, pv.code) }], vars: shared });
-      setMsg({ ok: true, text: `Test sent to ${testTo.trim()}.` });
+      const t = await send({ template: 'team_voucher', recipients: [{ email: testTo.trim(), name: pv.team, vars: teamVars(pv.team, pv.rank, pv.tier, pv.code) }], vars: shared });
+      if (t.failed?.length) throw new Error(`Could not send the test to ${testTo.trim()}.`);
+      setMsg({ ok: true, text: `Test sent to ${testTo.trim()} from ${set.via === 'mail' ? 'mail@cyberhx.com' : 'team@mail.cyberhx.com'}.` });
     } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not send the test.' }); }
     finally { setBusy(''); }
   };
@@ -188,9 +193,9 @@ export const VouchersPanel: React.FC = () => {
     setBusy('one'); setMsg(null);
     try {
       const v = teamVars(one.team.trim(), oneRank, one.tier, oneCode);
-      const r = await post({ template: 'team_voucher', recipients: oneEmails.map((email) => ({ email, name: v.team, vars: v })), vars: shared });
+      const r = await send({ template: 'team_voucher', recipients: oneEmails.map((email) => ({ email, name: v.team, vars: v })), vars: shared });
       setSent((s) => ({ ...s, [keyOf({ team: v.team, code: oneCode })]: new Date().toISOString() }));
-      setMsg({ ok: true, text: `Voucher sent to ${r.sent} member${r.sent === 1 ? '' : 's'} of ${v.team}.` });
+      setMsg({ ok: !r.failed?.length, text: `Voucher sent to ${r.sent} member${r.sent === 1 ? '' : 's'} of ${v.team}.${failedNote(r.failed)}` });
       setOne({ team: '', rank: '', tier: one.tier, code: '', emails: '' });
     } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not send.' }); }
     finally { setBusy(''); }
@@ -204,10 +209,10 @@ export const VouchersPanel: React.FC = () => {
     setBusy('all'); setMsg(null);
     setStatus((s) => ({ ...s, [k]: 'sending' }));
     try {
-      await post({ template: 'team_voucher', recipients: r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierOf(r.rank) as 10 | 50, r.code) })), vars: shared });
+      const d = await send({ template: 'team_voucher', recipients: r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierOf(r.rank) as 10 | 50, r.code) })), vars: shared });
       setSent((s) => ({ ...s, [k]: new Date().toISOString() }));
       setStatus((s) => ({ ...s, [k]: 'sent' }));
-      setMsg({ ok: true, text: `Sent ${r.team}'s voucher again.` });
+      setMsg({ ok: !d.failed?.length, text: `Sent ${r.team}'s voucher again.${failedNote(d.failed)}` });
     } catch (e) {
       setStatus((s) => ({ ...s, [k]: `failed: ${e instanceof Error ? e.message : 'failed'}` }));
       setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not send.' });
@@ -221,7 +226,7 @@ export const VouchersPanel: React.FC = () => {
     const chunks: TeamRow[][] = [];
     let cur: TeamRow[] = []; let n = 0;
     for (const r of pending) {
-      if (n + r.emails.length > 100 && cur.length) { chunks.push(cur); cur = []; n = 0; }
+      if (n + r.emails.length > perRequest && cur.length) { chunks.push(cur); cur = []; n = 0; }
       cur.push(r); n += r.emails.length;
     }
     if (cur.length) chunks.push(cur);
@@ -229,11 +234,17 @@ export const VouchersPanel: React.FC = () => {
     for (const c of chunks) {
       c.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: 'sending' })));
       try {
-        await post({ template: 'team_voucher', recipients: c.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierOf(r.rank) as 10 | 50, r.code) }))), vars: shared });
+        const d = await send({ template: 'team_voucher', recipients: c.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierOf(r.rank) as 10 | 50, r.code) }))), vars: shared });
         const stamp = new Date().toISOString();
-        setSent((s) => ({ ...s, ...Object.fromEntries(c.map((r) => [keyOf(r), stamp])) }));
-        c.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: 'sent' })));
-        ok += c.length;
+        // A team counts as sent only when every one of its emails went out.
+        const bad = new Set(d.failed || []);
+        const done = c.filter((r) => !r.emails.some((e) => bad.has(e)));
+        const missed = c.filter((r) => r.emails.some((e) => bad.has(e)));
+        setSent((s) => ({ ...s, ...Object.fromEntries(done.map((r) => [keyOf(r), stamp])) }));
+        done.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: 'sent' })));
+        missed.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: `failed: not delivered to ${r.emails.filter((e) => bad.has(e)).join(', ')}` })));
+        ok += done.length;
+        fail += missed.length;
       } catch (e) {
         const m = e instanceof Error ? e.message : 'failed';
         c.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: `failed: ${m}` })));
@@ -303,6 +314,26 @@ export const VouchersPanel: React.FC = () => {
             <input id="v-signer" className={input} value={set.signer} maxLength={MAX_FIELD.name} onChange={(e) => setSet({ ...set, signer: e.target.value })} placeholder="Your name" />
             <p className="mt-1.5 text-[11.5px] text-white/35">A real name above "Team CyberHx" also helps it reach Primary.</p>
           </div>
+        </div>
+
+        <div className="mt-4">
+          <p className={label}>Send from</p>
+          <div role="radiogroup" aria-label="Send from" className="grid gap-2 sm:grid-cols-2">
+            {([
+              { v: 'mail', title: 'mail@cyberhx.com', sub: 'Main domain, like Outreach (Mailtrap). About 150 a day, shared with Outreach.' },
+              { v: 'resend', title: 'team@mail.cyberhx.com', sub: 'Resend, like meeting emails. 100 a day on the free plan.' },
+            ] as const).map((o) => {
+              const on = set.via === o.v;
+              return (
+                <button key={o.v} type="button" role="radio" aria-checked={on} onClick={() => setSet({ ...set, via: o.v })}
+                  className={`rounded-2xl border px-4 py-3 text-left transition ${on ? 'border-[#0A84FF] bg-[#0A84FF]/10' : 'border-white/10 hover:border-white/25'}`}>
+                  <span className="flex items-center gap-2 font-mono text-[13px] font-semibold text-white">{o.title}{o.v === 'mail' && <span className="rounded-full bg-[#30d158]/15 px-2 py-0.5 font-sans text-[10.5px] font-semibold text-[#30d158]">Recommended</span>}</span>
+                  <span className="mt-0.5 block text-[12px] text-white/45">{o.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[11.5px] text-white/35">Replies always go to mail@cyberhx.com. {set.signer.trim() ? `Shows as "${set.signer.trim()} from CyberHx".` : 'Fill "Signed by" to show a person\'s name as the sender.'}</p>
         </div>
       </div>
 
@@ -458,7 +489,7 @@ export const VouchersPanel: React.FC = () => {
               {msg.ok ? <Check size={15} className="mt-0.5 shrink-0" /> : <AlertTriangle size={15} className="mt-0.5 shrink-0" />} {msg.text}
             </p>
           )}
-          <p className="text-[11.5px] text-white/30">Emails go out through Resend. On the free plan it sends 100 a day; if a send stops there, press Send again tomorrow and only the remaining teams get it.</p>
+          <p className="text-[11.5px] text-white/30">{set.via === 'mail' ? 'Sending from mail@cyberhx.com: about 150 emails a day, shared with Outreach.' : 'Sending through Resend: 100 emails a day on the free plan.'} If a send stops at the limit, press Send again the next day; teams already sent are skipped.</p>
         </div>
 
         <MailPreview html={preview.html} subject={preview.subject} who={who} />

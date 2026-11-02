@@ -16,9 +16,11 @@
 import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates.js';
 import { countUsage, DEFAULT_REPLY_TO } from '../server/mailer.js';
 import { canAny } from '../server/staff.js';
+import crypto from 'node:crypto';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 100; // Resend batch limit
+const MAILTRAP_MAX = 20; // one Mailtrap call per email, 3 at a time: keep each request well inside the function time limit
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
 
@@ -140,6 +142,64 @@ export default async function handler(req: any, res: any) {
     };
   });
 
+  const auth = String(req.headers?.authorization || '');
+  // Remember who got which email, so Admin -> Meetings can show it on each card. Never blocks the send.
+  const logSent = async (rows: { to: string; subject: string; text: string; id: string | null }[], provider: string) => {
+    try {
+      const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      if (url && anon && rows.length) {
+        await fetch(`${url}/rest/v1/mail_log`, {
+          method: 'POST',
+          headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify(rows.map((b) => ({
+            email: b.to, template, subject: String(b.subject).slice(0, 300), body: String(b.text || '').slice(0, 8000), provider,
+            message_id: b.id ? String(b.id).slice(0, 200) : null,
+          }))),
+        });
+      }
+    } catch (e) { console.error('mail_log insert failed', e); }
+  };
+
+  // Vouchers can go from mail@cyberhx.com (the main domain, through Mailtrap, the same setup Outreach uses)
+  // instead of Resend's team@mail.cyberhx.com. Mail from the main domain, signed by a person, reads as a personal email.
+  if (template === 'team_voucher' && body.via === 'mail') {
+    const mtKey = process.env.MAILTRAP_API_KEY;
+    if (!mtKey) return res.status(500).json({ error: 'Sending from mail@cyberhx.com is not set up: MAILTRAP_API_KEY is missing in Vercel.' });
+    if (list.length > MAILTRAP_MAX) return res.status(400).json({ error: `At most ${MAILTRAP_MAX} emails at a time from mail@cyberhx.com.` });
+    const MAIN = 'mail@cyberhx.com';
+    const fromAddr = { email: MAIN, name: vars.signer ? `${vars.signer} from CyberHx` : 'CyberHx' };
+    const results: { to: string; subject: string; text: string; id: string | null; error?: string }[] = [];
+    const sendOne = async (b: (typeof batch)[number]) => {
+      try {
+        const r = await fetch('https://send.api.mailtrap.io/api/send', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${mtKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromAddr, to: [{ email: b.to[0] }], reply_to: { email: MAIN, name: 'CyberHx' },
+            subject: b.subject, text: b.text, html: b.html, category: 'voucher',
+            headers: { 'Message-ID': `<${crypto.randomUUID()}@cyberhx.com>` },
+          }),
+        });
+        const d: any = await r.json().catch(() => ({}));
+        if (!r.ok || d?.success === false) {
+          results.push({ to: b.to[0], subject: b.subject, text: b.text, id: null, error: `Mailtrap ${r.status}${d?.errors ? ` - ${String([].concat(d.errors).join('; ')).slice(0, 200)}` : ''}` });
+        } else results.push({ to: b.to[0], subject: b.subject, text: b.text, id: d?.message_ids?.[0] ? String(d.message_ids[0]) : null });
+      } catch {
+        results.push({ to: b.to[0], subject: b.subject, text: b.text, id: null, error: 'Could not reach Mailtrap.' });
+      }
+    };
+    for (let i = 0; i < batch.length; i += 3) await Promise.all(batch.slice(i, i + 3).map(sendOne)); // 3 at a time
+    const ok = results.filter((x) => !x.error);
+    const failed = results.filter((x) => x.error);
+    if (ok.length) {
+      await countUsage(auth, 'mailtrap', ok.length);
+      await logSent(ok, 'mailtrap');
+    }
+    if (!ok.length) return res.status(500).json({ error: failed[0]?.error || 'Could not send.' });
+    return res.status(200).json({ sent: ok.length, failed: failed.map((x) => x.to) });
+  }
+
   try {
     const r = await fetch('https://api.resend.com/emails/batch', {
       method: 'POST',
@@ -153,23 +213,8 @@ export default async function handler(req: any, res: any) {
       const detail = [data?.name, data?.message].filter(Boolean).join(': ');
       return res.status(500).json({ error: `Resend ${r.status}${detail ? ` - ${detail}` : ''}` });
     }
-    const auth = String(req.headers?.authorization || '');
     await countUsage(auth, 'resend', list.length); // keeps Admin -> Campaigns usage honest
-    // Remember who got which email, so Admin -> Meetings can show it on each card. Never blocks the send.
-    try {
-      const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-      if (url && anon) {
-        await fetch(`${url}/rest/v1/mail_log`, {
-          method: 'POST',
-          headers: { apikey: anon, Authorization: auth, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-          body: JSON.stringify(batch.map((b, i) => ({
-            email: b.to[0], template, subject: String(b.subject).slice(0, 300), body: String(b.text || '').slice(0, 8000), provider: 'resend',
-            message_id: data?.data?.[i]?.id ? String(data.data[i].id).slice(0, 200) : null,
-          }))),
-        });
-      }
-    } catch (e) { console.error('mail_log insert failed', e); }
+    await logSent(batch.map((b, i) => ({ to: b.to[0], subject: b.subject, text: b.text, id: data?.data?.[i]?.id ? String(data.data[i].id) : null })), 'resend');
     return res.status(200).json({ sent: list.length });
   } catch (e) {
     console.error('resend request failed', e);
