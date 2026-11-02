@@ -8,6 +8,12 @@ import { downloadCsv } from './mailingApi';
    Paste the leaderboard (Rank, Team, Email(s), Voucher code). Ranks 1-10 get the Top 10 email and discount,
    11-50 the Top 50 one. Every member email gets its own copy, greeting the team by name, with the team's code. */
 
+/** Events a voucher can be for (Admin -> Emails: Voucher template and Team vouchers). */
+export const VOUCHER_EVENTS = [
+  { id: 'null-origin-ctf-2026', name: 'Null Origin CTF 2026', short: 'Null Origin CTF', year: '2026' },
+  { id: 'pinaka-ctf-2026', name: 'Pinaka CTF 2026', short: 'Pinaka CTF', year: '2026' },
+] as const;
+
 const EMAIL_RE = /[^\s<>,;|"'()]+@[^\s<>,;|"'()]+\.[a-z]{2,}/gi;
 const STORE = 'cx_team_vouchers_v1';
 
@@ -171,7 +177,17 @@ export const TeamVouchers: React.FC = () => {
 
       {/* Settings */}
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div><label className={label} htmlFor="tv-event">Event</label><input id="tv-event" className={input} value={set.event} maxLength={80} onChange={(e) => setSet({ ...set, event: e.target.value })} /></div>
+        <div>
+          <p className={label}>Event</p>
+          <div role="radiogroup" aria-label="Event" className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-[#05080f] p-1">
+            {VOUCHER_EVENTS.map((e) => (
+              <button key={e.id} type="button" role="radio" aria-checked={set.event === e.name} onClick={() => setSet({ ...set, event: e.name })}
+                className={`rounded-md px-2 py-1 text-xs font-semibold transition ${set.event === e.name ? 'bg-white/[0.12] text-white' : 'text-gray-400 hover:text-white'}`}>
+                {e.short}
+              </button>
+            ))}
+          </div>
+        </div>
         <div><label className={label} htmlFor="tv-product">Voucher for</label><input id="tv-product" className={input} value={set.product} maxLength={80} onChange={(e) => setSet({ ...set, product: e.target.value })} /></div>
         <div><label className={label} htmlFor="tv-url">Redeem link</label><input id="tv-url" className={input} value={set.redeemUrl} maxLength={300} onChange={(e) => setSet({ ...set, redeemUrl: e.target.value })} /></div>
         <div>

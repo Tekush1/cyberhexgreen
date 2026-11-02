@@ -47,6 +47,8 @@ export interface TemplateInfo {
   isCustom?: boolean;
   /** Sent automatically by Reschedule / Cancel; not offered in the composer. */
   auto?: boolean;
+  /** Only offered in Admin -> Emails (New email), not on meeting cards. */
+  standaloneOnly?: boolean;
 }
 
 export const TEMPLATES: TemplateInfo[] = [
@@ -59,7 +61,7 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: 'custom', label: 'Custom message', hint: 'Write your own', isCustom: true },
   { id: 'moved', label: 'Meeting moved', hint: 'Sent when you move a meeting', auto: true },
   { id: 'cancelled', label: 'Meeting cancelled', hint: 'Sent when you cancel a meeting', auto: true },
-  { id: 'team_voucher', label: 'Team voucher', hint: 'Sent from Team vouchers', auto: true },
+  { id: 'team_voucher', label: 'Voucher', hint: 'Reward a team with a code', standaloneOnly: true },
 ];
 
 export const MAX_FIELD = { name: 80, title: 120, note: 1500, subject: 150, body: 5000, link: 500, team: 80, code: 60, product: 80, event: 80 };
@@ -411,18 +413,17 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
         ? new Date(`${v.expires}T12:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
         : '';
       const redeem = safeUrl(v.redeemUrl) || 'https://pentestlab.cyberhx.com';
-      subject = top10
-        ? `Rank #${rank || '10'} at ${event}: ${pct >= 100 ? 'a free' : `${pct}% off`} ${product} for ${team}`
-        : `Top 50 at ${event}: ${pct}% off ${product} for ${team}`;
+      const gift = pct >= 100 ? `a free ${product}` : `${pct}% off ${product}`;
+      subject = top10 && rank ? `Rank #${rank} at ${event}: ${gift} for ${team}` : `${tierName} at ${event}: ${gift} for ${team}`;
       o = {
         accent: top10 ? '#f5c542' : C.lime,
         preheader: `${team} finished ${rank ? `#${rank}` : tierName} at ${event}. Your voucher is inside.`,
         eyebrow: `${tierName} · ${event}`,
-        heading: top10 ? `Rank #${rank || '—'}. Exceptional work, ${team}.` : `Top 50. Well played, ${team}.`,
+        heading: top10 ? (rank ? `Rank #${rank}. Exceptional work, ${team}.` : `Top 10. Exceptional work, ${team}.`) : `Top 50. Well played, ${team}.`,
         paragraphs: [
           `Hi ${team},`,
           top10
-            ? `Out of every team that played ${event}, ${team} finished at rank #${rank}. That is a place earned at the keyboard, one flag at a time, and it deserves more than a line on a scoreboard.`
+            ? `Out of every team that played ${event}, ${team} finished ${rank ? `at rank #${rank}` : 'inside the Top 10'}. That is a place earned at the keyboard, one flag at a time, and it deserves more than a line on a scoreboard.`
             : `Out of every team that played ${event}, ${team} finished${rank ? ` at rank #${rank},` : ''} inside the Top 50. That takes skill, patience and a lot of late hours, and we noticed.`,
           `So here is something to take the next step with: ${pct >= 100 ? `the ${product}, on us` : `${pct}% off the ${product}`}.`,
         ],
