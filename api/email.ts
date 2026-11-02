@@ -113,6 +113,8 @@ export default async function handler(req: any, res: any) {
     event: str(v.event, MAX_FIELD.event),
     expires: /^\d{4}-\d{2}-\d{2}$/.test(String(v.expires || '')) ? String(v.expires) : '',
     redeemUrl: str(v.redeemUrl, MAX_FIELD.link),
+    plain: v.plain === true,
+    signer: str(v.signer, MAX_FIELD.name).trim(),
   };
   if (template === 'team_voucher' && list.some((r) => !r.own?.team || !r.own?.code || !r.own?.discount)) {
     return res.status(400).json({ error: 'Every team needs a name, a voucher code and a discount.' });

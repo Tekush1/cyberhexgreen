@@ -19,11 +19,11 @@ const ONE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORE = 'cx_vouchers_v2';
 const GOLD = '#f5c542';
 
-interface Settings { event: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number }
+interface Settings { event: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number; plain: boolean; signer: string }
 interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; problems: string[] }
 type Mode = 'board' | 'one';
 
-const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80 };
+const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '' };
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/70';
 const label = 'block text-[12px] font-medium text-white/55 mb-1.5';
@@ -144,7 +144,7 @@ export const VouchersPanel: React.FC = () => {
 
   const keyOf = (r: { team: string; code: string }) => `${set.event}|${r.team.toLowerCase()}|${r.code}`;
   const tierOf = (rank: number) => (rank > 0 && rank <= 10 ? 10 : 50);
-  const shared = { event: set.event, product: set.product.trim() || 'CAPT certification', expires: set.expires, redeemUrl: set.redeemUrl.trim() };
+  const shared = { event: set.event, product: set.product.trim() || 'CAPT certification', expires: set.expires, redeemUrl: set.redeemUrl.trim(), plain: set.plain, signer: set.signer.trim() };
   const teamVars = (team: string, rank: number, tier: 10 | 50, code: string) => ({ team, rank: rank || undefined, tier, code, discount: tier === 10 ? set.top10 : set.top50 });
 
   // ----- Whole leaderboard -----
@@ -194,6 +194,24 @@ export const VouchersPanel: React.FC = () => {
       setOne({ team: '', rank: '', tier: one.tier, code: '', emails: '' });
     } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not send.' }); }
     finally { setBusy(''); }
+  };
+
+  /** Send one leaderboard team again (lost email, new member, wrong address fixed). */
+  const resendTeam = async (r: TeamRow) => {
+    if (busy) return;
+    if (!confirm(`Send ${r.team}'s voucher again to ${r.emails.join(', ')}?`)) return;
+    const k = keyOf(r);
+    setBusy('all'); setMsg(null);
+    setStatus((s) => ({ ...s, [k]: 'sending' }));
+    try {
+      await post({ template: 'team_voucher', recipients: r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierOf(r.rank) as 10 | 50, r.code) })), vars: shared });
+      setSent((s) => ({ ...s, [k]: new Date().toISOString() }));
+      setStatus((s) => ({ ...s, [k]: 'sent' }));
+      setMsg({ ok: true, text: `Sent ${r.team}'s voucher again.` });
+    } catch (e) {
+      setStatus((s) => ({ ...s, [k]: `failed: ${e instanceof Error ? e.message : 'failed'}` }));
+      setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not send.' });
+    } finally { setBusy(''); }
   };
 
   const sendAll = async () => {
@@ -260,6 +278,32 @@ export const VouchersPanel: React.FC = () => {
           <div><label className={label} htmlFor="v-top50">Top 50 discount</label>{pct('top50')}</div>
           <div><label className={label} htmlFor="v-exp">Valid until <span className="text-white/30">(optional)</span></label><input id="v-exp" type="date" className={`${input} [color-scheme:dark]`} value={set.expires} onChange={(e) => setSet({ ...set, expires: e.target.value })} /></div>
         </div>
+
+        <div className="mt-5 grid gap-4 border-t border-white/[0.06] pt-5 lg:grid-cols-[1fr_16rem]">
+          <div>
+            <p className={label}>Email style</p>
+            <div role="radiogroup" aria-label="Email style" className="grid gap-2 sm:grid-cols-2">
+              {([
+                { v: true, title: 'Simple letter', sub: 'Lands in Gmail Primary. Plain text, code in bold.' },
+                { v: false, title: 'Designed', sub: 'Coupon card and button. Gmail usually files it in Promotions.' },
+              ] as const).map((o) => {
+                const on = set.plain === o.v;
+                return (
+                  <button key={String(o.v)} type="button" role="radio" aria-checked={on} onClick={() => setSet({ ...set, plain: o.v })}
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${on ? 'border-[#0A84FF] bg-[#0A84FF]/10' : 'border-white/10 hover:border-white/25'}`}>
+                    <span className="flex items-center gap-2 text-sm font-semibold text-white">{o.title}{o.v && <span className="rounded-full bg-[#30d158]/15 px-2 py-0.5 text-[10.5px] font-semibold text-[#30d158]">Recommended</span>}</span>
+                    <span className="mt-0.5 block text-[12px] text-white/45">{o.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <label className={label} htmlFor="v-signer">Signed by <span className="text-white/30">(optional)</span></label>
+            <input id="v-signer" className={input} value={set.signer} maxLength={MAX_FIELD.name} onChange={(e) => setSet({ ...set, signer: e.target.value })} placeholder="Your name" />
+            <p className="mt-1.5 text-[11.5px] text-white/35">A real name above "Team CyberHx" also helps it reach Primary.</p>
+          </div>
+        </div>
       </div>
 
       <Segmented label="How to send" value={mode} onChange={setMode} options={[
@@ -317,7 +361,12 @@ export const VouchersPanel: React.FC = () => {
                               <td className="whitespace-nowrap px-3 py-2.5 text-xs">
                                 {r.problems.length ? <span className="text-red-300">{r.problems.join(', ')}</span>
                                   : st === 'sending' ? <span className="flex items-center gap-1 text-white/50"><Loader2 size={12} className="animate-spin" />Sending</span>
-                                  : st === 'sent' ? <span className="flex items-center gap-1 text-[#30d158]"><Check size={12} />Sent</span>
+                                  : st === 'sent' ? (
+                                    <span className="flex items-center gap-2">
+                                      <span className="flex items-center gap-1 text-[#30d158]"><Check size={12} />Sent</span>
+                                      <button type="button" disabled={!!busy} onClick={(e) => { e.stopPropagation(); resendTeam(r); }} className="rounded-lg border border-white/15 px-2 py-0.5 text-[11px] text-white/70 hover:border-white/30 hover:text-white disabled:opacity-40">Resend</button>
+                                    </span>
+                                  )
                                   : st.startsWith('failed') ? <span className="text-red-300" title={st}>Failed</span>
                                   : <span className="text-white/45">{t10 ? 'Top 10' : 'Top 50'} · {offLabel(t10 ? set.top10 : set.top50)}</span>}
                               </td>

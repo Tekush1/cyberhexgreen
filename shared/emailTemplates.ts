@@ -35,6 +35,10 @@ export interface EmailVars {
   redeemUrl?: string;
   /** Rank cut-off of the team's tier: 10 for Top 10, 50 for Top 50. */
   tier?: number;
+  /** Letter-style email (no design, no button): Gmail files these in Primary instead of Promotions. */
+  plain?: boolean;
+  /** Person signing a plain email, e.g. "Kushagra". */
+  signer?: string;
 }
 
 export interface TemplateInfo {
@@ -414,6 +418,26 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
         : '';
       const redeem = safeUrl(v.redeemUrl) || 'https://pentestlab.cyberhx.com';
       const gift = pct >= 100 ? `a free ${product}` : `${pct}% off ${product}`;
+      const code = (v.code || '').trim() || '—';
+      if (v.plain) {
+        // Reads like a note from a person: no banner, no coupon box, no button, few sales words.
+        subject = `${team}: your ${event} result${rank ? ` (rank #${rank})` : ''}`;
+        o = {
+          plain: true,
+          signer: (v.signer || '').trim() || undefined,
+          preheader: '',
+          eyebrow: '',
+          heading: subject,
+          paragraphs: [
+            `Hi ${team},`,
+            `Congratulations on finishing ${rank ? `#${rank}` : `in the ${tierName}`} at ${event}. ${top10 ? 'That is an exceptional result, and the whole team should be proud of it.' : 'It took real skill and patience to get there, and we noticed.'}`,
+            `As a thank-you from all of us at CyberHx, your team gets ${pct >= 100 ? `the ${product} at no cost` : `${pct}% off the ${product}`}.`,
+          ],
+          details: [['Your team code', code], ['Valid until', until]],
+          note: `You can use it at ${redeem}. The code belongs to your team, so please keep it private.${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
+        };
+        break;
+      }
       subject = top10 && rank ? `Rank #${rank} at ${event}: ${gift} for ${team}` : `${tierName} at ${event}: ${gift} for ${team}`;
       o = {
         accent,
