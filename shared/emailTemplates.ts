@@ -433,7 +433,7 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
             `Congratulations on finishing ${rank ? `#${rank}` : `in the ${tierName}`} at ${event}. ${top10 ? 'That is an exceptional result, and the whole team should be proud of it.' : 'It took real skill and patience to get there, and we noticed.'}`,
             `As a thank-you from all of us at CyberHx, your team gets ${pct >= 100 ? `the ${product} at no cost` : `${pct}% off the ${product}`}.`,
           ],
-          details: [['Your team code', code], ['Valid until', until]],
+          details: [['Your discount code', code], ['Valid until', until]],
           note: `You can use it at ${redeem}. ${top10 ? 'The code belongs to your team, so please keep it private.' : 'Up to 4 members of your team can redeem this code, so share it only with your team.'}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
         };
         break;
