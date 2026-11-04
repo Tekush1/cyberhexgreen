@@ -3,19 +3,17 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
-import { SiteIcon, type IconName } from '../components/shared/SiteIcon';
 import { Mascot } from '../components/shared/Mascot';
 import { isEmail, submitForm } from '../lib/forms';
 
 /* /companies: CyberHx for Companies. Open to companies anywhere in the world.
    Two audiences on one page: companies (hire, place, train) and our own learners (what this opens up for them).
    Applications go to Supabase form_submissions (form = 'company') -> Admin -> Inbox, plus an email to the team.
-   Artwork: only the site's own icons (/icons/web via SiteIcon) and mascots. */
+   Look: typography first, no icon art; only the site's own mascot in the hero and on success. */
 
-const OFFERS: { id: string; icon: IconName; title: string; line: string; body: string; points: string[] }[] = [
+const OFFERS: { id: string; title: string; line: string; body: string; points: string[] }[] = [
   {
     id: 'hiring-ctf',
-    icon: 'swords',
     title: 'Hiring CTFs',
     line: 'Run a branded challenge. Hire the top performers.',
     body: 'We build a CTF around the skills your role needs and run it under your name. Candidates prove what they can do on live targets, and you get a ranked shortlist. Skill-first, resume-last.',
@@ -23,7 +21,6 @@ const OFFERS: { id: string; icon: IconName; title: string; line: string; body: s
   },
   {
     id: 'talent',
-    icon: 'hacker-team',
     title: 'Talent Placement',
     line: 'Verified, trained candidates, straight to your team.',
     body: 'Our community solves real challenges every week. We surface the people who consistently perform, with their CTF results and CAPT or CPPT credentials, so you interview fewer people and hire better ones.',
@@ -31,7 +28,6 @@ const OFFERS: { id: string; icon: IconName; title: string; line: string; body: s
   },
   {
     id: 'training',
-    icon: 'toolbox',
     title: 'Workforce Training',
     line: 'Upskill your security team on real-world scenarios.',
     body: 'Give your team private CTFs and Pentest Lab access, built by practitioners. Track progress, then certify the team with CAPT and CPPT, in bulk.',
@@ -40,19 +36,19 @@ const OFFERS: { id: string; icon: IconName; title: string; line: string; body: s
 ];
 
 /** What a company actually sees about a candidate. */
-const SIGNALS: { icon: IconName; title: string; text: string }[] = [
-  { icon: 'podium', title: 'CTF results', text: 'Rank, solves and categories across our events, not a self-rated skills list.' },
-  { icon: 'target', title: 'Write-ups', text: 'How they think: their published solutions on the CyberHx blog.' },
-  { icon: 'padlock', title: 'Verified credentials', text: 'CAPT and CPPT earned in a practical exam, checkable by anyone.' },
-  { icon: 'hacker-climb', title: 'Lab progress', text: 'Machines and techniques completed on the Pentest Lab.' },
+const SIGNALS: { title: string; text: string }[] = [
+  { title: 'CTF results', text: 'Rank, solves and categories across our events, not a self-rated skills list.' },
+  { title: 'Write-ups', text: 'How they think: their published solutions on the CyberHx blog.' },
+  { title: 'Verified credentials', text: 'CAPT and CPPT earned in a practical exam, checkable by anyone.' },
+  { title: 'Lab progress', text: 'Machines and techniques completed on the Pentest Lab.' },
 ];
 
 /** Why being part of the CyberHx community now counts for learners. */
-const FOR_LEARNERS: { icon: IconName; title: string; text: string }[] = [
-  { icon: 'trophy', title: 'Your rank becomes a door', text: 'Strong CTF results are what we bring to hiring partners. Every flag you capture now counts for more than points.' },
-  { icon: 'swords', title: 'Get interviewed by skill', text: 'Hiring CTFs judge you on what you solve, not where you studied. Play well and the interview comes to you.' },
-  { icon: 'padlock', title: 'Credentials companies trust', text: 'CAPT and CPPT are earned in a practical exam, and companies in our network can verify them in seconds.' },
-  { icon: 'network', title: 'A network across 90+ countries', text: 'Learn alongside practitioners worldwide, and get seen by companies that hire from anywhere.' },
+const FOR_LEARNERS: { title: string; text: string }[] = [
+  { title: 'Your rank becomes a door', text: 'Strong CTF results are what we bring to hiring partners. Every flag you capture now counts for more than points.' },
+  { title: 'Get interviewed by skill', text: 'Hiring CTFs judge you on what you solve, not where you studied. Play well and the interview comes to you.' },
+  { title: 'Credentials companies trust', text: 'CAPT and CPPT are earned in a practical exam, and companies in our network can verify them in seconds.' },
+  { title: 'A network across 90+ countries', text: 'Learn alongside practitioners worldwide, and get seen by companies that hire from anywhere.' },
 ];
 
 const STEPS = [
@@ -209,8 +205,8 @@ export default function CompaniesPage() {
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {OFFERS.map((o, i) => (
             <motion.article key={o.id} {...rise(i)} className="flex flex-col rounded-[28px] border border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a] p-7 transition hover:border-white/15">
-              <SiteIcon name={o.icon} size={72} />
-              <h3 className="font-display mt-6 text-2xl">{o.title}</h3>
+              <p className="font-mono text-sm text-lime">0{i + 1}</p>
+              <h3 className="font-display mt-5 text-2xl">{o.title}</h3>
               <p className="mt-2 font-medium text-white/85">{o.line}</p>
               <p className="mt-4 leading-7 text-white/55">{o.body}</p>
               <ul className="mt-6 space-y-2.5">
@@ -236,7 +232,7 @@ export default function CompaniesPage() {
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {SIGNALS.map((s, i) => (
               <motion.div key={s.title} {...rise(i)} className="rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-6">
-                <SiteIcon name={s.icon} size={56} />
+                <span className="block h-px w-10 bg-lime" />
                 <h3 className="mt-5 text-lg font-semibold">{s.title}</h3>
                 <p className="mt-2 leading-7 text-white/55">{s.text}</p>
               </motion.div>
@@ -250,14 +246,13 @@ export default function CompaniesPage() {
         <h2 className="font-display text-3xl sm:text-4xl">One ecosystem.</h2>
         <div className="mx-auto mt-10 grid max-w-3xl grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 sm:gap-4">
           {[
-            { label: 'Learners', icon: 'user' as IconName },
-            { label: 'CyberHx', icon: 'ctf-green' as IconName },
-            { label: 'Companies', icon: 'hacker-team' as IconName },
+            { label: 'Learners' },
+            { label: 'CyberHx' },
+            { label: 'Companies' },
           ].map((x, i) => (
             <div key={x.label} className="contents">
               {i > 0 && <span aria-hidden="true" className="h-px w-6 bg-gradient-to-r from-white/10 via-lime/60 to-white/10 sm:w-14" />}
               <div className={`flex flex-col items-center gap-3 rounded-2xl border px-3 py-5 sm:px-6 ${x.label === 'CyberHx' ? 'border-lime/40 bg-lime/[0.07]' : 'border-white/10 bg-white/[0.03]'}`}>
-                <SiteIcon name={x.icon} size={48} />
                 <p className={`text-[15px] font-semibold sm:text-lg ${x.label === 'CyberHx' ? 'text-lime' : 'text-white'}`}>{x.label}</p>
               </div>
             </div>
@@ -279,12 +274,11 @@ export default function CompaniesPage() {
               <Link to="/events" className="btn btn-lime">Play the next CTF <ArrowRight size={17} /></Link>
               <Link to="/certifications" className="btn btn-ghost">Get certified</Link>
             </div>
-            <Mascot pose="trophy" alt="CyberHx mascot holding a trophy" className="mt-10 hidden w-48 lg:block" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {FOR_LEARNERS.map((l, i) => (
               <motion.div key={l.title} {...rise(i)} className="rounded-[24px] border border-white/[0.08] bg-[#0b1020]/70 p-6">
-                <SiteIcon name={l.icon} size={56} />
+                <span className="block h-px w-10 bg-lime" />
                 <h3 className="mt-5 text-lg font-semibold">{l.title}</h3>
                 <p className="mt-2 leading-7 text-white/55">{l.text}</p>
               </motion.div>
@@ -352,7 +346,6 @@ export default function CompaniesPage() {
                         return (
                           <button key={o.id} type="button" role="checkbox" aria-checked={onIt} onClick={() => toggle(o.id)}
                             className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-glow ${onIt ? 'border-lime/70 bg-lime/10 text-white' : 'border-white/10 text-white/65 hover:border-white/25 hover:text-white'}`}>
-                            <SiteIcon name={o.icon} size={30} />
                             <span className="flex-1">{o.title}</span>
                             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${onIt ? 'border-lime bg-lime text-ink' : 'border-white/25'}`}>{onIt && <Check size={13} strokeWidth={3} />}</span>
                           </button>
