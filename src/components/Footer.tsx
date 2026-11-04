@@ -18,6 +18,7 @@ const columns = [
     links: [
       { label: 'About', to: '/about' },
       { label: 'Blog', to: '/blog' },
+      { label: 'For companies', to: '/companies' },
       { label: 'Collaborations', to: '/collaborations' },
       { label: 'Contact', to: '/contact' },
     ],

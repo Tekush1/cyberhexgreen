@@ -116,6 +116,7 @@ const FORM_LABEL: Record<string, string> = {
   mentor: 'Mentor application',
   session: 'Session booking',
   feedback: 'Event feedback',
+  company: 'Company application',
   other: 'Other',
 };
 

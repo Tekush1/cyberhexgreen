@@ -62,3 +62,9 @@ END $function$;
 
 REVOKE ALL ON FUNCTION public.feedback_submit(text, text, jsonb, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.feedback_submit(text, text, jsonb, text) TO anon, authenticated;
+
+-- 4 Nov 2026 (migration company_form): /companies applications are saved with form = 'company'.
+ALTER TABLE public.form_submissions
+  DROP CONSTRAINT form_submissions_form_check,
+  ADD CONSTRAINT form_submissions_form_check
+    CHECK (form = ANY (ARRAY['contact','registration','mentor','session','partnership','feedback','company','other']));

@@ -8,6 +8,7 @@ const links = [
   { name: 'Events', to: '/events' },
   { name: 'Host a CTF', to: '/host-your-ctf' },
   { name: 'Certifications', to: '/certifications' },
+  { name: 'For Companies', to: '/companies' },
   { name: 'Blog', to: '/blog' },
   { name: 'About', to: '/about' },
   { name: 'Contact', to: '/contact' },
