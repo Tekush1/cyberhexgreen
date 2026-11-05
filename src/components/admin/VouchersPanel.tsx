@@ -18,13 +18,12 @@ const EMAIL_RE = /[^\s<>,;|"'()]+@[^\s<>,;|"'()]+\.[a-z]{2,}/gi;
 const ONE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORE = 'cx_vouchers_v2';
 const GOLD = '#f5c542';
-const OTHER = '__other__';
 
-interface Settings { event: string; customEvent: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number; plain: boolean; signer: string; via: 'mail' | 'resend' }
+interface Settings { event: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number; plain: boolean; signer: string; via: 'mail' | 'resend' }
 interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; problems: string[] }
 type Mode = 'board' | 'one';
 
-const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, customEvent: '', product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '', via: 'mail' };
+const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '', via: 'mail' };
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/70';
 const label = 'block text-[12px] font-medium text-white/55 mb-1.5';
@@ -147,7 +146,7 @@ export const VouchersPanel: React.FC = () => {
   const tierOf = (rank: number) => (rank > 0 && rank <= 10 ? 10 : 50);
   const shared = { event: set.event.trim(), product: set.product.trim() || 'CAPT certification', expires: set.expires, redeemUrl: set.redeemUrl.trim(), plain: set.plain, signer: set.signer.trim() };
   /** Every send goes out from the address picked under "Send from". */
-  const send = (b: object) => (set.event.trim() ? post({ ...b, via: set.via }) : Promise.reject(new Error('Type the CTF name first (Other CTF).')));
+  const send = (b: object) => (set.event.trim() ? post({ ...b, via: set.via }) : Promise.reject(new Error('Type the CTF name first.')));
   const perRequest = set.via === 'mail' ? 20 : 100;
   const failedNote = (f?: string[]) => (f?.length ? ` Not delivered to: ${f.join(', ')}.` : '');
   const teamVars = (team: string, rank: number, tier: 10 | 50, code: string) => ({ team, rank: rank || undefined, tier, code, discount: tier === 10 ? set.top10 : set.top50 });
@@ -280,24 +279,26 @@ export const VouchersPanel: React.FC = () => {
             <h3 className="flex items-center gap-2 text-[17px] font-semibold text-white"><Gift size={18} style={{ color: GOLD }} /> Vouchers</h3>
             <p className="mt-1 text-[13px] text-white/45">Reward a CTF's top teams: each member gets the team's code in a personal email.</p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <Segmented
-              label="Event"
-              value={VOUCHER_EVENTS.some((e) => e.name === set.event) ? set.event : OTHER}
-              onChange={(v) => setSet({ ...set, event: v === OTHER ? set.customEvent : v })}
-              options={[...VOUCHER_EVENTS.map((e) => ({ v: e.name as string, label: e.short })), { v: OTHER, label: 'Other CTF' }]}
+          <div className="w-full sm:w-80">
+            <label className={label} htmlFor="v-event">CTF name</label>
+            <input
+              id="v-event"
+              list="v-event-list"
+              className={`${input} text-[15px] font-medium`}
+              value={set.event}
+              maxLength={MAX_FIELD.event}
+              placeholder="Any CTF, e.g. CyberHeist 2026"
+              onChange={(e) => setSet({ ...set, event: e.target.value })}
             />
-            {!VOUCHER_EVENTS.some((e) => e.name === set.event) && (
-              <input
-                aria-label="CTF name"
-                autoFocus
-                className={`${input} w-72 max-w-full`}
-                value={set.customEvent}
-                maxLength={MAX_FIELD.event}
-                placeholder="CTF name, e.g. CyberHeist 2026"
-                onChange={(e) => setSet({ ...set, customEvent: e.target.value, event: e.target.value })}
-              />
-            )}
+            <datalist id="v-event-list">{VOUCHER_EVENTS.map((e) => <option key={e.id} value={e.name} />)}</datalist>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {VOUCHER_EVENTS.map((e) => (
+                <button key={e.id} type="button" onClick={() => setSet({ ...set, event: e.name })}
+                  className={`rounded-full border px-2.5 py-0.5 text-[11.5px] transition ${set.event === e.name ? 'border-[#0A84FF] text-white' : 'border-white/10 text-white/50 hover:text-white'}`}>
+                  {e.short}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
