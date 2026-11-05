@@ -18,12 +18,13 @@ const EMAIL_RE = /[^\s<>,;|"'()]+@[^\s<>,;|"'()]+\.[a-z]{2,}/gi;
 const ONE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORE = 'cx_vouchers_v2';
 const GOLD = '#f5c542';
+const OTHER = '__other__';
 
-interface Settings { event: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number; plain: boolean; signer: string; via: 'mail' | 'resend' }
+interface Settings { event: string; customEvent: string; product: string; redeemUrl: string; expires: string; top10: number; top50: number; plain: boolean; signer: string; via: 'mail' | 'resend' }
 interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; problems: string[] }
 type Mode = 'board' | 'one';
 
-const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '', via: 'mail' };
+const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, customEvent: '', product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '', via: 'mail' };
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/70';
 const label = 'block text-[12px] font-medium text-white/55 mb-1.5';
@@ -32,7 +33,7 @@ const card = 'rounded-[22px] border border-white/[0.08] bg-[#0b0f19] p-5 sm:p-6'
 const load = <T,>(k: string, fb: T): T => { try { const v = localStorage.getItem(k); return v ? { ...fb, ...JSON.parse(v) } : fb; } catch { return fb; } };
 const save = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 const cleanCode = (c: string) => c.trim().replace(/[^\w-]/g, '').slice(0, MAX_FIELD.code);
-const offLabel = (n: number) => (n >= 100 ? 'Free' : `${n}% off`);
+const offLabel = (n: number) => (n >= 100 ? 'Full voucher' : `${n}% voucher`);
 
 /** Reads pasted rows from Google Sheets / Excel / CSV. Header row optional; default order Rank, Team, Emails, Code. */
 function parse(text: string): TeamRow[] {
@@ -144,9 +145,9 @@ export const VouchersPanel: React.FC = () => {
 
   const keyOf = (r: { team: string; code: string }) => `${set.event}|${r.team.toLowerCase()}|${r.code}`;
   const tierOf = (rank: number) => (rank > 0 && rank <= 10 ? 10 : 50);
-  const shared = { event: set.event, product: set.product.trim() || 'CAPT certification', expires: set.expires, redeemUrl: set.redeemUrl.trim(), plain: set.plain, signer: set.signer.trim() };
+  const shared = { event: set.event.trim(), product: set.product.trim() || 'CAPT certification', expires: set.expires, redeemUrl: set.redeemUrl.trim(), plain: set.plain, signer: set.signer.trim() };
   /** Every send goes out from the address picked under "Send from". */
-  const send = (b: object) => post({ ...b, via: set.via });
+  const send = (b: object) => (set.event.trim() ? post({ ...b, via: set.via }) : Promise.reject(new Error('Type the CTF name first (Other CTF).')));
   const perRequest = set.via === 'mail' ? 20 : 100;
   const failedNote = (f?: string[]) => (f?.length ? ` Not delivered to: ${f.join(', ')}.` : '');
   const teamVars = (team: string, rank: number, tier: 10 | 50, code: string) => ({ team, rank: rank || undefined, tier, code, discount: tier === 10 ? set.top10 : set.top50 });
@@ -279,7 +280,25 @@ export const VouchersPanel: React.FC = () => {
             <h3 className="flex items-center gap-2 text-[17px] font-semibold text-white"><Gift size={18} style={{ color: GOLD }} /> Vouchers</h3>
             <p className="mt-1 text-[13px] text-white/45">Reward a CTF's top teams: each member gets the team's code in a personal email.</p>
           </div>
-          <Segmented label="Event" value={set.event} onChange={(v) => setSet({ ...set, event: v })} options={VOUCHER_EVENTS.map((e) => ({ v: e.name, label: e.short }))} />
+          <div className="flex flex-col items-end gap-2">
+            <Segmented
+              label="Event"
+              value={VOUCHER_EVENTS.some((e) => e.name === set.event) ? set.event : OTHER}
+              onChange={(v) => setSet({ ...set, event: v === OTHER ? set.customEvent : v })}
+              options={[...VOUCHER_EVENTS.map((e) => ({ v: e.name as string, label: e.short })), { v: OTHER, label: 'Other CTF' }]}
+            />
+            {!VOUCHER_EVENTS.some((e) => e.name === set.event) && (
+              <input
+                aria-label="CTF name"
+                autoFocus
+                className={`${input} w-72 max-w-full`}
+                value={set.customEvent}
+                maxLength={MAX_FIELD.event}
+                placeholder="CTF name, e.g. CyberHeist 2026"
+                onChange={(e) => setSet({ ...set, customEvent: e.target.value, event: e.target.value })}
+              />
+            )}
+          </div>
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

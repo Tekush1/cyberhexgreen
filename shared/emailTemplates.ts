@@ -131,7 +131,7 @@ export interface Layout {
   /** Simple, letter-style email (no card, button or images): Gmail puts these in Primary far more often. */
   plain?: boolean;
   /** A voucher ticket (discount, product, code) shown after the paragraphs. */
-  voucher?: { label: string; amount: string; product: string; code: string; expires?: string; accent?: string };
+  voucher?: { label: string; amount: string; product: string; code: string; expires?: string; accent?: string; sub?: string };
   /** Accent for the top stripe and eyebrow (default lime). */
   accent?: string;
 }
@@ -142,8 +142,8 @@ function voucherBlock(v: NonNullable<Layout['voucher']>) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 26px;border:2px dashed ${a};border-radius:16px;border-collapse:separate;background:#0d1524;">
   <tr><td style="padding:24px 22px 4px;text-align:center;">
     <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:${a};">${esc(v.label)}</p>
-    <p style="margin:12px 0 0;font-size:46px;line-height:1;font-weight:800;letter-spacing:-.03em;color:#ffffff;">${esc(v.amount)}</p>
-    <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:${C.text};">on ${esc(v.product)}</p>
+    <p style="margin:12px 0 0;font-size:${v.amount.length > 8 ? 30 : 46}px;line-height:1.1;font-weight:800;letter-spacing:-.02em;color:#ffffff;">${esc(v.amount)}</p>
+    <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:${C.text};">${esc(v.sub || `on ${v.product}`)}</p>
   </td></tr>
   <tr><td style="padding:18px 22px 24px;text-align:center;">
     <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:${C.muted};">Your voucher code</p>
@@ -412,12 +412,15 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
       const tierName = top10 ? 'Top 10' : 'Top 50';
       // Each event wears its own colour: Null Origin is red; otherwise gold for Top 10, lime for Top 50.
       const accent = /null\s*origin/i.test(event) ? '#ff4545' : top10 ? '#f5c542' : C.lime;
-      const amount = pct >= 100 ? 'Free' : `${pct}% off`;
+      // Wording kept calm on purpose: no "free", no "% off", no shouting. Sales words push mail into Promotions or spam.
+      const full = pct >= 100;
+      const amount = full ? 'Claim your voucher' : `${pct}%`;
+      const ticketSub = full ? `${product}, fully covered` : `towards the ${product}`;
+      const reward = full ? `a voucher that covers the ${product} in full` : `a ${pct}% voucher towards the ${product}`;
       const until = v.expires && /^\d{4}-\d{2}-\d{2}$/.test(v.expires)
         ? new Date(`${v.expires}T12:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
         : '';
       const redeem = safeUrl(v.redeemUrl) || 'https://pentestlab.cyberhx.com';
-      const gift = pct >= 100 ? `a free ${product}` : `${pct}% off ${product}`;
       const code = (v.code || '').trim() || '—';
       if (v.plain) {
         // Reads like a note from a person: no banner, no coupon box, no button, few sales words.
@@ -431,14 +434,14 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
           paragraphs: [
             `Hi ${team},`,
             `Congratulations on finishing ${rank ? `#${rank}` : `in the ${tierName}`} at ${event}. ${top10 ? 'That is an exceptional result, and the whole team should be proud of it.' : 'It took real skill and patience to get there, and we noticed.'}`,
-            `As a thank-you from all of us at CyberHx, your team gets ${pct >= 100 ? `the ${product} at no cost` : `${pct}% off the ${product}`}.`,
+            full ? `As the winner, your team can claim ${reward}.` : `As a thank-you from all of us at CyberHx, your team gets ${reward}.`,
           ],
-          details: [['Your discount code', code], ['Valid until', until]],
+          details: [[full ? 'Your voucher code' : 'Your discount code', code], ['Valid until', until]],
           note: `You can use it at ${redeem}. ${top10 ? 'The code belongs to your team, so please keep it private.' : 'Up to 4 members of your team can redeem this code, so share it only with your team.'}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
         };
         break;
       }
-      subject = top10 && rank ? `Rank #${rank} at ${event}: ${gift} for ${team}` : `${tierName} at ${event}: ${gift} for ${team}`;
+      subject = `${team}, ${top10 && rank ? `rank #${rank}` : tierName} at ${event}: ${full ? 'claim your' : 'your'} ${product} voucher`;
       o = {
         accent,
         preheader: `${team} finished ${rank ? `#${rank}` : tierName} at ${event}. Your voucher is inside.`,
@@ -449,10 +452,10 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
           top10
             ? `Out of every team that played ${event}, ${team} finished ${rank ? `at rank #${rank}` : 'inside the Top 10'}. That is a place earned at the keyboard, one flag at a time, and it deserves more than a line on a scoreboard.`
             : `Out of every team that played ${event}, ${team} finished${rank ? ` at rank #${rank},` : ''} inside the Top 50. That takes skill, patience and a lot of late hours, and we noticed.`,
-          `So here is something to take the next step with: ${pct >= 100 ? `the ${product}, on us` : `${pct}% off the ${product}`}.`,
+          full ? `As the winner, your team can claim ${reward}.` : `As a thank-you for taking part, your team gets ${reward}.`,
         ],
-        voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, product, code: (v.code || '').trim() || '—', expires: until, accent },
-        cta: { label: 'Redeem your voucher', url: redeem },
+        voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, sub: ticketSub, product, code: (v.code || '').trim() || '—', expires: until, accent },
+        cta: { label: 'Claim your voucher', url: redeem },
         note: v.note || (top10 ? 'Enter the code at checkout. It belongs to your team, so keep it private.' : 'Enter the code at checkout. Up to 4 members of your team can redeem it, so share it only with your team.'),
       };
       break;
