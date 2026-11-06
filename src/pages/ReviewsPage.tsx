@@ -5,13 +5,16 @@ import { ArrowRight } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
 import { ReviewCard } from '../features/reviews/ReviewCard';
 import { shortEvent, useReviews } from '../features/reviews/useReviews';
+import { FeedbackCharts, summarize } from '../features/reviews/FeedbackCharts';
 
 /* /reviews: what players said after our CTFs.
    Totals come from every feedback form (review_stats); quotes are the ones picked in Admin -> Feedback.
    Look: typography first, no icon art. */
 
 export default function ReviewsPage() {
-  const { reviews, stats, loading, error } = useReviews();
+  const { reviews, stats, answers, loading, error } = useReviews(true);
+  const [chartEvent, setChartEvent] = useState('');
+  const [allChallenges, setAllChallenges] = useState(false);
   const [event, setEvent] = useState('All');
   const reduce = useReducedMotion();
   const rise = (i = 0) => (reduce ? {} : { initial: { opacity: 0, y: 16 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-40px' }, transition: { duration: 0.45, delay: Math.min(i, 6) * 0.05 } });
@@ -19,7 +22,20 @@ export default function ReviewsPage() {
   const events = useMemo(() => ['All', ...new Set(reviews.map((r) => r.event_name).filter(Boolean))], [reviews]);
   const shown = event === 'All' ? reviews : reviews.filter((r) => r.event_name === event);
   const [lead, ...rest] = shown;
-  const maxCat = Math.max(1, ...(stats?.categories || []).map((c) => c.n));
+
+  // Event tabs for the charts: biggest event first.
+  const evTabs = useMemo(() => {
+    const m = new Map<string, { id: string; name: string; count: number }>();
+    answers.forEach((r) => {
+      const id = r.data?.event || 'other';
+      const e = m.get(id) || { id, name: r.data?.event_name || 'Other', count: 0 };
+      e.count++; m.set(id, e);
+    });
+    return [...m.values()].sort((a, b) => b.count - a.count);
+  }, [answers]);
+  const chartEv = evTabs.find((e) => e.id === chartEvent) || evTabs[0];
+  const chartRows = useMemo(() => (chartEv ? answers.filter((r) => (r.data?.event || 'other') === chartEv.id) : []), [answers, chartEv]);
+  const summary = useMemo(() => summarize(chartRows), [chartRows]);
 
   return (
     <div className="min-h-screen bg-ink text-white">
@@ -71,45 +87,29 @@ export default function ReviewsPage() {
         </div>
       </section>
 
-      {/* By event + favourite categories */}
-      {stats && (stats.events.length > 0 || stats.categories.length > 0) && (
-        <section className="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:px-8">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">By event</p>
-            <ul className="mt-6 divide-y divide-white/[0.06] border-y border-white/[0.06]">
-              {stats.events.map((e) => (
-                <li key={e.name} className="flex items-baseline justify-between gap-4 py-5">
-                  <span>
-                    <span className="font-display block text-2xl">{e.name}</span>
-                    <span className="mt-1 block text-[13px] text-white/45">{e.responses.toLocaleString('en-IN')} reviews</span>
-                  </span>
-                  <span className="font-display text-3xl">{e.avg ?? '—'}<span className="text-base text-white/35"> / 5</span></span>
-                </li>
-              ))}
-            </ul>
+      {/* Charts, one event at a time (same charts as Admin -> Feedback, anonymous answers only) */}
+      {evTabs.length > 0 && (
+        <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20 lg:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">Event by event</p>
+              <h2 className="font-display mt-3 text-4xl leading-tight sm:text-5xl">The numbers.</h2>
+            </div>
+            <div role="tablist" aria-label="Event" className="flex max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-white/[0.08] bg-[#0b0f19] p-[3px]">
+              {evTabs.map((e) => {
+                const on = chartEv?.id === e.id;
+                return (
+                  <button key={e.id} role="tab" aria-selected={on} onClick={() => setChartEvent(e.id)}
+                    className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-[11px] px-3.5 py-1.5 text-[13.5px] font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/70 ${on ? 'bg-white/[0.16] text-white' : 'text-white/55 hover:text-white/85'}`}>
+                    {e.name}
+                    <span className={`rounded-full px-1.5 text-[11px] tabular-nums ${on ? 'bg-white/20 text-white' : 'bg-white/[0.06] text-white/50'}`}>{e.count}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">What they loved solving</p>
-            <ul className="mt-6 space-y-5">
-              {stats.categories.map((c, i) => (
-                <li key={c.name}>
-                  <div className="flex items-baseline justify-between text-[15px]">
-                    <span className="text-white/85">{c.name}</span>
-                    <span className="tabular-nums text-white/40">{c.n} votes</span>
-                  </div>
-                  <div className="mt-2 h-[3px] rounded-full bg-white/[0.06]">
-                    <motion.div
-                      className="h-full rounded-full bg-lime"
-                      style={{ opacity: 1 - i * 0.12 }}
-                      initial={reduce ? false : { width: 0 }}
-                      whileInView={{ width: `${(c.n / maxCat) * 100}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.8, delay: i * 0.06 }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-8 space-y-5">
+            <FeedbackCharts shown={chartRows} s={summary} allChallenges={allChallenges} setAllChallenges={setAllChallenges} />
           </div>
         </section>
       )}

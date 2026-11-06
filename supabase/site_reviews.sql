@@ -49,3 +49,21 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_
 $f$;
 REVOKE ALL ON FUNCTION public.review_stats() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.review_stats() TO anon, authenticated;
+
+-- public_feedback(): every feedback answer for the charts on /reviews, with nothing personal in it.
+-- Only multiple-choice answers and the favourite challenge name. No name, email, team, username or free-text comment.
+CREATE OR REPLACE FUNCTION public.public_feedback()
+RETURNS TABLE (id bigint, created_at date, data jsonb)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $f$
+  SELECT row_number() OVER (ORDER BY s.created_at DESC), s.created_at::date,
+         jsonb_strip_nulls(jsonb_build_object(
+           'event', s.data->'event', 'event_name', s.data->'event_name', 'source', s.data->'source',
+           'ui', s.data->'ui', 'quality', s.data->'quality', 'more_events', s.data->'more_events',
+           'category', s.data->'category', 'categories', s.data->'categories',
+           'favourite_challenge', to_jsonb(left(s.data->>'favourite_challenge', 60)),
+           'overall', s.data->'overall', 'had_issues', s.data->'had_issues'))
+  FROM form_submissions s WHERE s.form = 'feedback'
+  ORDER BY s.created_at DESC LIMIT 5000;
+$f$;
+REVOKE ALL ON FUNCTION public.public_feedback() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.public_feedback() TO anon, authenticated;
