@@ -39,6 +39,14 @@ export interface EmailVars {
   plain?: boolean;
   /** Person signing a plain email, e.g. "Kushagra". */
   signer?: string;
+  /** Prize tier name from the event, e.g. "Winner", "Top 10". */
+  tierLabel?: string;
+  /** A prize that is not a percentage, e.g. "CAPT voucher + CyberHx hoodie". */
+  prize?: string;
+  /** How many team members can use the code (0 = keep it to the team). */
+  members?: number;
+  /** Event colour, #rrggbb. */
+  color?: string;
 }
 
 export interface TemplateInfo {
@@ -403,27 +411,35 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
       };
       break;
     case 'team_voucher': {
+      // Wording kept calm on purpose: no "free", no "% off", no shouting. Sales words push mail into Promotions or spam.
       const team = (v.team || '').trim() || 'your team';
       const event = (v.event || '').trim() || 'our CTF';
       const product = (v.product || '').trim() || 'CAPT certification';
-      const pct = Math.min(100, Math.max(1, Math.round(Number(v.discount) || 80)));
       const rank = Number(v.rank) || 0;
       const top10 = (v.tier || (rank && rank <= 10 ? 10 : 50)) <= 10;
-      const tierName = top10 ? 'Top 10' : 'Top 50';
-      // Each event wears its own colour: Null Origin is red; otherwise gold for Top 10, lime for Top 50.
-      const accent = /null\s*origin/i.test(event) ? '#ff4545' : top10 ? '#f5c542' : C.lime;
-      // Wording kept calm on purpose: no "free", no "% off", no shouting. Sales words push mail into Promotions or spam.
-      const full = pct >= 100;
-      const amount = full ? 'Claim your voucher' : `${pct}%`;
-      const ticketSub = full ? `for the ${product}` : `towards the ${product}`;
-      const reward = full ? `a voucher for the ${product}` : `a ${pct}% voucher towards the ${product}`;
+      const tierName = (v.tierLabel || '').trim() || (top10 ? 'Top 10' : 'Top 50');
+      const custom = (v.prize || '').trim();
+      const pct = Math.min(100, Math.max(1, Math.round(Number(v.discount) || 80)));
+      const full = !custom && pct >= 100;
+      const members = Math.max(0, Math.min(50, Math.round(Number(v.members) || 0)));
+      const accent = /^#[0-9a-f]{6}$/i.test(v.color || '') ? v.color! : /null\s*origin/i.test(event) ? '#ff4545' : top10 ? '#f5c542' : C.lime;
+      const amount = custom ? (custom.length <= 22 ? custom : 'Claim your prize') : full ? 'Claim your voucher' : `${pct}%`;
+      const ticketSub = custom ? (custom.length <= 22 ? `for ${team}` : custom) : full ? `for the ${product}` : `towards the ${product}`;
+      const reward = custom ? custom : full ? `a voucher for the ${product}` : `a ${pct}% voucher towards the ${product}`;
+      const what = custom ? 'prize' : `${product} voucher`;
       const until = v.expires && /^\d{4}-\d{2}-\d{2}$/.test(v.expires)
         ? new Date(`${v.expires}T12:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
         : '';
       const redeem = safeUrl(v.redeemUrl) || 'https://pentestlab.cyberhx.com/capt';
       const code = (v.code || '').trim() || '—';
+      const share = members > 1
+        ? `Up to ${members} members of your team can use this code, so share it only with your team.`
+        : 'The code belongs to your team, so please keep it private.';
+      const place = rank ? `#${rank}` : `in the ${tierName}`;
+      const praise = top10 ? 'That is an exceptional result, and the whole team should be proud of it.' : 'It took real skill and patience to get there, and we noticed.';
+      const gets = full || custom ? `As a thank-you, your team can claim ${reward}.` : `As a thank-you from all of us at CyberHx, your team gets ${reward}.`;
       if (v.plain) {
-        // Reads like a note from a person: no banner, no coupon box, no button, few sales words.
+        // Reads like a note from a person: no banner, no coupon box, no button.
         subject = `${team}: your ${event} result${rank ? ` (rank #${rank})` : ''}`;
         o = {
           plain: true,
@@ -431,32 +447,28 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
           preheader: '',
           eyebrow: '',
           heading: subject,
-          paragraphs: [
-            `Hi ${team},`,
-            `Congratulations on finishing ${rank ? `#${rank}` : `in the ${tierName}`} at ${event}. ${top10 ? 'That is an exceptional result, and the whole team should be proud of it.' : 'It took real skill and patience to get there, and we noticed.'}`,
-            full ? `As the winner, your team can claim ${reward}.` : `As a thank-you from all of us at CyberHx, your team gets ${reward}.`,
-          ],
-          details: [[full ? 'Your voucher code' : 'Your discount code', code], ['Valid until', until]],
-          note: `You can use it at ${redeem}. ${top10 ? 'The code belongs to your team, so please keep it private.' : 'Up to 4 members of your team can redeem this code, so share it only with your team.'}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
+          paragraphs: [`Hi ${team},`, `Congratulations on finishing ${place} at ${event}. ${praise}`, gets],
+          details: [[full || custom ? 'Your voucher code' : 'Your discount code', code], ['Valid until', until]],
+          note: `You can use it at ${redeem}. ${share}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
         };
         break;
       }
-      subject = `${team}, ${top10 && rank ? `rank #${rank}` : tierName} at ${event}: ${full ? 'claim your' : 'your'} ${product} voucher`;
+      subject = `${team}, ${rank ? `rank #${rank}` : tierName} at ${event}: claim your ${what}`;
       o = {
         accent,
-        preheader: `${team} finished ${rank ? `#${rank}` : tierName} at ${event}. Your voucher is inside.`,
+        preheader: `${team} finished ${rank ? `#${rank}` : tierName} at ${event}. Your ${custom ? 'prize' : 'voucher'} is inside.`,
         eyebrow: `${tierName} · ${event}`,
-        heading: top10 ? (rank ? `Rank #${rank}. Exceptional work, ${team}.` : `Top 10. Exceptional work, ${team}.`) : `Top 50. Well played, ${team}.`,
+        heading: `${rank ? `Rank #${rank}` : tierName}. ${top10 ? 'Exceptional work' : 'Well played'}, ${team}.`,
         paragraphs: [
           `Hi ${team},`,
           top10
-            ? `Out of every team that played ${event}, ${team} finished ${rank ? `at rank #${rank}` : 'inside the Top 10'}. That is a place earned at the keyboard, one flag at a time, and it deserves more than a line on a scoreboard.`
-            : `Out of every team that played ${event}, ${team} finished${rank ? ` at rank #${rank},` : ''} inside the Top 50. That takes skill, patience and a lot of late hours, and we noticed.`,
-          full ? `As the winner, your team can claim ${reward}.` : `As a thank-you for taking part, your team gets ${reward}.`,
+            ? `Out of every team that played ${event}, ${team} finished ${rank ? `at rank #${rank}` : `in the ${tierName}`}. That is a place earned at the keyboard, one flag at a time, and it deserves more than a line on a scoreboard.`
+            : `Out of every team that played ${event}, ${team} finished ${rank ? `at rank #${rank}` : `in the ${tierName}`}. That takes skill, patience and a lot of late hours, and we noticed.`,
+          gets,
         ],
-        voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, sub: ticketSub, product, code: (v.code || '').trim() || '—', expires: until, accent },
-        cta: { label: 'Claim your voucher', url: redeem },
-        note: v.note || (top10 ? 'Enter the code at checkout. It belongs to your team, so keep it private.' : 'Enter the code at checkout. Up to 4 members of your team can redeem it, so share it only with your team.'),
+        voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, sub: ticketSub, product, code, expires: until, accent },
+        cta: { label: custom ? 'Claim your prize' : 'Claim your voucher', url: redeem },
+        note: v.note || `Enter the code at checkout. ${share}`,
       };
       break;
     }

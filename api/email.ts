@@ -14,7 +14,7 @@
 // Plus the SUPABASE_URL / SUPABASE_ANON_KEY already used by api/interview.ts for the admin check.
 
 import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates.js';
-import { countUsage, DEFAULT_REPLY_TO } from '../server/mailer.js';
+import { countUsage, DEFAULT_REPLY_TO, isProviderId, PRIMARY_LANE, sendDirect, type ProviderId } from '../server/mailer.js';
 import { canAny } from '../server/staff.js';
 import crypto from 'node:crypto';
 
@@ -35,6 +35,9 @@ function voucherVars(raw: unknown): Partial<EmailVars> | undefined {
     rank: num(v.rank, 1, 10000),
     tier: num(v.tier, 1, 10000),
     discount: num(v.discount, 1, 100),
+    tierLabel: str(v.tierLabel, 40).trim(),
+    prize: str(v.prize, 120).trim(),
+    members: num(v.members, 0, 50),
   };
 }
 
@@ -42,7 +45,7 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   // HR (Emails tab) and anyone who handles meetings (email button on booking links / sent history) may use this.
-  if (!(await canAny(String(req.headers?.authorization || ''), ['emails', 'meetings']))) return res.status(401).json({ error: 'Unauthorized' });
+  if (!(await canAny(String(req.headers?.authorization || ''), ['emails', 'meetings', 'ctf']))) return res.status(401).json({ error: 'Unauthorized' });
 
   const key = process.env.RESEND_API_KEY;
   if (!key) return res.status(500).json({ error: 'Email is not set up yet: add RESEND_API_KEY in Vercel environment variables.' });
@@ -117,9 +120,10 @@ export default async function handler(req: any, res: any) {
     redeemUrl: str(v.redeemUrl, MAX_FIELD.link),
     plain: v.plain === true,
     signer: str(v.signer, MAX_FIELD.name).trim(),
+    color: /^#[0-9a-f]{6}$/i.test(String(v.color || '')) ? String(v.color) : '',
   };
-  if (template === 'team_voucher' && list.some((r) => !r.own?.team || !r.own?.code || !r.own?.discount)) {
-    return res.status(400).json({ error: 'Every team needs a name, a voucher code and a discount.' });
+  if (template === 'team_voucher' && list.some((r) => !r.own?.team || !r.own?.code || (!r.own?.discount && !r.own?.prize))) {
+    return res.status(400).json({ error: 'Every team needs a name, a voucher code and a prize.' });
   }
   if (template === 'custom' && (!vars.subject?.trim() || !vars.body?.trim())) {
     return res.status(400).json({ error: 'Custom emails need a subject and a message.' });
@@ -163,7 +167,34 @@ export default async function handler(req: any, res: any) {
 
   // Vouchers can go from mail@cyberhx.com (the main domain, through Mailtrap, the same setup Outreach uses)
   // instead of Resend's team@mail.cyberhx.com. Mail from the main domain, signed by a person, reads as a personal email.
-  if (template === 'team_voucher' && body.via === 'mail') {
+  // Vouchers through any other mail service: 'auto' tries the Primary-friendly order, or a chosen service only.
+  const via = String(body.via || 'resend');
+  if (template === 'team_voucher' && via !== 'resend' && via !== 'mail') {
+    const order: ProviderId[] | null = via === 'auto' ? PRIMARY_LANE : isProviderId(via) ? [via] : null;
+    if (!order) return res.status(400).json({ error: 'Unknown mail service.' });
+    if (list.length > MAILTRAP_MAX) return res.status(400).json({ error: `At most ${MAILTRAP_MAX} emails at a time.` });
+    const fromName = vars.signer ? `${vars.signer} from CyberHx` : undefined;
+    const results: { to: string; subject: string; text: string; id: string | null; provider?: ProviderId; error?: string }[] = [];
+    const one = async (b: (typeof batch)[number]) => {
+      const r = await sendDirect(order, { to: b.to[0], name: '', subject: b.subject, html: b.html, text: b.text, tracking: false, headers: { 'Message-ID': `<${crypto.randomUUID()}@cyberhx.com>` } }, fromName);
+      results.push(r.ok
+        ? { to: b.to[0], subject: b.subject, text: b.text, id: r.id || null, provider: r.provider }
+        : { to: b.to[0], subject: b.subject, text: b.text, id: null, error: Object.entries(r.errors).map(([k, e]) => `${k}: ${e}`).join('; ').slice(0, 300) || 'Could not send.' });
+    };
+    for (let i = 0; i < batch.length; i += 3) await Promise.all(batch.slice(i, i + 3).map(one));
+    const ok = results.filter((x) => !x.error);
+    const failed = results.filter((x) => x.error);
+    const used = new Map<ProviderId, typeof ok>();
+    ok.forEach((x) => used.set(x.provider!, [...(used.get(x.provider!) || []), x]));
+    for (const [pid, rows] of used) {
+      await countUsage(auth, pid, rows.length);
+      await logSent(rows, pid);
+    }
+    if (!ok.length) return res.status(500).json({ error: failed[0]?.error || 'Could not send.' });
+    return res.status(200).json({ sent: ok.length, failed: failed.map((x) => x.to), providers: Object.fromEntries([...used].map(([k, r]) => [k, r.length])) });
+  }
+
+  if (template === 'team_voucher' && via === 'mail') {
     const mtKey = process.env.MAILTRAP_API_KEY;
     if (!mtKey) return res.status(500).json({ error: 'Sending from mail@cyberhx.com is not set up: MAILTRAP_API_KEY is missing in Vercel.' });
     if (list.length > MAILTRAP_MAX) return res.status(400).json({ error: `At most ${MAILTRAP_MAX} emails at a time from mail@cyberhx.com.` });
