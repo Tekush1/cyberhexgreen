@@ -168,7 +168,11 @@ export default async function handler(req: any, res: any) {
   // Vouchers can go from mail@cyberhx.com (the main domain, through Mailtrap, the same setup Outreach uses)
   // instead of Resend's team@mail.cyberhx.com. Mail from the main domain, signed by a person, reads as a personal email.
   // Vouchers through any other mail service: 'auto' tries the Primary-friendly order, or a chosen service only.
-  const via = String(body.via || 'resend');
+  const via = String(body.via || (template === 'team_voucher' ? 'mail' : 'resend'));
+  // Resend's daily limit is kept for PentestLab, so vouchers never go through Resend.
+  if (template === 'team_voucher' && /^resend/.test(via)) {
+    return res.status(400).json({ error: 'Vouchers are never sent through Resend (its limit is kept for PentestLab). Pick another mail service.' });
+  }
   if (template === 'team_voucher' && via !== 'resend' && via !== 'mail') {
     const order: ProviderId[] | null = via === 'auto' ? PRIMARY_LANE : isProviderId(via) ? [via] : null;
     if (!order) return res.status(400).json({ error: 'Unknown mail service.' });

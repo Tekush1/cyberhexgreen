@@ -156,7 +156,7 @@ function voucherBlock(v: NonNullable<Layout['voucher']>) {
   <tr><td style="padding:18px 22px 24px;text-align:center;">
     <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:${C.muted};">Your voucher code</p>
     <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;"><tr><td style="padding:13px 18px;border-radius:10px;background:#05070c;border:1px solid ${C.line};font-family:'SFMono-Regular',Menlo,Consolas,'Courier New',monospace;font-size:19px;font-weight:700;letter-spacing:.06em;color:${a};word-break:break-all;">${esc(v.code)}</td></tr></table>
-    ${v.expires ? `<p style="margin:12px 0 0;font-size:12px;color:${C.muted};">Valid until ${esc(v.expires)}</p>` : ''}
+    ${v.expires ? `<p style="margin:12px 0 0;font-size:12px;color:${C.muted};">Apply before ${esc(v.expires)}</p>` : ''}
   </td></tr>
 </table>`;
 }
@@ -252,7 +252,7 @@ export function textVersion(o: Layout) {
     o.heading,
     '',
     ...o.paragraphs.filter(Boolean),
-    ...(o.voucher ? ['', `${o.voucher.label}: ${o.voucher.amount} ${o.voucher.sub || `on ${o.voucher.product}`}`, `Your voucher code: ${o.voucher.code}`, o.voucher.expires ? `Valid until ${o.voucher.expires}` : '', ''] : []),
+    ...(o.voucher ? ['', `${o.voucher.label}: ${o.voucher.amount} ${o.voucher.sub || `on ${o.voucher.product}`}`, `Your voucher code: ${o.voucher.code}`, o.voucher.expires ? `Apply before ${o.voucher.expires}` : '', ''] : []),
     ...(o.details || []).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`),
     o.cta && safeUrl(o.cta.url) ? `\n${o.cta.label}: ${safeUrl(o.cta.url)}` : '',
     o.note?.trim() ? `\n${o.note.trim()}` : '',
@@ -425,7 +425,7 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
       const accent = /^#[0-9a-f]{6}$/i.test(v.color || '') ? v.color! : /null\s*origin/i.test(event) ? '#ff4545' : top10 ? '#f5c542' : C.lime;
       const amount = custom ? (custom.length <= 22 ? custom : 'Claim your prize') : full ? 'Claim your voucher' : `${pct}%`;
       const ticketSub = custom ? (custom.length <= 22 ? `for ${team}` : custom) : full ? `for the ${product}` : `towards the ${product}`;
-      const reward = custom ? custom : full ? `a voucher for the ${product}` : `a ${pct}% voucher towards the ${product}`;
+      const reward = custom ? custom : full ? `a voucher for the ${product}` : `${/^(8|11|18)/.test(String(pct)) ? 'an' : 'a'} ${pct}% voucher towards the ${product}`;
       const what = custom ? 'prize' : `${product} voucher`;
       const until = v.expires && /^\d{4}-\d{2}-\d{2}$/.test(v.expires)
         ? new Date(`${v.expires}T12:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -448,8 +448,8 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
           eyebrow: '',
           heading: subject,
           paragraphs: [`Hi ${team},`, `Congratulations on finishing ${place} at ${event}. ${praise}`, gets],
-          details: [[full || custom ? 'Your voucher code' : 'Your discount code', code], ['Valid until', until]],
-          note: `You can use it at ${redeem}. ${share}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
+          details: [[full || custom ? 'Your voucher code' : 'Your discount code', code], ['Apply before', until]],
+          note: `You can use it at ${redeem}${until ? `. Please apply it before ${until}` : ''}. ${share}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
         };
         break;
       }
@@ -468,7 +468,7 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
         ],
         voucher: { label: `${tierName}${rank ? ` · Rank #${rank}` : ''}`, amount, sub: ticketSub, product, code, expires: until, accent },
         cta: { label: custom ? 'Claim your prize' : 'Claim your voucher', url: redeem },
-        note: v.note || `Enter the code at checkout. ${share}`,
+        note: v.note || `Enter the code at checkout${until ? ` and apply it before ${until}` : ''}. ${share}`,
       };
       break;
     }

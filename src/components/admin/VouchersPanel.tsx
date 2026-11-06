@@ -22,7 +22,7 @@ const ONE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORE = 'cx_vouchers_v3';
 const SWATCHES = ['#ff4545', '#f5c542', '#c6f135', '#30d158', '#0a84ff', '#bf5af2', '#ff9f0a', '#64d2ff'];
 
-interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; problems: string[] }
+interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; members?: number; problems: string[] }
 type Mode = 'board' | 'one';
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/70';
@@ -51,6 +51,7 @@ function eventProblems(e: Omit<VoucherEvent, 'id'>): string[] {
   if (e.name.trim().length < 2) p.push('Give the event a name.');
   if (!/^https:\/\/\S+$/i.test(e.redeem_url.trim())) p.push('The redeem link must start with https://');
   if (!e.tiers.length) p.push('Add at least one prize tier.');
+  if (/^resend/.test(e.sender)) p.push('Vouchers never go through Resend (its limit is kept for PentestLab). Pick another mail service.');
   e.tiers.forEach((t, i) => {
     const n = t.label.trim() || `Tier ${i + 1}`;
     if (!(t.from >= 1) || !(t.to >= t.from)) p.push(`${n}: ranks must go from low to high.`);
@@ -72,12 +73,12 @@ function parse(text: string): TeamRow[] {
     out.push(cur.trim());
     return out;
   };
-  let col = { rank: 0, team: 1, emails: 2, code: 3 };
+  let col = { rank: 0, team: 1, emails: 2, code: 3, members: -1 };
   let start = 0;
   const head = split(lines[0]).map((c) => c.toLowerCase());
   if (head.some((c) => /team|rank|code|voucher|email/.test(c)) && !(lines[0].match(EMAIL_RE) || []).length) {
     const find = (re: RegExp, fb: number) => { const i = head.findIndex((c) => re.test(c)); return i >= 0 ? i : fb; };
-    col = { rank: find(/rank|pos|place|#/, 0), team: find(/team/, 1), emails: find(/mail/, 2), code: find(/code|voucher|coupon/, 3) };
+    col = { rank: find(/rank|pos|place|#/, 0), team: find(/team/, 1), emails: find(/mail/, 2), code: find(/code|voucher|coupon/, 3), members: find(/member|players|size/, -1) };
     start = 1;
   }
   const rows: TeamRow[] = [];
@@ -92,7 +93,8 @@ function parse(text: string): TeamRow[] {
     if (!team) problems.push('no team name');
     if (!emails.length) problems.push('no email');
     if (!code) problems.push('no voucher code');
-    rows.push({ line: i + 1, rank, team, emails, code, problems });
+    const m = col.members >= 0 ? Math.round(Number(String(c[col.members] || '').replace(/[^\d]/g, ''))) : 0;
+    rows.push({ line: i + 1, rank, team, emails, code, members: m > 0 ? Math.min(50, m) : undefined, problems });
   }
   const seen = new Map<string, number>();
   rows.forEach((r) => r.code && seen.set(r.code.toUpperCase(), (seen.get(r.code.toUpperCase()) || 0) + 1));
@@ -259,9 +261,9 @@ export const VouchersPanel: React.FC = () => {
     event: ev.name.trim(), product: ev.product.trim() || 'CAPT certification', expires: ev.expires || '', redeemUrl: ev.redeem_url.trim(),
     plain: ev.style === 'plain', signer: ev.signer.trim(), color: ev.color, note: ev.note.trim(),
   };
-  const teamVars = (team: string, rank: number, t: Tier, code: string) => ({
+  const teamVars = (team: string, rank: number, t: Tier, code: string, members?: number) => ({
     team, rank: rank || undefined, tier: t.to <= 10 ? 10 : 50, code, tierLabel: t.label.trim() || rangeLabel(t),
-    discount: t.type === 'percent' ? t.percent : undefined, prize: t.type === 'custom' ? t.prize.trim() : '', members: t.members || 0,
+    discount: t.type === 'percent' ? t.percent : undefined, prize: t.type === 'custom' ? t.prize.trim() : '', members: members ?? (t.members || 0),
   });
   const send = (b: object) => {
     if (problems.length) return Promise.reject(new Error(problems[0]));
@@ -295,16 +297,16 @@ export const VouchersPanel: React.FC = () => {
   const sampleTier = tiers[0] || NEW_EVENT().tiers[0];
   const pv = mode === 'one'
     ? { team: one.team.trim() || 'Your team', rank: oneRank, tier: oneTier || sampleTier, code: oneCode || 'CODE-HERE' }
-    : boardRow && tierFor(boardRow.rank) ? { team: boardRow.team || 'Team', rank: boardRow.rank, tier: tierFor(boardRow.rank)!, code: boardRow.code || 'CODE-HERE' }
+    : boardRow && tierFor(boardRow.rank) ? { team: boardRow.team || 'Team', rank: boardRow.rank, tier: tierFor(boardRow.rank)!, code: boardRow.code || 'CODE-HERE', members: boardRow.members }
     : { team: 'Team Phantom', rank: sampleTier.from, tier: sampleTier, code: 'CODE-X7K2' };
-  const vars: EmailVars = { ...shared, ...teamVars(pv.team, pv.rank, pv.tier, pv.code) };
+  const vars: EmailVars = { ...shared, ...teamVars(pv.team, pv.rank, pv.tier, pv.code, 'members' in pv ? pv.members : undefined) };
   const preview = useMemo(() => renderEmail('team_voucher', vars), [JSON.stringify(vars)]); // eslint-disable-line react-hooks/exhaustive-deps
   const who = mode === 'one' ? (one.team.trim() || 'your team') : boardRow ? boardRow.team : 'sample team';
 
   const senderOptions = [
     { id: 'auto', label: 'Auto: best for Primary inbox', note: 'Tries Mailgun, Mailjet, Maileroo, SMTP2GO, AhaSend, then Brevo, Sender', ok: true },
     { id: 'mail', label: 'mail@cyberhx.com (Mailtrap)', note: 'Main domain, like Outreach', ok: providers.length ? !!providers.find((p) => p.id === 'mailtrap')?.configured : true },
-    ...providers.filter((p) => p.id !== 'mailtrap').map((p) => ({
+    ...providers.filter((p) => p.id !== 'mailtrap' && !p.id.startsWith('resend')).map((p) => ({
       id: p.id, label: `${p.label} · ${p.from.replace(/^.*<|>$/g, '')}`,
       note: p.configured ? (p.day ? `${p.usedToday ?? 0} / ${p.day} sent today` : 'No daily limit') : 'Not connected',
       ok: p.configured,
@@ -316,7 +318,7 @@ export const VouchersPanel: React.FC = () => {
     if (!ONE_EMAIL.test(testTo.trim())) { setMsg({ ok: false, text: 'Type the email address to send the test to.' }); return; }
     setBusy('test'); setMsg(null);
     try {
-      const t = await send({ template: 'team_voucher', recipients: [{ email: testTo.trim(), name: pv.team, vars: teamVars(pv.team, pv.rank, pv.tier, pv.code) }], vars: shared });
+      const t = await send({ template: 'team_voucher', recipients: [{ email: testTo.trim(), name: pv.team, vars: teamVars(pv.team, pv.rank, pv.tier, pv.code, 'members' in pv ? pv.members : undefined) }], vars: shared });
       if (t.failed?.length) throw new Error(`Could not send the test to ${testTo.trim()}.`);
       setMsg({ ok: true, text: `Test sent to ${testTo.trim()} via ${t.providers ? Object.keys(t.providers).join(', ') : senderName}.` });
     } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not send the test.' }); }
@@ -349,7 +351,7 @@ export const VouchersPanel: React.FC = () => {
     for (const c of chunks) {
       c.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: 'sending' })));
       try {
-        const d = await send({ template: 'team_voucher', recipients: c.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierFor(r.rank)!, r.code) }))), vars: shared });
+        const d = await send({ template: 'team_voucher', recipients: c.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierFor(r.rank)!, r.code, r.members) }))), vars: shared });
         const stamp = new Date().toISOString();
         const bad = new Set(d.failed || []);
         const done = c.filter((r) => !r.emails.some((e) => bad.has(e)));
@@ -386,9 +388,9 @@ export const VouchersPanel: React.FC = () => {
   };
 
   const sampleSheet = () => downloadCsv('team-vouchers-template.csv', [
-    ['Rank', 'Team', 'Emails', 'Voucher code'],
-    [1, 'Team Phantom', 'captain@example.com; member@example.com', 'CTF-R1-AB12'],
-    [11, 'Null Pointers', 'lead@example.com', 'CTF-R11-CD34'],
+    ['Rank', 'Team', 'Emails', 'Voucher code', 'Members'],
+    [1, 'Team Phantom', 'captain@example.com; member@example.com', 'CTF-R1-AB12', 2],
+    [11, 'Null Pointers', 'lead@example.com', 'CTF-R11-CD34', 4],
   ]);
 
   return (
@@ -449,7 +451,7 @@ export const VouchersPanel: React.FC = () => {
           </div>
           <div><label className={label} htmlFor="ve-product">Voucher for</label><input id="ve-product" className={input} value={draft.product} maxLength={MAX_FIELD.product} onChange={(e) => setDraft({ ...draft, product: e.target.value })} /></div>
           <div><label className={label} htmlFor="ve-url">Redeem link</label><input id="ve-url" className={input} value={draft.redeem_url} maxLength={300} onChange={(e) => setDraft({ ...draft, redeem_url: e.target.value })} /></div>
-          <div><label className={label} htmlFor="ve-exp">Valid until <span className="text-white/30">(optional)</span></label><input id="ve-exp" type="date" className={`${input} [color-scheme:dark]`} value={draft.expires || ''} onChange={(e) => setDraft({ ...draft, expires: e.target.value || null })} /></div>
+          <div><label className={label} htmlFor="ve-exp">Apply before <span className="text-white/30">(optional)</span></label><input id="ve-exp" type="date" className={`${input} [color-scheme:dark]`} value={draft.expires || ''} onChange={(e) => setDraft({ ...draft, expires: e.target.value || null })} /></div>
         </div>
 
         {/* Prize tiers */}
@@ -543,7 +545,7 @@ export const VouchersPanel: React.FC = () => {
       {mode === 'board' ? (
         <Section
           title="Leaderboard"
-          sub={`Paste from Google Sheets: Rank, Team, Email(s), Voucher code. Ranks 1–${maxRank || '…'} get a prize.`}
+          sub={`Paste from Google Sheets: Rank, Team, Email(s), Voucher code, Members (optional). Ranks 1–${maxRank || '…'} get a prize.`}
           right={<button onClick={sampleSheet} className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-white/70 hover:text-white"><Download size={13} /> Sample sheet</button>}
         >
           <textarea
