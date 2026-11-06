@@ -23,7 +23,7 @@ interface Settings { event: string; product: string; redeemUrl: string; expires:
 interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; problems: string[] }
 type Mode = 'board' | 'one';
 
-const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com', expires: '', top10: 100, top50: 80, plain: true, signer: '', via: 'mail' };
+const DEFAULTS: Settings = { event: VOUCHER_EVENTS[0].name, product: 'CAPT certification', redeemUrl: 'https://pentestlab.cyberhx.com/capt', expires: '', top10: 100, top50: 80, plain: true, signer: '', via: 'mail' };
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/70';
 const label = 'block text-[12px] font-medium text-white/55 mb-1.5';
@@ -124,7 +124,11 @@ const Segmented = <T extends string | number>({ value, options, onChange, label:
 );
 
 export const VouchersPanel: React.FC = () => {
-  const [set, setSet] = useState<Settings>(() => load(STORE, DEFAULTS));
+  const [set, setSet] = useState<Settings>(() => {
+    const s = load(STORE, DEFAULTS);
+    // Older saved settings still point at the lab's home page: vouchers are redeemed on /capt.
+    return /^https:\/\/pentestlab\.cyberhx\.com\/?$/.test(s.redeemUrl) ? { ...s, redeemUrl: DEFAULTS.redeemUrl } : s;
+  });
   const [mode, setMode] = useState<Mode>(() => (load(`${STORE}_ui`, { mode: 'board' as Mode }).mode));
   const [raw, setRaw] = useState<string>(() => { try { return localStorage.getItem(`${STORE}_list`) || ''; } catch { return ''; } });
   const [sent, setSent] = useState<Record<string, string>>(() => load(`${STORE}_sent`, {} as Record<string, string>));

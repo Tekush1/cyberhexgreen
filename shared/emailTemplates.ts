@@ -244,7 +244,7 @@ export function textVersion(o: Layout) {
     o.heading,
     '',
     ...o.paragraphs.filter(Boolean),
-    ...(o.voucher ? ['', `${o.voucher.label}: ${o.voucher.amount} on ${o.voucher.product}`, `Your voucher code: ${o.voucher.code}`, o.voucher.expires ? `Valid until ${o.voucher.expires}` : '', ''] : []),
+    ...(o.voucher ? ['', `${o.voucher.label}: ${o.voucher.amount} ${o.voucher.sub || `on ${o.voucher.product}`}`, `Your voucher code: ${o.voucher.code}`, o.voucher.expires ? `Valid until ${o.voucher.expires}` : '', ''] : []),
     ...(o.details || []).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`),
     o.cta && safeUrl(o.cta.url) ? `\n${o.cta.label}: ${safeUrl(o.cta.url)}` : '',
     o.note?.trim() ? `\n${o.note.trim()}` : '',
@@ -415,12 +415,12 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
       // Wording kept calm on purpose: no "free", no "% off", no shouting. Sales words push mail into Promotions or spam.
       const full = pct >= 100;
       const amount = full ? 'Claim your voucher' : `${pct}%`;
-      const ticketSub = full ? `${product}, fully covered` : `towards the ${product}`;
-      const reward = full ? `a voucher that covers the ${product} in full` : `a ${pct}% voucher towards the ${product}`;
+      const ticketSub = full ? `for the ${product}` : `towards the ${product}`;
+      const reward = full ? `a voucher for the ${product}` : `a ${pct}% voucher towards the ${product}`;
       const until = v.expires && /^\d{4}-\d{2}-\d{2}$/.test(v.expires)
         ? new Date(`${v.expires}T12:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
         : '';
-      const redeem = safeUrl(v.redeemUrl) || 'https://pentestlab.cyberhx.com';
+      const redeem = safeUrl(v.redeemUrl) || 'https://pentestlab.cyberhx.com/capt';
       const code = (v.code || '').trim() || '—';
       if (v.plain) {
         // Reads like a note from a person: no banner, no coupon box, no button, few sales words.
