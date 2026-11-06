@@ -102,7 +102,12 @@ Congrats on putting together ${l.event}. I'm reaching out from Cyber HX (cyberhx
 
 If you're still finalising infrastructure, or are planning your next edition, we'd be glad to help. We can also contribute original challenges.
 
+Every event comes with a 100% money-back guarantee: if there is downtime during your event because of an issue on our side, you get your full hosting fee back.
+
+280 players reviewed our recent CTFs and rated them 4.3/5. You can read what they said: https://cyberhx.com/reviews
+
 Pricing and details: https://cyberhx.com/host-your-ctf
+Instagram: https://instagram.com/cyberhx__
 
 Would a quick 15-minute call this week work?
 
