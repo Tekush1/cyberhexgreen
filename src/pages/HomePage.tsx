@@ -4,6 +4,7 @@ import { WhatWeDoSection } from '../components/sections/WhatWeDoSection';
 import { PentestLabSection } from '../components/sections/PentestLabSection';
 import { CertificationsSection } from '../components/sections/CertificationsSection';
 import { PlatformsSection } from '../components/sections/PlatformsSection';
+import { ReviewsSection } from '../components/sections/ReviewsSection';
 import { CallToActionSection } from '../components/sections/CallToActionSection';
 import { Seo } from '../features/seo/Seo';
 
@@ -20,6 +21,7 @@ export const HomePage = () => (
     <PentestLabSection />
     <CertificationsSection />
     <PlatformsSection />
+    <ReviewsSection />
     <CallToActionSection />
   </>
 );

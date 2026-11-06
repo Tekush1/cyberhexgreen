@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Download, Loader2, MessageSquareQuote, RefreshCw } from 'lucide-react';
 import { sbSelect, timeAgo, fmtDateTime } from './adminApi';
-import { downloadCsv } from './mailingApi';
+import { downloadCsv, sbInsert, sbRows, sbWrite } from './mailingApi';
 
 /* Admin → Feedback: the event review form (/blog/feedback) as charts.
    Rows come from form_submissions where form = 'feedback'; answers live in row.data. */
@@ -194,6 +194,36 @@ export const FeedbackPanel: React.FC = () => {
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  // Quotes shown on cyberhx.com/reviews and the homepage (table site_reviews).
+  const [onSite, setOnSite] = useState<Record<string, { id: string; published: boolean }>>({});
+  const [siteBusy, setSiteBusy] = useState('');
+  const [siteErr, setSiteErr] = useState('');
+  const loadSite = useCallback(async () => {
+    try {
+      const { rows: list } = await sbRows<{ id: string; submission_id: string; published: boolean }>('site_reviews?select=id,submission_id,published&limit=1000');
+      setOnSite(Object.fromEntries(list.filter((x) => x.submission_id).map((x) => [x.submission_id, { id: x.id, published: x.published }])));
+    } catch { /* table missing: the toggle just stays off */ }
+  }, []);
+  useEffect(() => { loadSite(); }, [loadSite]);
+  const toggleSite = async (r: FbRow, quote: string) => {
+    setSiteBusy(r.id); setSiteErr('');
+    try {
+      const cur = onSite[r.id];
+      if (cur) await sbWrite('PATCH', `site_reviews?id=eq.${cur.id}`, { published: !cur.published });
+      else {
+        const m = /^([1-5])\/5/.exec(r.data?.quality || r.data?.ui || '');
+        await sbInsert('site_reviews', {
+          submission_id: r.id, quote: quote.replace(/\s+/g, ' ').trim().slice(0, 600),
+          author: (r.data?.username || r.name || '').split(' ')[0].slice(0, 60),
+          team: (r.data?.team || r.data?.team_or_username || '').slice(0, 60),
+          event_name: (r.data?.event_name || '').slice(0, 80), rating: m ? Number(m[1]) : null,
+        });
+      }
+      await loadSite();
+    } catch (e) { setSiteErr(e instanceof Error ? e.message : 'Could not update the website.'); }
+    finally { setSiteBusy(''); }
+  };
 
   // One button per event, newest event first.
   const events = useMemo<Ev[]>(() => {
@@ -516,7 +546,8 @@ export const FeedbackPanel: React.FC = () => {
           )}
 
           {/* What players said */}
-          <Card title="What players said" sub={`${s.notes.length} wrote something worth reading · longest first`}>
+          <Card title="What players said" sub={`${s.notes.length} wrote something worth reading · longest first · ${Object.values(onSite).filter((x) => x.published).length} shown on cyberhx.com/reviews`}>
+            {siteErr && <p className="mb-3 text-sm text-red-300">{siteErr}</p>}
             {s.notes.length ? (
               <ul className="grid gap-3 md:grid-cols-2">
                 {s.notes.slice(0, allNotes ? undefined : 8).map(({ r, text }) => {
@@ -536,6 +567,14 @@ export const FeedbackPanel: React.FC = () => {
                         {r.data?.favourite_challenge && <span>♥ {r.data.favourite_challenge}</span>}
                         {sc > 0 && <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: RATING[sc - 1].color }} />{s.ratingIsUi ? 'UI' : 'Quality'} {sc}/5</span>}
                         <span title={fmtDateTime(r.created_at)}>{timeAgo(r.created_at)}</span>
+                        <button
+                          onClick={() => toggleSite(r, text.map((t) => t.t).join(' '))}
+                          disabled={siteBusy === r.id}
+                          className={`ml-auto rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition disabled:opacity-50 ${onSite[r.id]?.published ? 'border-[#a3e635]/40 bg-[#a3e635]/10 text-[#a3e635]' : 'border-white/10 text-white/50 hover:text-white'}`}
+                          title="Show this quote on cyberhx.com/reviews (handle, team and event only; never the email)"
+                        >
+                          {siteBusy === r.id ? 'Saving…' : onSite[r.id]?.published ? 'On website ✓' : 'Show on website'}
+                        </button>
                       </div>
                     </li>
                   );

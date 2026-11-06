@@ -13,6 +13,7 @@ const STATIC: { path: string; priority: number; changefreq: string }[] = [
   { path: '/events', priority: 0.8, changefreq: 'weekly' },
   { path: '/certifications', priority: 0.8, changefreq: 'monthly' },
   { path: '/companies', priority: 0.8, changefreq: 'monthly' },
+  { path: '/reviews', priority: 0.7, changefreq: 'weekly' },
   { path: '/about', priority: 0.6, changefreq: 'monthly' },
   { path: '/contact', priority: 0.6, changefreq: 'monthly' },
   { path: '/collaborations', priority: 0.5, changefreq: 'monthly' },

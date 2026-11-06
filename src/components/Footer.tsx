@@ -19,6 +19,7 @@ const columns = [
       { label: 'About', to: '/about' },
       { label: 'Blog', to: '/blog' },
       { label: 'For companies', to: '/companies' },
+      { label: 'Reviews', to: '/reviews' },
       { label: 'Collaborations', to: '/collaborations' },
       { label: 'Contact', to: '/contact' },
     ],

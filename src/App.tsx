@@ -12,6 +12,7 @@ const AboutPage = lazy(retryImport(() => import('./pages/AboutPage').then(module
 const PrizesPage = lazy(retryImport(() => import('./pages/PrizesPage').then(module => ({ default: module.PrizesPage }))));
 const GalleryPage = lazy(retryImport(() => import('./pages/GalleryPage').then(module => ({ default: module.GalleryPage }))));
 const CompaniesPage = lazy(retryImport(() => import('./pages/CompaniesPage')));
+const ReviewsPage = lazy(retryImport(() => import('./pages/ReviewsPage')));
 const ContactPage = lazy(retryImport(() => import('./pages/ContactPage').then(module => ({ default: module.ContactPage }))));
 const BecomeMentorPage = lazy(retryImport(() => import('./pages/BecomeMentorPage').then(module => ({ default: module.BecomeMentorPage }))));
 const BookSessionPage = lazy(retryImport(() => import('./pages/BookSessionPage').then(module => ({ default: module.BookSessionPage }))));
@@ -84,6 +85,7 @@ function App() {
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/companies" element={<CompaniesPage />} />
+              <Route path="/reviews" element={<ReviewsPage />} />
               <Route path="/become-mentor" element={<BecomeMentorPage />} />
               <Route path="/book-session" element={<BookSessionPage />} />
               <Route path="/register" element={<RegistrationPage />} />
