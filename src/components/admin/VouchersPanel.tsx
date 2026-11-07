@@ -187,7 +187,7 @@ export const VouchersPanel: React.FC = () => {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [one, setOne] = useState({ team: '', rank: '', tierId: '', code: '', emails: '' });
   // Special discount: not a CTF result. "Pentest Lab is open worldwide, here is a code for you."
-  const [sp, setSp] = useState(() => load(`${STORE}_special`, { percent: 30, prize: '', members: 0, code: '', list: '' }));
+  const [sp, setSp] = useState(() => load(`${STORE}_special`, { percent: 30, prize: '', members: 0, code: '', list: '', via: 'sender' }));
   useEffect(() => save(`${STORE}_special`, sp), [sp]);
 
   const loadEvents = useCallback(async (select?: string) => {
@@ -272,7 +272,7 @@ export const VouchersPanel: React.FC = () => {
   const send = (b: object) => {
     if (problems.length) return Promise.reject(new Error(problems[0]));
     if (dirty) return Promise.reject(new Error('Save the event first, so every email matches what is saved.'));
-    return post({ ...b, via: ev.sender });
+    return post({ ...b, via: mode === 'special' ? sp.via : ev.sender });
   };
   const perRequest = ev.sender === 'resend' ? 100 : 20;
   const failedNote = (f?: string[]) => (f?.length ? ` Not delivered to: ${f.join(', ')}.` : '');
@@ -350,7 +350,8 @@ export const VouchersPanel: React.FC = () => {
       ok: p.configured,
     })),
   ];
-  const senderName = senderOptions.find((o) => o.id === ev.sender)?.label || ev.sender;
+  const viaNow = mode === 'special' ? sp.via : ev.sender;
+  const senderName = senderOptions.find((o) => o.id === viaNow)?.label || viaNow;
 
   const sendTest = async () => {
     if (!ONE_EMAIL.test(testTo.trim())) { setMsg({ ok: false, text: 'Type the email address to send the test to.' }); return; }
@@ -627,6 +628,13 @@ export const VouchersPanel: React.FC = () => {
                   {[2, 3, 5, 10, 25, 50].map((n) => <option key={n} value={n}>Up to {n} people</option>)}
                 </select>
               </div>
+            </div>
+            <div>
+              <label className={label} htmlFor="sp-via">Mail service for the special discount</label>
+              <select id="sp-via" className={input} value={sp.via} onChange={(e) => setSp({ ...sp, via: e.target.value })}>
+                {senderOptions.map((o) => <option key={o.id} value={o.id} disabled={!o.ok}>{o.label}{o.ok ? '' : ' (not connected)'}</option>)}
+              </select>
+              <p className="mt-1.5 text-[11.5px] text-white/35">{senderOptions.find((o) => o.id === sp.via)?.note} · Kept separate from the event's own mail service.</p>
             </div>
             <div>
               <label className={label} htmlFor="sp-code">Voucher code for everyone <span className="text-white/30">(used when a line has no code of its own)</span></label>
