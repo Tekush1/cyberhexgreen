@@ -215,7 +215,13 @@ export const VouchersPanel: React.FC = () => {
   const loadQueue = useCallback(async () => {
     if (!selId) { setQueue(null); return; }
     try {
-      const { rows: list } = await sbRows<QRow>(`voucher_queue?select=id,email,status,last_error,not_before,sent_at,kind&event_id=eq.${selId}&order=id.desc&limit=5000`);
+      // PostgREST hands out 1000 rows per request: page through, so the counts are exact.
+      const list: QRow[] = [];
+      for (let from = 0; from < 20000; from += 1000) {
+        const { rows: page } = await sbRows<QRow>(`voucher_queue?select=id,email,status,last_error,not_before,sent_at,kind&event_id=eq.${selId}&order=id.desc`, { from, to: from + 999 });
+        list.push(...page);
+        if (page.length < 1000) break;
+      }
       setQueue({ rows: list, at: Date.now() });
     } catch { setQueue(null); }
   }, [selId]);
@@ -922,7 +928,11 @@ export const VouchersPanel: React.FC = () => {
               </div>
             ))}
           </div>
-          {qCount('pending') + qCount('sending') > 0 && <p className="mt-3 text-[12px] text-white/40">Done in {minutes(qCount('pending') + qCount('sending'))} if nothing is held back by a limit.</p>}
+          {qCount('pending') + qCount('sending') > 0 && (() => {
+            const next = (queue.rows.filter((r) => r.status === 'pending').map((r) => r.not_before).sort()[0]) || '';
+            const later = next && new Date(next).getTime() > Date.now() + 120_000;
+            return <p className="mt-3 text-[12px] text-white/40">{later ? `Paused by a mail service limit. Next try ${new Date(next).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}.` : `Done in ${minutes(qCount('pending') + qCount('sending'))} if nothing is held back by a limit.`}</p>;
+          })()}
           {(queue.rows.filter((r) => r.status === 'failed' || (r.status === 'pending' && r.last_error)).slice(0, 5)).map((r) => (
             <p key={r.id} className="mt-2 truncate text-[12px] text-red-300/90" title={r.last_error}>
               {r.email}: {r.status === 'pending' ? `waiting (${r.last_error.slice(0, 120)}), next try ${new Date(r.not_before).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : r.last_error.slice(0, 160)}

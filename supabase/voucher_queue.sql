@@ -140,3 +140,5 @@ GRANT EXECUTE ON FUNCTION public.voucher_queue_add(jsonb) TO authenticated;
 --   {id, hold_minutes}      wait without using up a try (per-minute share, or the service is at its limit)
 --   {rest_via, minutes}     the service is full: every email waiting for it waits that long too
 -- (see the live function; same body as above plus these two branches)
+-- Waits can last up to 1500 minutes (a provider's daily limit, e.g. Sender "Retry after <time>"): the 720 caps in
+-- voucher_queue_done were raised to 1500 on 7 Nov 2026.

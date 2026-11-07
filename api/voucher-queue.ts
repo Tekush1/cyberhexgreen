@@ -72,8 +72,11 @@ export default async function handler(req: any, res: any) {
         if (limited) {
           // The service is full: this email and every other one waiting for it wait an hour (no try used up).
           resting.add(q.via);
-          results.push({ id: q.id, hold_minutes: 60, error });
-          results.push({ rest_via: q.via, minutes: 60 });
+          // "Retry after 2026-11-08T01:40:48Z": wait exactly until then (one day at most), else an hour.
+          const after = Date.parse((/retry after\s+([0-9T:.\-]+Z)/i.exec(error) || [])[1] || '');
+          const mins = Number.isFinite(after) ? Math.min(Math.max(Math.ceil((after - Date.now()) / 60000) + 1, 5), 1440) : 60;
+          results.push({ id: q.id, hold_minutes: mins, error });
+          results.push({ rest_via: q.via, minutes: mins });
         } else {
           const recipient = RECIPIENT.test(error);
           results.push({ id: q.id, ok: false, error, retry_minutes: recipient ? 0 : Math.min(10 * 2 ** Math.max(0, q.attempts - 1), 360) });
