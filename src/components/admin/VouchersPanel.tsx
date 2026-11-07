@@ -398,6 +398,7 @@ export const VouchersPanel: React.FC = () => {
 
   const senderOptions = [
     { id: 'auto', label: 'Auto: best for Primary inbox', note: 'Tries Mailgun, Mailjet, Maileroo, SMTP2GO, AhaSend, then Brevo, Sender', ok: true },
+    { id: 'brevo,sender', label: 'Brevo + Sender (shared)', note: 'Takes turns between Brevo and Sender; if one is at its limit the other sends', ok: providers.length ? providers.some((p) => (p.id === 'brevo' || p.id === 'sender') && p.configured) : true },
     { id: 'mail', label: 'mail@cyberhx.com (Mailtrap)', note: 'Main domain, like Outreach', ok: providers.length ? !!providers.find((p) => p.id === 'mailtrap')?.configured : true },
     ...providers.filter((p) => p.id !== 'mailtrap' && !p.id.startsWith('resend')).map((p) => ({
       id: p.id, label: `${p.label} · ${p.from.replace(/^.*<|>$/g, '')}`,

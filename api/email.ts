@@ -14,7 +14,7 @@
 // Plus the SUPABASE_URL / SUPABASE_ANON_KEY already used by api/interview.ts for the admin check.
 
 import { TEMPLATES, MAX_FIELD, renderEmail, type TemplateId, type EmailVars } from '../shared/emailTemplates.js';
-import { countUsage, DEFAULT_REPLY_TO, isProviderId, PRIMARY_LANE, sendDirect, type ProviderId } from '../server/mailer.js';
+import { countUsage, DEFAULT_REPLY_TO, sendDirect, viaOrder, type ProviderId } from '../server/mailer.js';
 import { canAny } from '../server/staff.js';
 import crypto from 'node:crypto';
 
@@ -175,7 +175,7 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'Vouchers are never sent through Resend (its limit is kept for PentestLab). Pick another mail service.' });
   }
   if (template === 'team_voucher' && via !== 'resend' && via !== 'mail') {
-    const order: ProviderId[] | null = via === 'auto' ? PRIMARY_LANE : isProviderId(via) ? [via] : null;
+    const order: ProviderId[] | null = viaOrder(via).length ? viaOrder(via) : null;
     if (!order) return res.status(400).json({ error: 'Unknown mail service.' });
     if (list.length > MAILTRAP_MAX) return res.status(400).json({ error: `At most ${MAILTRAP_MAX} emails at a time.` });
     const fromName = vars.signer ? `${vars.signer} from CyberHx` : undefined;

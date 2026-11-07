@@ -9,12 +9,12 @@
 // Env: SUPABASE_URL / SUPABASE_ANON_KEY, provider keys. Never commit them.
 
 import { renderEmail, type EmailVars } from '../shared/emailTemplates.js';
-import { isProviderId, PRIMARY_LANE, rpc, sendDirect, type ProviderId } from '../server/mailer.js';
+import { rpc, sendDirect, viaOrder, type ProviderId } from '../server/mailer.js';
 import crypto from 'node:crypto';
 
 const PER_RUN = 6; // emails per minute in total
 // Per service, per minute: stay under each one's hourly / daily limits (Mailgun probation: 100 an hour).
-const PER_MIN: Record<string, number> = { mailgun: 1, mailtrap: 2, mail: 2, sender: 3 };
+const PER_MIN: Record<string, number> = { mailgun: 1, mailtrap: 2, mail: 2, sender: 3, brevo: 3, 'brevo,sender': 5 };
 const GAP_MS = 1500; // pause between two emails
 const RATE = /429|rate.?limit|too many|throttl|slow down|per minute|quota|daily limit|limit reached|exceeded/i;
 const RECIPIENT = /(recipient|not valid|malformed|invalid.{0,20}(email|address)|does not exist|bounced|unsubscribed|suppress|blocklist|blacklist)/i;
@@ -50,10 +50,10 @@ export default async function handler(req: any, res: any) {
     used[q.via] = (used[q.via] || 0) + 1;
     const vars = { ...(q.shared || {}), ...(q.vars || {}) } as EmailVars;
     const mail = renderEmail('team_voucher', vars);
-    const order: ProviderId[] = (q.via === 'mail' ? ['mailtrap'] : q.via === 'auto' ? PRIMARY_LANE : isProviderId(q.via) ? [q.via] : [])
-      .filter((p) => !resting.has(p)) as ProviderId[];
+    // Several services ("brevo,sender"): take turns, so each carries half; if one is full the next one sends.
+    const order: ProviderId[] = viaOrder(q.via, q.id).filter((p) => !resting.has(p));
     if (!order.length || order.some((p) => p.startsWith('resend'))) {
-      results.push(q.via === 'auto' ? { id: q.id, hold_minutes: 30, error: 'every mail service is at its limit' } : { id: q.id, ok: false, error: 'Unknown mail service.' });
+      results.push(q.via === 'auto' || q.via.includes(',') ? { id: q.id, hold_minutes: 30, error: 'every mail service is at its limit' } : { id: q.id, ok: false, error: 'Unknown mail service.' });
       continue;
     }
     const fromName = vars.signer ? `${vars.signer} from CyberHx` : undefined;
