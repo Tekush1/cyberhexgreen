@@ -349,6 +349,7 @@ export const VouchersPanel: React.FC = () => {
 
   // ----- Special discount -----
   // One line per person: email, name (optional), code (optional; else the shared code). Comma, tab or semicolon.
+  const sharedCodeUpper = cleanCode(sp.code).toUpperCase();
   const spRows = useMemo<SpecialRow[]>(() => {
     const seen = new Set<string>();
     const out: SpecialRow[] = [];
@@ -357,15 +358,18 @@ export const VouchersPanel: React.FC = () => {
       const email = cells.find((c) => ONE_EMAIL.test(c))?.toLowerCase();
       if (!email || seen.has(email)) return;
       seen.add(email);
+      // Order matters: email, name, code. With two extra columns the first is the name and the last the code
+      // (a handle like "0xVeN0M" is a name, not a code). With one, it is a code only if it looks like one.
+      const rest = cells.filter((c) => c.toLowerCase() !== email);
+      const looksCode = (c: string) => c.toUpperCase() === sharedCodeUpper || (/^[A-Z0-9_-]{4,}$/.test(c) && /\d/.test(c) && /[A-Z]/.test(c));
       let name = ''; let code = '';
-      cells.filter((c) => c.toLowerCase() !== email).forEach((c) => {
-        if (!code && /^[A-Za-z0-9_-]{4,}$/.test(c) && /\d/.test(c) && /[A-Z]/.test(c)) code = cleanCode(c);
-        else if (!name) name = c.replace(/\s+/g, ' ').slice(0, MAX_FIELD.team);
-      });
+      if (rest.length >= 2) { name = rest[0]; code = cleanCode(rest[rest.length - 1]); }
+      else if (rest.length === 1) { if (looksCode(rest[0])) code = cleanCode(rest[0]); else name = rest[0]; }
+      name = name.replace(/\s+/g, ' ').slice(0, MAX_FIELD.team);
       out.push({ line: i + 1, email, name, code });
     });
     return out;
-  }, [sp.list]);
+  }, [sp.list, sharedCodeUpper]);
   const spShared = cleanCode(sp.code);
   const spPct = Math.min(100, Math.max(1, Math.round(Number(sp.percent) || 1)));
   const spVars = (name: string, code: string) => ({

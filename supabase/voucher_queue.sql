@@ -135,3 +135,8 @@ BEGIN
 END $f$;
 REVOKE ALL ON FUNCTION public.voucher_queue_add(jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.voucher_queue_add(jsonb) TO authenticated;
+
+-- 7 Nov 2026 (migration voucher_queue_hold): voucher_queue_done also understands
+--   {id, hold_minutes}      wait without using up a try (per-minute share, or the service is at its limit)
+--   {rest_via, minutes}     the service is full: every email waiting for it waits that long too
+-- (see the live function; same body as above plus these two branches)
