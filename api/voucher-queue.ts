@@ -43,7 +43,8 @@ export default async function handler(req: any, res: any) {
     console.error('voucher queue claim failed', e);
     return res.status(500).json({ error: 'claim failed' });
   }
-  if (!rows.length) return res.status(200).json({ claimed: 0 });
+  const outreach = await sendOutreach(auth, secret);
+  if (!rows.length) return res.status(200).json({ claimed: 0, outreach });
 
   const results: Record<string, unknown>[] = [];
   // Services at their limit (from earlier minutes, and any that hit it now): skipped, the next one in line sends.
@@ -102,10 +103,61 @@ export default async function handler(req: any, res: any) {
     console.error('voucher queue done failed', e);
   }
   return res.status(200).json({
+    outreach,
     claimed: rows.length,
     sent: results.filter((r) => r.ok).length,
     held: results.filter((r) => r.hold_minutes).length,
     retry: results.filter((r) => r.ok === false && Number(r.retry_minutes) > 0).length,
     failed: results.filter((r) => r.ok === false && !Number(r.retry_minutes)).length,
   });
+}
+
+/* ───────── Outreach pitches (table outreach_queue) ─────────
+   Sent exactly like Admin -> Outreach -> Email: from the outreach person's own address (e.g. yashika@cyberhx.com) through
+   Mailtrap, CC + reply-to mail@cyberhx.com, own Message-ID so replies land in Outreach. Two a minute at most. */
+const MAIN = 'mail@cyberhx.com';
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function plainToHtml(text: string) {
+  const linkify = (s: string) => s.replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g, (u) => `<a href="${u}" style="color:#0a66c2">${u}</a>`);
+  const paras = text.split(/\n\s*\n/).map((p) => `<p style="margin:0 0 14px">${linkify(escHtml(p.trim())).replace(/\n/g, '<br>')}</p>`);
+  return `<!doctype html><html><body style="margin:0;padding:0"><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1d1d1f;max-width:620px;padding:8px 4px">${paras.join('')}</div></body></html>`;
+}
+interface Pitch { id: number; to_emails: string[]; subject: string; body: string; attempts: number; from_email: string; from_name: string }
+async function sendOutreach(auth: string, secret: string) {
+  let rows: Pitch[] = [];
+  try { rows = (await rpc<Pitch[]>(auth, 'outreach_queue_claim', { p_secret: secret, p_limit: 2 })) || []; }
+  catch { return { claimed: 0 }; }
+  if (!rows.length) return { claimed: 0 };
+  const results: Record<string, unknown>[] = [];
+  for (const q of rows) {
+    const msgId = `<${crypto.randomUUID()}@cyberhx.com>`;
+    try {
+      const r = await fetch('https://send.api.mailtrap.io/api/send', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.MAILTRAP_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: { email: q.from_email, name: `${q.from_name} from CyberHx` },
+          to: q.to_emails.map((email) => ({ email })),
+          ...(q.from_email === MAIN ? {} : { cc: [{ email: MAIN, name: 'CyberHx' }] }),
+          reply_to: { email: MAIN, name: 'CyberHx' },
+          subject: q.subject, text: q.body, html: plainToHtml(q.body), category: 'outreach', headers: { 'Message-ID': msgId },
+        }),
+      });
+      const d: any = await r.json().catch(() => ({}));
+      if (r.ok && d?.success !== false) {
+        results.push({ id: q.id, ok: true, message_ids: [msgId, ...((d?.message_ids || []) as unknown[]).map(String)] });
+      } else {
+        const err = `mailtrap ${r.status}: ${String((d?.errors || []).join('; ') || d?.error || '').slice(0, 300)}`;
+        const limited = r.status === 429 || /limit|quota|too many/i.test(err);
+        const bad = /recipient|invalid.{0,20}(email|address)/i.test(err);
+        results.push({ id: q.id, ok: false, error: err, retry_minutes: bad ? 0 : limited ? 60 : Math.min(10 * 2 ** Math.max(0, q.attempts - 1), 360) });
+      }
+    } catch (e) {
+      results.push({ id: q.id, ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'failed', retry_minutes: 10 });
+    }
+    await new Promise((res) => setTimeout(res, GAP_MS));
+  }
+  try { await rpc(auth, 'outreach_queue_done', { p_secret: secret, p_results: results }); }
+  catch (e) { console.error('outreach queue done failed', e); }
+  return { claimed: rows.length, sent: results.filter((r) => r.ok).length };
 }
