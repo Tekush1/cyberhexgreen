@@ -196,7 +196,7 @@ export default async function handler(req: any, res: any) {
       await logSent(rows, pid);
     }
     if (!ok.length) return res.status(500).json({ error: failed[0]?.error || 'Could not send.' });
-    return res.status(200).json({ sent: ok.length, failed: failed.map((x) => x.to), providers: Object.fromEntries([...used].map(([k, r]) => [k, r.length])) });
+    return res.status(200).json({ sent: ok.length, failed: failed.map((x) => x.to), reasons: Object.fromEntries(failed.map((x) => [x.to, x.error])), providers: Object.fromEntries([...used].map(([k, r]) => [k, r.length])) });
   }
 
   if (template === 'team_voucher' && via === 'mail') {
@@ -233,7 +233,7 @@ export default async function handler(req: any, res: any) {
       await logSent(ok, 'mailtrap');
     }
     if (!ok.length) return res.status(500).json({ error: failed[0]?.error || 'Could not send.' });
-    return res.status(200).json({ sent: ok.length, failed: failed.map((x) => x.to) });
+    return res.status(200).json({ sent: ok.length, failed: failed.map((x) => x.to), reasons: Object.fromEntries(failed.map((x) => [x.to, x.error])) });
   }
 
   try {

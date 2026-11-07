@@ -112,7 +112,7 @@ async function post(body: object) {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) { sessionStorage.removeItem(TOKEN_KEY); window.location.reload(); throw new Error('Session expired.'); }
   if (!res.ok) throw new Error(data.error || `Request failed (HTTP ${res.status}).`);
-  return data as { sent: number; failed?: string[]; providers?: Record<string, number> };
+  return data as { sent: number; failed?: string[]; reasons?: Record<string, string>; providers?: Record<string, number> };
 }
 
 /** The email exactly as it will arrive, at full height (no scrollbar inside the frame). */
@@ -275,6 +275,21 @@ export const VouchersPanel: React.FC = () => {
     return post({ ...b, via: mode === 'special' ? sp.via : ev.sender });
   };
   const perRequest = ev.sender === 'resend' ? 100 : 20;
+  /** Mail services cap how many emails go out per minute. When one says "slow down", wait a minute and try again (twice at most). */
+  const RATE = /429|rate.?limit|too many|throttl|slow down|per minute/i;
+  const sendPatient = async (body: { recipients: { email: string }[] } & Record<string, unknown>) => {
+    let d = await send(body).catch((e: Error) => { if (RATE.test(e.message)) return { sent: 0, failed: body.recipients.map((r) => r.email), reasons: Object.fromEntries(body.recipients.map((r) => [r.email, e.message])) }; throw e; });
+    for (let tries = 0; tries < 2 && d.failed?.length && Object.values(d.reasons || {}).some((x) => RATE.test(x)); tries++) {
+      setMsg({ ok: true, text: `The mail service asked us to slow down. Waiting a minute, then sending the rest automatically. Keep this tab open.` });
+      await new Promise((r) => setTimeout(r, 65_000));
+      const again = new Set(d.failed);
+      const r2 = await send({ ...body, recipients: body.recipients.filter((r) => again.has(r.email)) }).catch((e: Error) => ({ sent: 0, failed: [...again], reasons: Object.fromEntries([...again].map((x) => [x, e.message])) }));
+      d = { ...d, sent: (d.sent || 0) + (r2.sent || 0), failed: r2.failed || [], reasons: r2.reasons || {} };
+    }
+    return d;
+  };
+  const firstReason = (r?: Record<string, string>) => { const x = Object.values(r || {})[0]; return x ? ` Reason: ${x.slice(0, 200)}` : ''; };
+  let lastReason = '';
   const failedNote = (f?: string[]) => (f?.length ? ` Not delivered to: ${f.join(', ')}.` : '');
   const keyOf = (r: { team: string; code: string }) => `${saved?.id || 'new'}|${r.team.toLowerCase()}|${r.code}`;
 
@@ -390,9 +405,10 @@ export const VouchersPanel: React.FC = () => {
     for (const c of chunks) {
       c.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: 'sending' })));
       try {
-        const d = await send({ template: 'team_voucher', recipients: c.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierFor(r.rank)!, r.code, r.members) }))), vars: shared });
+        const d = await sendPatient({ template: 'team_voucher', recipients: c.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, vars: teamVars(r.team, r.rank, tierFor(r.rank)!, r.code, r.members) }))), vars: shared });
         const stamp = new Date().toISOString();
         const bad = new Set(d.failed || []);
+        if (d.failed?.length) lastReason = firstReason(d.reasons);
         const done = c.filter((r) => !r.emails.some((e) => bad.has(e)));
         const missed = c.filter((r) => r.emails.some((e) => bad.has(e)));
         setSent((s) => ({ ...s, ...Object.fromEntries(done.map((r) => [keyOf(r), stamp])) }));
@@ -402,12 +418,12 @@ export const VouchersPanel: React.FC = () => {
       } catch (e) {
         const m = e instanceof Error ? e.message : 'failed';
         c.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: `failed: ${m}` })));
-        fail += c.length;
+        fail += c.length; lastReason = ` Reason: ${m.slice(0, 200)}`;
         if (/Save the event|name|redeem|tier|prize/i.test(m)) { setMsg({ ok: false, text: m }); return; }
       }
     }
     setMsg(fail
-      ? { ok: false, text: `${ok} team${ok === 1 ? '' : 's'} sent, ${fail} failed. Press Send again to retry; teams already sent are skipped.` }
+      ? { ok: false, text: `${ok} team${ok === 1 ? '' : 's'} sent, ${fail} failed.${lastReason}. Press Send again to retry; teams already sent are skipped.` }
       : { ok: true, text: again ? `Sent again to ${ok} team${ok === 1 ? '' : 's'}.` : `Sent to ${ok} team${ok === 1 ? '' : 's'} via ${senderName}.` });
   };
 
@@ -435,21 +451,22 @@ export const VouchersPanel: React.FC = () => {
       const c = spPending.slice(i, i + perRequest);
       c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: 'sending' })));
       try {
-        const d = await send({ template: 'team_voucher', recipients: c.map((r) => ({ email: r.email, name: r.name, vars: spVars(r.name, r.code || spShared) })), vars: shared });
+        const d = await sendPatient({ template: 'team_voucher', recipients: c.map((r) => ({ email: r.email, name: r.name, vars: spVars(r.name, r.code || spShared) })), vars: shared });
         const bad = new Set(d.failed || []);
+        if (d.failed?.length) lastReason = firstReason(d.reasons);
         const stamp = new Date().toISOString();
         const done = c.filter((r) => !bad.has(r.email));
         setSent((x) => ({ ...x, ...Object.fromEntries(done.map((r) => [spKey(r), stamp])) }));
-        c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: bad.has(r.email) ? 'failed' : 'sent' })));
+        c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: bad.has(r.email) ? `failed: ${d.reasons?.[r.email] || 'not delivered'}` : 'sent' })));
         ok += done.length; fail += c.length - done.length;
       } catch (e) {
         const m = e instanceof Error ? e.message : 'failed';
         c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: `failed: ${m}` })));
-        fail += c.length;
+        fail += c.length; lastReason = ` Reason: ${m.slice(0, 200)}`;
         if (/Save the event|name|redeem|tier|prize|Resend/i.test(m)) { setMsg({ ok: false, text: m }); setBusy(''); return; }
       }
     }
-    setMsg(fail ? { ok: false, text: `${ok} sent, ${fail} failed. Press Send again to retry; people already sent are skipped.` } : { ok: true, text: `Special discount sent to ${ok} ${ok === 1 ? 'person' : 'people'} via ${senderName}.` });
+    setMsg(fail ? { ok: false, text: `${ok} sent, ${fail} failed.${lastReason}. Press Send again to retry; people already sent are skipped.` } : { ok: true, text: `Special discount sent to ${ok} ${ok === 1 ? 'person' : 'people'} via ${senderName}.` });
     setBusy('');
   };
 
@@ -666,7 +683,7 @@ export const VouchersPanel: React.FC = () => {
                             {!code ? <span className="text-red-300">add a code</span>
                               : st === 'sending' ? <span className="flex items-center gap-1 text-white/50"><Loader2 size={12} className="animate-spin" />Sending</span>
                               : st === 'sent' ? <span className="flex items-center gap-1 text-[#30d158]"><Check size={12} />Sent</span>
-                              : st.startsWith('failed') ? <span className="text-red-300" title={st}>Failed</span>
+                              : st.startsWith('failed') ? <span className="block max-w-[18rem] whitespace-normal text-red-300" title={st}>Failed{st.length > 7 ? `: ${st.slice(8, 140)}` : ''}</span>
                               : <span className="text-white/45">Ready</span>}
                           </td>
                         </tr>
