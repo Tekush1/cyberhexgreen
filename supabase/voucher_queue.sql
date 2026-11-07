@@ -6,7 +6,7 @@
 --   pg_cron (every minute) --pg_net--> POST https://cyberhx.com/api/voucher-queue  (header x-queue-secret)
 --   /api/voucher-queue -> voucher_queue_claim(secret, n) -> sends -> voucher_queue_done(secret, results)
 --
--- The secret is the existing app_secrets row 'inbound' (same value as INBOUND_SECRET in Vercel). It is never in this repo.
+-- The secret is the existing app_secrets row 'inbound' (checked inside the database). It is never in this repo.
 -- ============================================================
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pg_cron;

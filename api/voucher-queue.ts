@@ -1,12 +1,12 @@
 // Vercel serverless function: sends the next few emails waiting in public.voucher_queue (Admin -> Vouchers).
 //
-//   POST /api/voucher-queue   (header x-queue-secret = INBOUND_SECRET)
+//   POST /api/voucher-queue   (header x-queue-secret = app_secrets 'inbound'; checked by the database)
 //        Called every minute by pg_cron in Supabase (supabase/voucher_queue.sql), so emails keep going out
 //        slowly even when nobody has the admin page open. -> { claimed, sent, retry, failed }
 //
 // Pace: a few emails per minute, one at a time with a pause between them. Slow and steady keeps mail out of spam
 // and under each provider's per-minute limits. Never Resend (its quota is kept for PentestLab).
-// Env: INBOUND_SECRET (shared with the database), SUPABASE_URL / SUPABASE_ANON_KEY, provider keys. Never commit them.
+// Env: SUPABASE_URL / SUPABASE_ANON_KEY, provider keys. Never commit them.
 
 import { renderEmail, type EmailVars } from '../shared/emailTemplates.js';
 import { isProviderId, PRIMARY_LANE, rpc, sendDirect, type ProviderId } from '../server/mailer.js';
@@ -19,16 +19,11 @@ const RECIPIENT = /(recipient|not valid|malformed|invalid.{0,20}(email|address)|
 
 interface Row { id: number; email: string; name: string; vars: Partial<EmailVars>; shared: Partial<EmailVars>; via: string; attempts: number }
 
-const sameSecret = (a: string, b: string) => {
-  const x = Buffer.from(a); const y = Buffer.from(b);
-  return x.length === y.length && crypto.timingSafeEqual(x, y);
-};
-
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-  const secret = process.env.INBOUND_SECRET || '';
-  const given = String(req.headers['x-queue-secret'] || '');
-  if (!secret || !given || !sameSecret(given, secret)) return res.status(401).json({ error: 'Unauthorized' });
+  // The database checks the secret (app_secrets 'inbound', the same one the mail@ inbound worker uses), like api/outreach.ts.
+  const secret = String(req.headers['x-queue-secret'] || '');
+  if (secret.length < 16) return res.status(401).json({ error: 'Unauthorized' });
 
   const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
   const auth = `Bearer ${anon}`;
@@ -36,6 +31,7 @@ export default async function handler(req: any, res: any) {
   try {
     rows = (await rpc<Row[]>(auth, 'voucher_queue_claim', { p_secret: secret, p_limit: PER_RUN })) || [];
   } catch (e) {
+    if (/not allowed/i.test(String((e as Error).message))) return res.status(401).json({ error: 'Unauthorized' });
     console.error('voucher queue claim failed', e);
     return res.status(500).json({ error: 'claim failed' });
   }
