@@ -44,17 +44,20 @@ const hasHeaders = (h?: Record<string, string>) => !!h && Object.keys(h).length 
 export const DEFAULT_REPLY_TO = 'CyberHx <mail@cyberhx.com>';
 
 /**
- * A voucher "via" as an ordered list of services: 'auto' = PRIMARY_LANE, 'mail' = Mailtrap (as mail@cyberhx.com),
- * one id ('sender'), or several joined by commas ('brevo,sender'). Resend is never used here.
- * `spread` rotates a multi-service list so the load is shared between them.
+ * A voucher "via" as an ordered list of services. The chosen service goes first; when it is at its limit the
+ * next one takes over, then the next: the rest of PRIMARY_LANE, then Mailtrap. Resend is never used here.
+ *   'auto'          PRIMARY_LANE, then Mailtrap
+ *   'mail'          Mailtrap only, as mail@cyberhx.com (the main domain)
+ *   'brevo'         Brevo first, then the others
+ *   'brevo,sender'  Brevo and Sender first (taking turns via `spread`), then the others
  */
 export function viaOrder(via: string, spread = 0): ProviderId[] {
-  if (via === 'auto') return PRIMARY_LANE.filter((p) => !p.startsWith('resend'));
   if (via === 'mail') return ['mailtrap'];
-  const list = via.split(',').map((x) => x.trim()).filter((x): x is ProviderId => isProviderId(x) && !x.startsWith('resend'));
-  if (list.length < 2) return list;
-  const k = ((spread % list.length) + list.length) % list.length;
-  return [...list.slice(k), ...list.slice(0, k)];
+  const lane = [...PRIMARY_LANE, 'mailtrap' as ProviderId].filter((p) => !p.startsWith('resend'));
+  if (via === 'auto') return lane;
+  let first = via.split(',').map((x) => x.trim()).filter((x): x is ProviderId => isProviderId(x) && !x.startsWith('resend'));
+  if (first.length > 1) { const k = ((spread % first.length) + first.length) % first.length; first = [...first.slice(k), ...first.slice(0, k)]; }
+  return [...first, ...lane.filter((p) => !first.includes(p))];
 }
 
 // ---------- helpers ----------

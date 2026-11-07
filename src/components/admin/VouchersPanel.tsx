@@ -212,6 +212,7 @@ export const VouchersPanel: React.FC = () => {
   // ----- Server queue (voucher_queue) for the selected event -----
   type QRow = { id: number; email: string; status: string; last_error: string; not_before: string; sent_at: string | null; kind: string };
   const [queue, setQueue] = useState<{ rows: QRow[]; at: number } | null>(null);
+  const [rests, setRests] = useState<{ provider: string; until: string; reason: string }[]>([]);
   const loadQueue = useCallback(async () => {
     if (!selId) { setQueue(null); return; }
     try {
@@ -223,6 +224,7 @@ export const VouchersPanel: React.FC = () => {
         if (page.length < 1000) break;
       }
       setQueue({ rows: list, at: Date.now() });
+      try { const { rows: r } = await sbRows<{ provider: string; until: string; reason: string }>(`mail_provider_rest?select=provider,until,reason&until=gt.${new Date().toISOString()}`); setRests(r); } catch { setRests([]); }
     } catch { setQueue(null); }
   }, [selId]);
   useEffect(() => { loadQueue(); const t = setInterval(loadQueue, 20_000); return () => clearInterval(t); }, [loadQueue]);
@@ -342,7 +344,12 @@ export const VouchersPanel: React.FC = () => {
     return list;
   }, [raw, tiers]);
   const good = rows.filter((r) => !r.problems.length);
-  const pending = good.filter((r) => !sent[keyOf(r)]);
+  /** Already handled? The queue decides when it has the email (stopped ones can go again); else this device's sent list. */
+  const doneEmail = (email: string, localSent: boolean) => {
+    const q = qByEmail.get(email.toLowerCase());
+    return q ? q.status !== 'cancelled' && q.status !== 'failed' : localSent;
+  };
+  const pending = good.filter((r) => !r.emails.every((e) => doneEmail(e, !!sent[keyOf(r)])));
   const emailsToSend = pending.reduce((n, r) => n + r.emails.length, 0);
   const perTier = tiers.map((t) => ({ t, n: good.filter((r) => r.rank >= t.from && r.rank <= t.to).length }));
 
@@ -384,7 +391,7 @@ export const VouchersPanel: React.FC = () => {
   });
   const spKey = (r: SpecialRow) => `${saved?.id || 'new'}|special|${r.email}|${r.code || spShared}`;
   const spReady = spRows.filter((r) => r.code || spShared);
-  const spPending = spReady.filter((r) => !sent[spKey(r)]);
+  const spPending = spReady.filter((r) => !doneEmail(r.email, !!sent[spKey(r)]));
   const spPrize = sp.prize.trim() || (spPct >= 100 ? 'Full voucher' : `${spPct}% voucher`);
 
   // ----- Preview -----
@@ -484,17 +491,15 @@ export const VouchersPanel: React.FC = () => {
     }
     return added;
   };
-  const minutes = (n: number) => { const m = Math.ceil(n / 6); return m < 60 ? `about ${m} minute${m === 1 ? '' : 's'}` : `about ${Math.round(m / 6) / 10} hours`; };
+  const minutes = (n: number) => { const m = Math.ceil(n / 5); return m < 60 ? `about ${m} minute${m === 1 ? '' : 's'}` : `about ${Math.round(m / 6) / 10} hours`; };
 
   const sendAll = async () => {
     if (!pending.length) return;
     const lines = perTier.filter((x) => x.n).map((x) => `${x.t.label || rangeLabel(x.t)}: ${x.n} team${x.n === 1 ? '' : 's'} · ${prizeLabel(x.t)}`).join('\n');
-    if (!confirm(`Queue ${emailsToSend} email${emailsToSend === 1 ? '' : 's'} to ${pending.length} team${pending.length === 1 ? '' : 's'} of ${ev.name} via ${senderName}?\n\nThey go out slowly (about 6 a minute), even if you close this page.\n\n${lines}`)) return;
+    if (!confirm(`Queue ${emailsToSend} email${emailsToSend === 1 ? '' : 's'} to ${pending.length} team${pending.length === 1 ? '' : 's'} of ${ev.name} via ${senderName}?\n\nThey go out slowly (about 5 a minute), even if you close this page.\n\n${lines}`)) return;
     setBusy('all'); setMsg(null);
     try {
       const added = await enqueue(pending.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, kind: 'rank' as const, via: ev.sender, vars: teamVars(r.team, r.rank, tierFor(r.rank)!, r.code, r.members) }))));
-      const stamp = new Date().toISOString();
-      setSent((x) => ({ ...x, ...Object.fromEntries(pending.map((r) => [keyOf(r), stamp])) }));
       pending.forEach((r) => setStatus((st) => ({ ...st, [keyOf(r)]: 'queued' })));
       setMsg({ ok: true, text: `${added} email${added === 1 ? '' : 's'} queued${added < emailsToSend ? ` (${emailsToSend - added} were already queued or sent)` : ''}. They go out over ${minutes(added)}; you can close this page.` });
       loadQueue();
@@ -510,12 +515,10 @@ export const VouchersPanel: React.FC = () => {
 
   const sendSpecial = async () => {
     if (!spPending.length) return;
-    if (!confirm(`Queue the special discount (${spPrize}) for ${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} via ${senderName}?\n\nThey go out slowly (about 6 a minute), even if you close this page.`)) return;
+    if (!confirm(`Queue the special discount (${spPrize}) for ${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} via ${senderName}?\n\nThey go out slowly (about 5 a minute), even if you close this page.`)) return;
     setBusy('all'); setMsg(null);
     try {
       const added = await enqueue(spPending.map((r) => ({ email: r.email, name: r.name, kind: 'special' as const, via: sp.via, vars: spVars(r.name, r.code || spShared) })));
-      const stamp = new Date().toISOString();
-      setSent((x) => ({ ...x, ...Object.fromEntries(spPending.map((r) => [spKey(r), stamp])) }));
       spPending.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: 'queued' })));
       setMsg({ ok: true, text: `${added} email${added === 1 ? '' : 's'} queued${added < spPending.length ? ` (${spPending.length - added} were already queued or sent)` : ''}. They go out over ${minutes(added)}; you can close this page.` });
       loadQueue();
@@ -704,7 +707,7 @@ export const VouchersPanel: React.FC = () => {
               <select id="sp-via" className={input} value={sp.via} onChange={(e) => setSp({ ...sp, via: e.target.value })}>
                 {senderOptions.map((o) => <option key={o.id} value={o.id} disabled={!o.ok}>{o.label}{o.ok ? '' : ' (not connected)'}</option>)}
               </select>
-              <p className="mt-1.5 text-[11.5px] text-white/35">{senderOptions.find((o) => o.id === sp.via)?.note} · Kept separate from the event's own mail service.</p>
+              <p className="mt-1.5 text-[11.5px] text-white/35">{sp.via === 'mail' ? 'Only mail@cyberhx.com, no other service.' : `Starts with ${(senderOptions.find((o) => o.id === sp.via)?.label || sp.via).split(' ·')[0]}. When it reaches its limit, the next connected service sends, then the next.`}</p>
             </div>
             <div>
               <label className={label} htmlFor="sp-code">Voucher code for everyone <span className="text-white/30">(used when a line has no code of its own)</span></label>
@@ -727,7 +730,7 @@ export const VouchersPanel: React.FC = () => {
                     {spRows.map((r) => {
                       const k = spKey(r);
                       const q = qByEmail.get(r.email);
-                      const st = q?.status === 'pending' || q?.status === 'sending' ? 'queued' : q?.status === 'failed' ? `failed: ${q.last_error || 'not delivered'}` : q?.status === 'sent' ? 'sent' : status[k] || (sent[k] ? 'sent' : '');
+                      const st = q?.status === 'pending' || q?.status === 'sending' ? 'queued' : q?.status === 'failed' ? `failed: ${q.last_error || 'not delivered'}` : q?.status === 'sent' ? 'sent' : q?.status === 'cancelled' ? 'stopped' : status[k] || (sent[k] ? 'sent' : '');
                       const code = r.code || spShared;
                       return (
                         <tr key={r.email} className="border-t border-white/5">
@@ -739,6 +742,7 @@ export const VouchersPanel: React.FC = () => {
                               : st === 'sending' ? <span className="flex items-center gap-1 text-white/50"><Loader2 size={12} className="animate-spin" />Sending</span>
                               : st === 'sent' ? <span className="flex items-center gap-1 text-[#30d158]"><Check size={12} />Sent</span>
                               : st === 'queued' ? <span className="text-amber-200/80">Waiting in queue</span>
+                              : st === 'stopped' ? <span className="text-white/40">Stopped</span>
                               : st.startsWith('failed') ? <span className="block max-w-[18rem] whitespace-normal text-red-300" title={st}>Failed{st.length > 7 ? `: ${st.slice(8, 140)}` : ''}</span>
                               : <span className="text-white/45">Ready</span>}
                           </td>
@@ -786,7 +790,7 @@ export const VouchersPanel: React.FC = () => {
                     {rows.map((r, i) => {
                       const k = keyOf(r);
                       const qs = qState(r.emails);
-                      const st = qs === 'waiting' ? 'queued' : qs === 'failed' ? `failed: ${r.emails.map((e) => qByEmail.get(e)?.last_error).find(Boolean) || 'not delivered'}` : qs === 'sent' ? 'sent' : status[k] || (sent[k] ? 'sent' : '');
+                      const st = qs === 'waiting' ? 'queued' : qs === 'failed' ? `failed: ${r.emails.map((e) => qByEmail.get(e)?.last_error).find(Boolean) || 'not delivered'}` : qs === 'sent' ? 'sent' : qs === 'cancelled' ? 'stopped' : status[k] || (sent[k] ? 'sent' : '');
                       const t = r.rank ? tierFor(r.rank) : undefined;
                       return (
                         <tr key={`${r.line}-${i}`} onClick={() => setPick(i)} className={`cursor-pointer border-t border-white/5 ${pick === i || (pick === null && boardRow === r) ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}`}>
@@ -805,6 +809,7 @@ export const VouchersPanel: React.FC = () => {
                                 </span>
                               )
                               : st === 'queued' ? <span className="text-amber-200/80">Waiting in queue</span>
+                              : st === 'stopped' ? <span className="text-white/40">Stopped</span>
                               : st.startsWith('failed') ? <span className="text-red-300" title={st}>Failed</span>
                               : <span className="text-white/45">Ready</span>}
                           </td>
@@ -907,7 +912,7 @@ export const VouchersPanel: React.FC = () => {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Mail queue · {ev.name}</p>
-              <p className="mt-1 text-[12.5px] text-white/45">About 6 emails a minute, one by one. It keeps going when this page is closed. If a mail service hits its limit, those emails wait and try again later.</p>
+              <p className="mt-1 text-[12.5px] text-white/45">About 5 emails a minute, one by one. It keeps going when this page is closed. If a mail service hits its limit, those emails wait and try again later.</p>
             </div>
             <div className="flex gap-2">
               <button onClick={loadQueue} className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-white/70 hover:text-white">Refresh</button>
@@ -933,6 +938,11 @@ export const VouchersPanel: React.FC = () => {
             const later = next && new Date(next).getTime() > Date.now() + 120_000;
             return <p className="mt-3 text-[12px] text-white/40">{later ? `Paused by a mail service limit. Next try ${new Date(next).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}.` : `Done in ${minutes(qCount('pending') + qCount('sending'))} if nothing is held back by a limit.`}</p>;
           })()}
+          {rests.length > 0 && (
+            <p className="mt-3 text-[12px] text-white/45">
+              At their limit (skipped, the next service sends): {rests.map((r) => `${r.provider} until ${new Date(r.until).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}`).join(' · ')}
+            </p>
+          )}
           {(queue.rows.filter((r) => r.status === 'failed' || (r.status === 'pending' && r.last_error)).slice(0, 5)).map((r) => (
             <p key={r.id} className="mt-2 truncate text-[12px] text-red-300/90" title={r.last_error}>
               {r.email}: {r.status === 'pending' ? `waiting (${r.last_error.slice(0, 120)}), next try ${new Date(r.not_before).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : r.last_error.slice(0, 160)}

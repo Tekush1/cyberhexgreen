@@ -142,3 +142,8 @@ GRANT EXECUTE ON FUNCTION public.voucher_queue_add(jsonb) TO authenticated;
 -- (see the live function; same body as above plus these two branches)
 -- Waits can last up to 1500 minutes (a provider's daily limit, e.g. Sender "Retry after <time>"): the 720 caps in
 -- voucher_queue_done were raised to 1500 on 7 Nov 2026.
+
+-- 7 Nov 2026 (migration mail_provider_rest): a service at its limit rests until its own retry time.
+--   mail_provider_rest(provider PK, until, reason); voucher_queue_rests(secret) lists the ones still resting;
+--   voucher_queue_done also takes {rest_provider, minutes, reason}. The queue then sends through the next service in line
+--   (server/mailer.ts viaOrder: the chosen one first, then PRIMARY_LANE, then Mailtrap).
