@@ -288,7 +288,7 @@ export const VouchersPanel: React.FC = () => {
     }
     return d;
   };
-  const firstReason = (r?: Record<string, string>) => { const x = Object.values(r || {})[0]; return x ? ` Reason: ${x.slice(0, 200)}` : ''; };
+  const firstReason = (r?: Record<string, string>) => { const x = Object.values(r || {})[0]; return x ? ` Reason: ${x.slice(0, 200).replace(/[.\s]+$/, '')}.` : ''; };
   let lastReason = '';
   const failedNote = (f?: string[]) => (f?.length ? ` Not delivered to: ${f.join(', ')}.` : '');
   const keyOf = (r: { team: string; code: string }) => `${saved?.id || 'new'}|${r.team.toLowerCase()}|${r.code}`;
@@ -418,12 +418,12 @@ export const VouchersPanel: React.FC = () => {
       } catch (e) {
         const m = e instanceof Error ? e.message : 'failed';
         c.forEach((r) => setStatus((s) => ({ ...s, [keyOf(r)]: `failed: ${m}` })));
-        fail += c.length; lastReason = ` Reason: ${m.slice(0, 200)}`;
+        fail += c.length; lastReason = ` Reason: ${m.slice(0, 200).replace(/[.\s]+$/, '')}.`;
         if (/Save the event|name|redeem|tier|prize/i.test(m)) { setMsg({ ok: false, text: m }); return; }
       }
     }
     setMsg(fail
-      ? { ok: false, text: `${ok} team${ok === 1 ? '' : 's'} sent, ${fail} failed.${lastReason}. Press Send again to retry; teams already sent are skipped.` }
+      ? { ok: false, text: `${ok} team${ok === 1 ? '' : 's'} sent, ${fail} failed.${lastReason} Press Send again to retry; teams already sent are skipped.` }
       : { ok: true, text: again ? `Sent again to ${ok} team${ok === 1 ? '' : 's'}.` : `Sent to ${ok} team${ok === 1 ? '' : 's'} via ${senderName}.` });
   };
 
@@ -462,11 +462,11 @@ export const VouchersPanel: React.FC = () => {
       } catch (e) {
         const m = e instanceof Error ? e.message : 'failed';
         c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: `failed: ${m}` })));
-        fail += c.length; lastReason = ` Reason: ${m.slice(0, 200)}`;
+        fail += c.length; lastReason = ` Reason: ${m.slice(0, 200).replace(/[.\s]+$/, '')}.`;
         if (/Save the event|name|redeem|tier|prize|Resend/i.test(m)) { setMsg({ ok: false, text: m }); setBusy(''); return; }
       }
     }
-    setMsg(fail ? { ok: false, text: `${ok} sent, ${fail} failed.${lastReason}. Press Send again to retry; people already sent are skipped.` } : { ok: true, text: `Special discount sent to ${ok} ${ok === 1 ? 'person' : 'people'} via ${senderName}.` });
+    setMsg(fail ? { ok: false, text: `${ok} sent, ${fail} failed.${lastReason} Press Send again to retry; people already sent are skipped.` } : { ok: true, text: `Special discount sent to ${ok} ${ok === 1 ? 'person' : 'people'} via ${senderName}.` });
     setBusy('');
   };
 
