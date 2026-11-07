@@ -47,6 +47,8 @@ export interface EmailVars {
   members?: number;
   /** Event colour, #rrggbb. */
   color?: string;
+  /** Special discount (not a CTF result): CyberHx Pentest Lab is open worldwide; `team` holds the person's name. */
+  special?: boolean;
 }
 
 export interface TemplateInfo {
@@ -438,6 +440,43 @@ export function renderEmail(id: TemplateId, v: EmailVars): { subject: string; ht
       const place = rank ? `#${rank}` : `in the ${tierName}`;
       const praise = top10 ? 'That is an exceptional result, and the whole team should be proud of it.' : 'It took real skill and patience to get there, and we noticed.';
       const gets = full || custom ? `As a thank-you, your team can claim ${reward}.` : `As a thank-you from all of us at CyberHx, your team gets ${reward}.`;
+      if (v.special) {
+        // Not tied to a CTF: an invitation to the Pentest Lab with a personal code. Same calm wording rules.
+        const who = team === 'your team' || /^there$/i.test(team) ? '' : team;
+        const hi = who ? `Hi ${who},` : 'Hi there,';
+        const keep = members > 1
+          ? `Up to ${members} people can use this code, so you are welcome to share it with friends or classmates.`
+          : 'This code was made for you, so please keep it private.';
+        const until2 = until ? `. Please apply it before ${until}` : '';
+        const intro = `CyberHx Pentest Lab is now open to learners everywhere. We are inviting students and professionals from every university and every country to train on real, hands-on labs and earn the ${product}.`;
+        const offer = custom ? `To welcome you, CyberHx has a special offer for you: ${custom}.` : `To welcome you, CyberHx is giving you a special voucher: ${reward}.`;
+        if (v.plain) {
+          subject = who ? `${who}, a CyberHx Pentest Lab voucher for you` : 'A CyberHx Pentest Lab voucher for you';
+          o = {
+            plain: true,
+            signer: (v.signer || '').trim() || undefined,
+            preheader: '',
+            eyebrow: '',
+            heading: subject,
+            paragraphs: [hi, intro, offer],
+            details: [['Your voucher code', code], ['Apply before', until]],
+            note: `You can use it at ${redeem}${until2}. ${keep}${v.note?.trim() ? `\n\n${v.note.trim()}` : '\n\nIf you have any questions, just reply to this email.'}`,
+          };
+          break;
+        }
+        subject = who ? `${who}, your CyberHx Pentest Lab voucher` : 'Your CyberHx Pentest Lab voucher';
+        o = {
+          accent,
+          preheader: 'CyberHx Pentest Lab is open worldwide. Your special voucher is inside.',
+          eyebrow: 'CyberHx Pentest Lab · Worldwide',
+          heading: 'A special voucher, just for you.',
+          paragraphs: [hi, intro, offer],
+          voucher: { label: 'Special voucher', amount, sub: ticketSub, product, code, expires: until, accent },
+          cta: { label: custom ? 'Claim your offer' : 'Claim your voucher', url: redeem },
+          note: v.note || `Enter the code at checkout${until ? ` and apply it before ${until}` : ''}. ${keep}`,
+        };
+        break;
+      }
       if (v.plain) {
         // Reads like a note from a person: no banner, no coupon box, no button.
         subject = `${team}: your ${event} result${rank ? ` (rank #${rank})` : ''}`;

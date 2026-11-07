@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Check, Copy, Download, Gift, Loader2, Plus, Save, Send, Trash2, Users, User } from 'lucide-react';
+import { AlertTriangle, Check, Copy, Download, Gift, Loader2, Plus, Save, Send, Trash2, Users, User, Globe } from 'lucide-react';
 import { TOKEN_KEY } from './adminApi';
 import { renderEmail, MAX_FIELD, type EmailVars } from '../../../shared/emailTemplates';
 import { campaignApi, downloadCsv, sbInsert, sbRows, sbWrite } from './mailingApi';
@@ -23,7 +23,8 @@ const STORE = 'cx_vouchers_v3';
 const SWATCHES = ['#ff4545', '#f5c542', '#c6f135', '#30d158', '#0a84ff', '#bf5af2', '#ff9f0a', '#64d2ff'];
 
 interface TeamRow { line: number; rank: number; team: string; emails: string[]; code: string; members?: number; problems: string[] }
-type Mode = 'board' | 'one';
+type Mode = 'board' | 'one' | 'special';
+interface SpecialRow { line: number; email: string; name: string; code: string }
 
 const input = 'w-full bg-[#05080f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#0A84FF]/70';
 const label = 'block text-[12px] font-medium text-white/55 mb-1.5';
@@ -185,6 +186,9 @@ export const VouchersPanel: React.FC = () => {
   const [busy, setBusy] = useState<'' | 'test' | 'all' | 'one'>('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [one, setOne] = useState({ team: '', rank: '', tierId: '', code: '', emails: '' });
+  // Special discount: not a CTF result. "Pentest Lab is open worldwide, here is a code for you."
+  const [sp, setSp] = useState(() => load(`${STORE}_special`, { percent: 30, prize: '', members: 0, code: '', list: '' }));
+  useEffect(() => save(`${STORE}_special`, sp), [sp]);
 
   const loadEvents = useCallback(async (select?: string) => {
     setLoadingEvents(true);
@@ -292,6 +296,36 @@ export const VouchersPanel: React.FC = () => {
   const oneCode = cleanCode(one.code);
   const oneReady = !!one.team.trim() && !!oneCode && oneEmails.length > 0 && !!oneTier;
 
+  // ----- Special discount -----
+  // One line per person: email, name (optional), code (optional; else the shared code). Comma, tab or semicolon.
+  const spRows = useMemo<SpecialRow[]>(() => {
+    const seen = new Set<string>();
+    const out: SpecialRow[] = [];
+    sp.list.split(/\r?\n/).forEach((line, i) => {
+      const cells = line.split(/[\t,;|]+/).map((c) => c.trim()).filter(Boolean);
+      const email = cells.find((c) => ONE_EMAIL.test(c))?.toLowerCase();
+      if (!email || seen.has(email)) return;
+      seen.add(email);
+      let name = ''; let code = '';
+      cells.filter((c) => c.toLowerCase() !== email).forEach((c) => {
+        if (!code && /^[A-Za-z0-9_-]{4,}$/.test(c) && /\d/.test(c) && /[A-Z]/.test(c)) code = cleanCode(c);
+        else if (!name) name = c.replace(/\s+/g, ' ').slice(0, MAX_FIELD.team);
+      });
+      out.push({ line: i + 1, email, name, code });
+    });
+    return out;
+  }, [sp.list]);
+  const spShared = cleanCode(sp.code);
+  const spPct = Math.min(100, Math.max(1, Math.round(Number(sp.percent) || 1)));
+  const spVars = (name: string, code: string) => ({
+    team: name.trim() || 'there', code, tier: 50, special: true, members: sp.members || 0,
+    discount: sp.prize.trim() ? undefined : spPct, prize: sp.prize.trim(),
+  });
+  const spKey = (r: SpecialRow) => `${saved?.id || 'new'}|special|${r.email}|${r.code || spShared}`;
+  const spReady = spRows.filter((r) => r.code || spShared);
+  const spPending = spReady.filter((r) => !sent[spKey(r)]);
+  const spPrize = sp.prize.trim() || (spPct >= 100 ? 'Full voucher' : `${spPct}% voucher`);
+
   // ----- Preview -----
   const boardRow = (pick !== null && rows[pick]) || good[0] || null;
   const sampleTier = tiers[0] || NEW_EVENT().tiers[0];
@@ -299,9 +333,13 @@ export const VouchersPanel: React.FC = () => {
     ? { team: one.team.trim() || 'Your team', rank: oneRank, tier: oneTier || sampleTier, code: oneCode || 'CODE-HERE' }
     : boardRow && tierFor(boardRow.rank) ? { team: boardRow.team || 'Team', rank: boardRow.rank, tier: tierFor(boardRow.rank)!, code: boardRow.code || 'CODE-HERE', members: boardRow.members }
     : { team: 'Team Phantom', rank: sampleTier.from, tier: sampleTier, code: 'CODE-X7K2' };
-  const vars: EmailVars = { ...shared, ...teamVars(pv.team, pv.rank, pv.tier, pv.code, 'members' in pv ? pv.members : undefined) };
+  const spFirst = spRows[0];
+  const testVars = mode === 'special'
+    ? spVars(spFirst?.name || '', spFirst?.code || spShared || 'CODE-HERE')
+    : teamVars(pv.team, pv.rank, pv.tier, pv.code, 'members' in pv ? pv.members : undefined);
+  const vars: EmailVars = { ...shared, ...testVars };
   const preview = useMemo(() => renderEmail('team_voucher', vars), [JSON.stringify(vars)]); // eslint-disable-line react-hooks/exhaustive-deps
-  const who = mode === 'one' ? (one.team.trim() || 'your team') : boardRow ? boardRow.team : 'sample team';
+  const who = mode === 'special' ? (spFirst?.name || spFirst?.email || 'sample person') : mode === 'one' ? (one.team.trim() || 'your team') : boardRow ? boardRow.team : 'sample team';
 
   const senderOptions = [
     { id: 'auto', label: 'Auto: best for Primary inbox', note: 'Tries Mailgun, Mailjet, Maileroo, SMTP2GO, AhaSend, then Brevo, Sender', ok: true },
@@ -318,7 +356,7 @@ export const VouchersPanel: React.FC = () => {
     if (!ONE_EMAIL.test(testTo.trim())) { setMsg({ ok: false, text: 'Type the email address to send the test to.' }); return; }
     setBusy('test'); setMsg(null);
     try {
-      const t = await send({ template: 'team_voucher', recipients: [{ email: testTo.trim(), name: pv.team, vars: teamVars(pv.team, pv.rank, pv.tier, pv.code, 'members' in pv ? pv.members : undefined) }], vars: shared });
+      const t = await send({ template: 'team_voucher', recipients: [{ email: testTo.trim(), name: testVars.team, vars: testVars }], vars: shared });
       if (t.failed?.length) throw new Error(`Could not send the test to ${testTo.trim()}.`);
       setMsg({ ok: true, text: `Test sent to ${testTo.trim()} via ${t.providers ? Object.keys(t.providers).join(', ') : senderName}.` });
     } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not send the test.' }); }
@@ -384,6 +422,33 @@ export const VouchersPanel: React.FC = () => {
     if (busy || !confirm(`Send ${r.team}'s email again to ${r.emails.join(', ')}?`)) return;
     setBusy('all'); setMsg(null);
     await sendTeams([r], true);
+    setBusy('');
+  };
+
+  const sendSpecial = async () => {
+    if (!spPending.length) return;
+    if (!confirm(`Send the special discount (${spPrize}) to ${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} via ${senderName}?`)) return;
+    setBusy('all'); setMsg(null);
+    let ok = 0; let fail = 0;
+    for (let i = 0; i < spPending.length; i += perRequest) {
+      const c = spPending.slice(i, i + perRequest);
+      c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: 'sending' })));
+      try {
+        const d = await send({ template: 'team_voucher', recipients: c.map((r) => ({ email: r.email, name: r.name, vars: spVars(r.name, r.code || spShared) })), vars: shared });
+        const bad = new Set(d.failed || []);
+        const stamp = new Date().toISOString();
+        const done = c.filter((r) => !bad.has(r.email));
+        setSent((x) => ({ ...x, ...Object.fromEntries(done.map((r) => [spKey(r), stamp])) }));
+        c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: bad.has(r.email) ? 'failed' : 'sent' })));
+        ok += done.length; fail += c.length - done.length;
+      } catch (e) {
+        const m = e instanceof Error ? e.message : 'failed';
+        c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: `failed: ${m}` })));
+        fail += c.length;
+        if (/Save the event|name|redeem|tier|prize|Resend/i.test(m)) { setMsg({ ok: false, text: m }); setBusy(''); return; }
+      }
+    }
+    setMsg(fail ? { ok: false, text: `${ok} sent, ${fail} failed. Press Send again to retry; people already sent are skipped.` } : { ok: true, text: `Special discount sent to ${ok} ${ok === 1 ? 'person' : 'people'} via ${senderName}.` });
     setBusy('');
   };
 
@@ -540,9 +605,72 @@ export const VouchersPanel: React.FC = () => {
       <Segmented label="How to send" value={mode} onChange={setMode} options={[
         { v: 'board' as Mode, label: <><Users size={14} /> Whole leaderboard</> },
         { v: 'one' as Mode, label: <><User size={14} /> One team</> },
+        { v: 'special' as Mode, label: <><Globe size={14} /> Special discount</> },
       ]} />
 
-      {mode === 'board' ? (
+      {mode === 'special' ? (
+        <Section title="Special discount" sub="Not a CTF result: CyberHx Pentest Lab is open worldwide, so we invite people from every university and country with a personal code. Uses this event's look, redeem link, date and mail service.">
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className={label} htmlFor="sp-pct">Voucher %</label>
+                <div className="relative"><input id="sp-pct" type="number" min={1} max={100} className={`${input} pr-8`} value={sp.percent} disabled={!!sp.prize.trim()} onChange={(e) => setSp({ ...sp, percent: Number(e.target.value) || 1 })} /><span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-white/40">%</span></div>
+              </div>
+              <div>
+                <label className={label} htmlFor="sp-prize">Or a custom offer <span className="text-white/30">(optional)</span></label>
+                <input id="sp-prize" className={input} value={sp.prize} maxLength={120} placeholder="e.g. 3 months of Pentest Lab" onChange={(e) => setSp({ ...sp, prize: e.target.value })} />
+              </div>
+              <div>
+                <label className={label} htmlFor="sp-members">Who can use the code</label>
+                <select id="sp-members" className={input} value={sp.members} onChange={(e) => setSp({ ...sp, members: Number(e.target.value) })}>
+                  <option value={0}>Only them</option>
+                  {[2, 3, 5, 10, 25, 50].map((n) => <option key={n} value={n}>Up to {n} people</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className={label} htmlFor="sp-code">Voucher code for everyone <span className="text-white/30">(used when a line has no code of its own)</span></label>
+              <input id="sp-code" className={`${input} font-mono tracking-wider`} value={sp.code} maxLength={MAX_FIELD.code} placeholder="CXGLOBAL30" onChange={(e) => setSp({ ...sp, code: e.target.value })} />
+            </div>
+            <div>
+              <label className={label} htmlFor="sp-list">People <span className="text-white/30">· one per line: email, name (optional), code (optional) · {spRows.length} found</span></label>
+              <textarea id="sp-list" rows={7} className={`${input} resize-y font-mono text-[12.5px] leading-6`} value={sp.list} onChange={(e) => setSp({ ...sp, list: e.target.value })}
+                placeholder={'aman@example.com, Aman\nstudent@university.edu, Priya, CX-PRIYA-30\nsomeone@example.com'} />
+            </div>
+            {spRows.length > 0 && (
+              <div className="max-h-[320px] overflow-auto rounded-2xl border border-white/[0.08]">
+                <table className="w-full text-[13px]">
+                  <thead className="sticky top-0 bg-[#10151f]">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-white/40">
+                      <th className="px-3 py-2.5 font-medium">Email</th><th className="px-3 py-2.5 font-medium">Name</th><th className="px-3 py-2.5 font-medium">Code</th><th className="px-3 py-2.5 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spRows.map((r) => {
+                      const k = spKey(r); const st = status[k] || (sent[k] ? 'sent' : '');
+                      const code = r.code || spShared;
+                      return (
+                        <tr key={r.email} className="border-t border-white/5">
+                          <td className="max-w-[16rem] truncate px-3 py-2.5 text-white/80">{r.email}</td>
+                          <td className="px-3 py-2.5 text-white/60">{r.name || <span className="text-white/30">Hi there</span>}</td>
+                          <td className="px-3 py-2.5 font-mono text-[12px] text-white/75">{code || <span className="text-red-300">no code</span>}</td>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-xs">
+                            {!code ? <span className="text-red-300">add a code</span>
+                              : st === 'sending' ? <span className="flex items-center gap-1 text-white/50"><Loader2 size={12} className="animate-spin" />Sending</span>
+                              : st === 'sent' ? <span className="flex items-center gap-1 text-[#30d158]"><Check size={12} />Sent</span>
+                              : st.startsWith('failed') ? <span className="text-red-300" title={st}>Failed</span>
+                              : <span className="text-white/45">Ready</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Section>
+      ) : mode === 'board' ? (
         <Section
           title="Leaderboard"
           sub={`Paste from Google Sheets: Rank, Team, Email(s), Voucher code, Members (optional). Ranks 1–${maxRank || '…'} get a prize.`}
@@ -656,7 +784,15 @@ export const VouchersPanel: React.FC = () => {
           </div>
         </div>
         <div className={`${card} flex flex-col`}>
-          {mode === 'board' ? (
+          {mode === 'special' ? (
+            <>
+              <p className="text-sm font-semibold text-white">Send the special discount</p>
+              <p className="mb-4 mt-1 text-[12.5px] text-white/45">{spPending.length ? `${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} · ${spPrize} · ${senderName}` : spReady.length ? 'Everyone on the list has been sent.' : 'Add people and a voucher code first.'}</p>
+              <button onClick={sendSpecial} disabled={!!busy || !spPending.length} className="mt-auto flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0A84FF] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#2b95ff] disabled:opacity-40">
+                {busy === 'all' ? <Loader2 size={15} className="animate-spin" /> : <Gift size={15} />} Send to everyone
+              </button>
+            </>
+          ) : mode === 'board' ? (
             <>
               <p className="text-sm font-semibold text-white">Send to every team</p>
               <p className="mb-4 mt-1 text-[12.5px] text-white/45">{pending.length ? `${pending.length} team${pending.length === 1 ? '' : 's'} · ${emailsToSend} email${emailsToSend === 1 ? '' : 's'} · ${senderName}` : good.length ? 'Every team on the list has been sent.' : 'Paste the leaderboard first.'}</p>

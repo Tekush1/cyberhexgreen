@@ -38,6 +38,7 @@ function voucherVars(raw: unknown): Partial<EmailVars> | undefined {
     tierLabel: str(v.tierLabel, 40).trim(),
     prize: str(v.prize, 120).trim(),
     members: num(v.members, 0, 50),
+    special: v.special === true,
   };
 }
 
@@ -123,7 +124,7 @@ export default async function handler(req: any, res: any) {
     color: /^#[0-9a-f]{6}$/i.test(String(v.color || '')) ? String(v.color) : '',
   };
   if (template === 'team_voucher' && list.some((r) => !r.own?.team || !r.own?.code || (!r.own?.discount && !r.own?.prize))) {
-    return res.status(400).json({ error: 'Every team needs a name, a voucher code and a prize.' });
+    return res.status(400).json({ error: 'Every email needs a name, a voucher code and a prize.' });
   }
   if (template === 'custom' && (!vars.subject?.trim() || !vars.body?.trim())) {
     return res.status(400).json({ error: 'Custom emails need a subject and a message.' });
