@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Check, Copy, Download, Gift, Loader2, Plus, Save, Send, Trash2, Users, User, Globe } from 'lucide-react';
 import { TOKEN_KEY } from './adminApi';
 import { renderEmail, MAX_FIELD, type EmailVars } from '../../../shared/emailTemplates';
-import { campaignApi, downloadCsv, sbInsert, sbRows, sbWrite } from './mailingApi';
+import { campaignApi, downloadCsv, sbInsert, sbRows, sbRpc, sbWrite } from './mailingApi';
 
 /* Admin -> Vouchers.
    Events: each CTF is saved (table voucher_events) with its own colour, product, redeem link, expiry, email style,
@@ -208,6 +208,42 @@ export const VouchersPanel: React.FC = () => {
   useEffect(() => {
     campaignApi<{ providers: Provider[] }>().then((d) => setProviders(d.providers || [])).catch(() => setProviders([]));
   }, []);
+
+  // ----- Server queue (voucher_queue) for the selected event -----
+  type QRow = { id: number; email: string; status: string; last_error: string; not_before: string; sent_at: string | null; kind: string };
+  const [queue, setQueue] = useState<{ rows: QRow[]; at: number } | null>(null);
+  const loadQueue = useCallback(async () => {
+    if (!selId) { setQueue(null); return; }
+    try {
+      const { rows: list } = await sbRows<QRow>(`voucher_queue?select=id,email,status,last_error,not_before,sent_at,kind&event_id=eq.${selId}&order=id.desc&limit=5000`);
+      setQueue({ rows: list, at: Date.now() });
+    } catch { setQueue(null); }
+  }, [selId]);
+  useEffect(() => { loadQueue(); const t = setInterval(loadQueue, 20_000); return () => clearInterval(t); }, [loadQueue]);
+  const qByEmail = useMemo(() => {
+    const m = new Map<string, QRow>();
+    (queue?.rows || []).forEach((r) => { if (!m.has(r.email)) m.set(r.email, r); }); // newest first
+    return m;
+  }, [queue]);
+  /** Queue state of a set of emails: sent, failed, waiting, or '' when not queued. */
+  const qState = (emails: string[]) => {
+    const st = emails.map((e) => qByEmail.get(e.toLowerCase())?.status).filter(Boolean) as string[];
+    if (!st.length) return '';
+    if (st.some((x) => x === 'failed')) return 'failed';
+    if (st.every((x) => x === 'sent')) return 'sent';
+    if (st.every((x) => x === 'cancelled')) return 'cancelled';
+    return 'waiting';
+  };
+  const qCount = (st: string) => (queue?.rows || []).filter((r) => r.status === st).length;
+  const qAction = async (what: 'cancel' | 'retry') => {
+    if (!selId) return;
+    if (what === 'cancel' && !confirm('Stop the emails that are still waiting? Emails already sent are not affected.')) return;
+    try {
+      if (what === 'cancel') await sbWrite('PATCH', `voucher_queue?event_id=eq.${selId}&status=eq.pending`, { status: 'cancelled' });
+      else await sbWrite('PATCH', `voucher_queue?event_id=eq.${selId}&status=in.(failed,cancelled)`, { status: 'pending', attempts: 0, not_before: new Date().toISOString(), last_error: '' });
+      await loadQueue();
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not update the queue.' }); }
+  };
 
   useEffect(() => save(`${STORE}_ui`, { sel: selId, mode }), [selId, mode]);
   useEffect(() => { try { localStorage.setItem(`${STORE}_list`, raw); } catch { /* ignore */ } }, [raw]);
@@ -427,12 +463,31 @@ export const VouchersPanel: React.FC = () => {
       : { ok: true, text: again ? `Sent again to ${ok} team${ok === 1 ? '' : 's'}.` : `Sent to ${ok} team${ok === 1 ? '' : 's'} via ${senderName}.` });
   };
 
+  /** Put emails in the server queue: about 6 a minute go out, even with this page closed. */
+  const enqueue = async (rows: { email: string; name: string; vars: object; kind: 'rank' | 'special'; via: string }[]) => {
+    if (problems.length) throw new Error(problems[0]);
+    if (dirty || !saved) throw new Error('Save the event first, so every email matches what is saved.');
+    let added = 0;
+    for (let i = 0; i < rows.length; i += 500) {
+      added += await sbRpc<number>('voucher_queue_add', { p_rows: rows.slice(i, i + 500).map((r) => ({ ...r, event_id: saved.id, shared })) });
+    }
+    return added;
+  };
+  const minutes = (n: number) => { const m = Math.ceil(n / 6); return m < 60 ? `about ${m} minute${m === 1 ? '' : 's'}` : `about ${Math.round(m / 6) / 10} hours`; };
+
   const sendAll = async () => {
     if (!pending.length) return;
     const lines = perTier.filter((x) => x.n).map((x) => `${x.t.label || rangeLabel(x.t)}: ${x.n} team${x.n === 1 ? '' : 's'} · ${prizeLabel(x.t)}`).join('\n');
-    if (!confirm(`Send ${emailsToSend} email${emailsToSend === 1 ? '' : 's'} to ${pending.length} team${pending.length === 1 ? '' : 's'} of ${ev.name} via ${senderName}?\n\n${lines}`)) return;
+    if (!confirm(`Queue ${emailsToSend} email${emailsToSend === 1 ? '' : 's'} to ${pending.length} team${pending.length === 1 ? '' : 's'} of ${ev.name} via ${senderName}?\n\nThey go out slowly (about 6 a minute), even if you close this page.\n\n${lines}`)) return;
     setBusy('all'); setMsg(null);
-    await sendTeams(pending);
+    try {
+      const added = await enqueue(pending.flatMap((r) => r.emails.map((email) => ({ email, name: r.team, kind: 'rank' as const, via: ev.sender, vars: teamVars(r.team, r.rank, tierFor(r.rank)!, r.code, r.members) }))));
+      const stamp = new Date().toISOString();
+      setSent((x) => ({ ...x, ...Object.fromEntries(pending.map((r) => [keyOf(r), stamp])) }));
+      pending.forEach((r) => setStatus((st) => ({ ...st, [keyOf(r)]: 'queued' })));
+      setMsg({ ok: true, text: `${added} email${added === 1 ? '' : 's'} queued${added < emailsToSend ? ` (${emailsToSend - added} were already queued or sent)` : ''}. They go out over ${minutes(added)}; you can close this page.` });
+      loadQueue();
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not queue the emails.' }); }
     setBusy('');
   };
   const resendTeam = async (r: TeamRow) => {
@@ -444,29 +499,16 @@ export const VouchersPanel: React.FC = () => {
 
   const sendSpecial = async () => {
     if (!spPending.length) return;
-    if (!confirm(`Send the special discount (${spPrize}) to ${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} via ${senderName}?`)) return;
+    if (!confirm(`Queue the special discount (${spPrize}) for ${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} via ${senderName}?\n\nThey go out slowly (about 6 a minute), even if you close this page.`)) return;
     setBusy('all'); setMsg(null);
-    let ok = 0; let fail = 0;
-    for (let i = 0; i < spPending.length; i += perRequest) {
-      const c = spPending.slice(i, i + perRequest);
-      c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: 'sending' })));
-      try {
-        const d = await sendPatient({ template: 'team_voucher', recipients: c.map((r) => ({ email: r.email, name: r.name, vars: spVars(r.name, r.code || spShared) })), vars: shared });
-        const bad = new Set(d.failed || []);
-        if (d.failed?.length) lastReason = firstReason(d.reasons);
-        const stamp = new Date().toISOString();
-        const done = c.filter((r) => !bad.has(r.email));
-        setSent((x) => ({ ...x, ...Object.fromEntries(done.map((r) => [spKey(r), stamp])) }));
-        c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: bad.has(r.email) ? `failed: ${d.reasons?.[r.email] || 'not delivered'}` : 'sent' })));
-        ok += done.length; fail += c.length - done.length;
-      } catch (e) {
-        const m = e instanceof Error ? e.message : 'failed';
-        c.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: `failed: ${m}` })));
-        fail += c.length; lastReason = ` Reason: ${m.slice(0, 200).replace(/[.\s]+$/, '')}.`;
-        if (/Save the event|name|redeem|tier|prize|Resend/i.test(m)) { setMsg({ ok: false, text: m }); setBusy(''); return; }
-      }
-    }
-    setMsg(fail ? { ok: false, text: `${ok} sent, ${fail} failed.${lastReason} Press Send again to retry; people already sent are skipped.` } : { ok: true, text: `Special discount sent to ${ok} ${ok === 1 ? 'person' : 'people'} via ${senderName}.` });
+    try {
+      const added = await enqueue(spPending.map((r) => ({ email: r.email, name: r.name, kind: 'special' as const, via: sp.via, vars: spVars(r.name, r.code || spShared) })));
+      const stamp = new Date().toISOString();
+      setSent((x) => ({ ...x, ...Object.fromEntries(spPending.map((r) => [spKey(r), stamp])) }));
+      spPending.forEach((r) => setStatus((st) => ({ ...st, [spKey(r)]: 'queued' })));
+      setMsg({ ok: true, text: `${added} email${added === 1 ? '' : 's'} queued${added < spPending.length ? ` (${spPending.length - added} were already queued or sent)` : ''}. They go out over ${minutes(added)}; you can close this page.` });
+      loadQueue();
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not queue the emails.' }); }
     setBusy('');
   };
 
@@ -672,7 +714,9 @@ export const VouchersPanel: React.FC = () => {
                   </thead>
                   <tbody>
                     {spRows.map((r) => {
-                      const k = spKey(r); const st = status[k] || (sent[k] ? 'sent' : '');
+                      const k = spKey(r);
+                      const q = qByEmail.get(r.email);
+                      const st = q?.status === 'pending' || q?.status === 'sending' ? 'queued' : q?.status === 'failed' ? `failed: ${q.last_error || 'not delivered'}` : q?.status === 'sent' ? 'sent' : status[k] || (sent[k] ? 'sent' : '');
                       const code = r.code || spShared;
                       return (
                         <tr key={r.email} className="border-t border-white/5">
@@ -683,6 +727,7 @@ export const VouchersPanel: React.FC = () => {
                             {!code ? <span className="text-red-300">add a code</span>
                               : st === 'sending' ? <span className="flex items-center gap-1 text-white/50"><Loader2 size={12} className="animate-spin" />Sending</span>
                               : st === 'sent' ? <span className="flex items-center gap-1 text-[#30d158]"><Check size={12} />Sent</span>
+                              : st === 'queued' ? <span className="text-amber-200/80">Waiting in queue</span>
                               : st.startsWith('failed') ? <span className="block max-w-[18rem] whitespace-normal text-red-300" title={st}>Failed{st.length > 7 ? `: ${st.slice(8, 140)}` : ''}</span>
                               : <span className="text-white/45">Ready</span>}
                           </td>
@@ -729,7 +774,8 @@ export const VouchersPanel: React.FC = () => {
                   <tbody>
                     {rows.map((r, i) => {
                       const k = keyOf(r);
-                      const st = status[k] || (sent[k] ? 'sent' : '');
+                      const qs = qState(r.emails);
+                      const st = qs === 'waiting' ? 'queued' : qs === 'failed' ? `failed: ${r.emails.map((e) => qByEmail.get(e)?.last_error).find(Boolean) || 'not delivered'}` : qs === 'sent' ? 'sent' : status[k] || (sent[k] ? 'sent' : '');
                       const t = r.rank ? tierFor(r.rank) : undefined;
                       return (
                         <tr key={`${r.line}-${i}`} onClick={() => setPick(i)} className={`cursor-pointer border-t border-white/5 ${pick === i || (pick === null && boardRow === r) ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}`}>
@@ -747,6 +793,7 @@ export const VouchersPanel: React.FC = () => {
                                   <button onClick={(e) => { e.stopPropagation(); resendTeam(r); }} disabled={!!busy} className="rounded-md border border-white/10 px-1.5 py-0.5 text-[11px] text-white/60 hover:text-white disabled:opacity-40">Resend</button>
                                 </span>
                               )
+                              : st === 'queued' ? <span className="text-amber-200/80">Waiting in queue</span>
                               : st.startsWith('failed') ? <span className="text-red-300" title={st}>Failed</span>
                               : <span className="text-white/45">Ready</span>}
                           </td>
@@ -812,17 +859,17 @@ export const VouchersPanel: React.FC = () => {
           {mode === 'special' ? (
             <>
               <p className="text-sm font-semibold text-white">Send the special discount</p>
-              <p className="mb-4 mt-1 text-[12.5px] text-white/45">{spPending.length ? `${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} · ${spPrize} · ${senderName}` : spReady.length ? 'Everyone on the list has been sent.' : 'Add people and a voucher code first.'}</p>
+              <p className="mb-4 mt-1 text-[12.5px] text-white/45">{spPending.length ? `${spPending.length} ${spPending.length === 1 ? 'person' : 'people'} · ${spPrize} · ${senderName}` : spReady.length ? 'Everyone on the list is queued or sent.' : 'Add people and a voucher code first.'}</p>
               <button onClick={sendSpecial} disabled={!!busy || !spPending.length} className="mt-auto flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0A84FF] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#2b95ff] disabled:opacity-40">
-                {busy === 'all' ? <Loader2 size={15} className="animate-spin" /> : <Gift size={15} />} Send to everyone
+                {busy === 'all' ? <Loader2 size={15} className="animate-spin" /> : <Gift size={15} />} Queue for everyone
               </button>
             </>
           ) : mode === 'board' ? (
             <>
               <p className="text-sm font-semibold text-white">Send to every team</p>
-              <p className="mb-4 mt-1 text-[12.5px] text-white/45">{pending.length ? `${pending.length} team${pending.length === 1 ? '' : 's'} · ${emailsToSend} email${emailsToSend === 1 ? '' : 's'} · ${senderName}` : good.length ? 'Every team on the list has been sent.' : 'Paste the leaderboard first.'}</p>
+              <p className="mb-4 mt-1 text-[12.5px] text-white/45">{pending.length ? `${pending.length} team${pending.length === 1 ? '' : 's'} · ${emailsToSend} email${emailsToSend === 1 ? '' : 's'} · ${senderName}` : good.length ? 'Every team on the list is queued or sent.' : 'Paste the leaderboard first.'}</p>
               <button onClick={sendAll} disabled={!!busy || !pending.length} className="mt-auto flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0A84FF] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#2b95ff] disabled:opacity-40">
-                {busy === 'all' ? <Loader2 size={15} className="animate-spin" /> : <Gift size={15} />} Send to all teams
+                {busy === 'all' ? <Loader2 size={15} className="animate-spin" /> : <Gift size={15} />} Queue for all teams
               </button>
               {Object.keys(sent).length > 0 && (
                 <button onClick={() => { if (confirm('Forget which teams were sent on this device? They could then be sent again.')) setSent({}); }} className="mt-2 w-full text-[11px] text-white/35 hover:text-white/60">Reset sent list</button>
@@ -843,6 +890,40 @@ export const VouchersPanel: React.FC = () => {
         <p className={`flex items-start gap-2 rounded-2xl p-3.5 text-sm ${msg.ok ? 'border border-[#30d158]/30 bg-[#30d158]/[0.06] text-[#30d158]' : 'border border-red-500/30 bg-red-500/5 text-red-300'}`}>
           {msg.ok ? <Check size={15} className="mt-0.5 shrink-0" /> : <AlertTriangle size={15} className="mt-0.5 shrink-0" />} {msg.text}
         </p>
+      )}
+      {queue && queue.rows.length > 0 && (
+        <div className={card}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Mail queue · {ev.name}</p>
+              <p className="mt-1 text-[12.5px] text-white/45">About 6 emails a minute, one by one. It keeps going when this page is closed. If a mail service hits its limit, those emails wait and try again later.</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={loadQueue} className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-white/70 hover:text-white">Refresh</button>
+              {qCount('pending') > 0 && <button onClick={() => qAction('cancel')} className="rounded-xl border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10">Stop waiting emails</button>}
+              {qCount('failed') + qCount('cancelled') > 0 && <button onClick={() => qAction('retry')} className="rounded-xl border border-white/15 px-3 py-1.5 text-xs text-white hover:bg-white/5">Try failed again</button>}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              ['Waiting', qCount('pending') + qCount('sending'), 'text-amber-200'],
+              ['Sent', qCount('sent'), 'text-[#30d158]'],
+              ['Failed', qCount('failed'), 'text-red-300'],
+              ['Stopped', qCount('cancelled'), 'text-white/50'],
+            ].map(([k, v, c]) => (
+              <div key={k as string} className="rounded-2xl border border-white/[0.07] bg-black/20 px-4 py-3">
+                <p className={`text-2xl font-semibold tabular-nums ${c}`}>{v as number}</p>
+                <p className="text-[12px] text-white/45">{k as string}</p>
+              </div>
+            ))}
+          </div>
+          {qCount('pending') + qCount('sending') > 0 && <p className="mt-3 text-[12px] text-white/40">Done in {minutes(qCount('pending') + qCount('sending'))} if nothing is held back by a limit.</p>}
+          {(queue.rows.filter((r) => r.status === 'failed' || (r.status === 'pending' && r.last_error)).slice(0, 5)).map((r) => (
+            <p key={r.id} className="mt-2 truncate text-[12px] text-red-300/90" title={r.last_error}>
+              {r.email}: {r.status === 'pending' ? `waiting (${r.last_error.slice(0, 120)}), next try ${new Date(r.not_before).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : r.last_error.slice(0, 160)}
+            </p>
+          ))}
+        </div>
       )}
       {dirty && <p className="text-[12px] text-amber-200/80">Save the event before sending, so every email matches the saved settings.</p>}
 

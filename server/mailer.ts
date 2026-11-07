@@ -588,7 +588,7 @@ export async function checkProvider(id: ProviderId): Promise<{ ok: boolean; mess
  * until one accepts it. No admin session is involved, so the daily counters are not used:
  * keep this for low-volume mail.
  */
-export async function sendDirect(order: ProviderId[], msg: OutMsg, fromName?: string): Promise<{ ok: boolean; provider?: ProviderId; id?: string; errors: Record<string, string> }> {
+export async function sendDirect(order: ProviderId[], msg: OutMsg, fromName?: string, fromEmail?: string): Promise<{ ok: boolean; provider?: ProviderId; id?: string; errors: Record<string, string> }> {
   const errors: Record<string, string> = {};
   for (const pid of order) {
     const def = PROVIDERS.find((p) => p.id === pid);
@@ -597,6 +597,7 @@ export async function sendDirect(order: ProviderId[], msg: OutMsg, fromName?: st
     if (!info.configured) { errors[pid] = 'not connected'; continue; }
     const from = parseFrom(info.from);
     if (fromName) from.name = fromName;
+    if (fromEmail) from.email = fromEmail;
     try {
       const [r] = await def.send([msg], from, DEFAULT_REPLY_TO);
       if (r?.ok) return { ok: true, provider: pid, id: r.id ? String(r.id).slice(0, 200) : undefined, errors };
