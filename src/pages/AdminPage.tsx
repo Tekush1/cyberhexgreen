@@ -12,6 +12,7 @@ import { SubscribersPanel } from '../components/admin/SubscribersPanel';
 import { TeamPanel } from '../components/admin/TeamPanel';
 import { PaymentsPanel } from '../components/admin/PaymentsPanel';
 import { OutreachPanel } from '../components/admin/OutreachPanel';
+import { ContactsPanel } from '../components/admin/ContactsPanel';
 import { ROLES, isRole, type Role, type TabId } from '../components/admin/roles';
 import { sbCount } from '../components/admin/adminApi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -486,6 +487,7 @@ const AdminPage: React.FC = () => {
             { id: 'campaigns', label: 'Campaigns', badge: 0 },
             { id: 'subscribers', label: 'Subscribers', badge: 0 },
             { id: 'outreach', label: 'Outreach', badge: 0 },
+            { id: 'contacts', label: 'Contacts', badge: 0 },
             { id: 'team', label: 'Team', badge: 0 },
           ] as { id: TabId; label: string; badge: number }[]).filter(t => allowed.includes(t.id)).sort((a, b) => allowed.indexOf(a.id) - allowed.indexOf(b.id)).map(t => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
@@ -552,6 +554,7 @@ const AdminPage: React.FC = () => {
         {go(tab) === 'team' && <TeamPanel />}
         {go(tab) === 'payments' && <PaymentsPanel />}
         {go(tab) === 'outreach' && <OutreachPanel role={me.role} />}
+        {go(tab) === 'contacts' && <ContactsPanel role={me.role} />}
 
         {go(tab) === 'posts' && (
           <div>

@@ -4,14 +4,14 @@
 export type Role = 'owner' | 'hr' | 'campaign' | 'event' | 'outreach';
 export type TabId =
   | 'inbox' | 'feedback' | 'submissions' | 'posts' | 'meetings' | 'applications' | 'ctf'
-  | 'availability' | 'emails' | 'vouchers' | 'campaigns' | 'subscribers' | 'payments' | 'outreach' | 'team';
+  | 'availability' | 'emails' | 'vouchers' | 'campaigns' | 'subscribers' | 'payments' | 'outreach' | 'contacts' | 'team';
 
 export const ROLES: Record<Role, { label: string; short: string; about: string; tabs: TabId[] }> = {
   owner: {
     label: 'Owner',
     short: 'Owner',
     about: 'Everything, plus adding and removing team members.',
-    tabs: ['inbox', 'feedback', 'submissions', 'posts', 'meetings', 'applications', 'ctf', 'payments', 'availability', 'emails', 'vouchers', 'campaigns', 'subscribers', 'outreach', 'team'],
+    tabs: ['inbox', 'feedback', 'submissions', 'posts', 'meetings', 'applications', 'ctf', 'payments', 'availability', 'emails', 'vouchers', 'campaigns', 'subscribers', 'outreach', 'contacts', 'team'],
   },
   hr: {
     label: 'HR',
@@ -34,8 +34,8 @@ export const ROLES: Record<Role, { label: string; short: string; about: string; 
   outreach: {
     label: 'Outreach',
     short: 'Outreach',
-    about: 'Outreach only: CTF organiser leads, pitch emails and their history, CTF-call booking links and the hours for those calls.',
-    tabs: ['outreach'], // call hours live inside Outreach now (each person has their own)
+    about: 'Outreach only: CTF organiser leads, pitch emails and their history, Contacts and bulk emails, CTF-call booking links and the hours for those calls.',
+    tabs: ['outreach', 'contacts'], // call hours live inside Outreach now (each person has their own)
   },
 };
 
