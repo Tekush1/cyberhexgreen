@@ -63,20 +63,8 @@ export const Gallery = () => {
 
         <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-6 lg:px-8">
           <div className="relative z-10">
-            <motion.p
-              initial={reduce ? false : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease }}
-              className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/70 backdrop-blur"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-70 motion-reduce:hidden" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
-              </span>
-              Events archive · {pad2(events.length)} CTFs and counting
-            </motion.p>
 
-            <h1 className="font-display mt-6 text-[3rem] leading-[0.95] sm:text-7xl lg:text-[5.4rem]">
+            <h1 className="font-display text-[3rem] leading-[0.95] sm:text-7xl lg:text-[5.4rem]">
               <Line delay={0.1} reduce={reduce}>
                 Every CTF
               </Line>
@@ -214,24 +202,11 @@ export const Gallery = () => {
             <Mascot pose="confused" alt="" className="relative w-full" />
           </div>
           <div className="relative">
-            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-lime">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-70 motion-reduce:hidden" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
-              </span>
-              Next drop
-            </p>
-            <h2 className="font-display mt-3 text-4xl leading-none text-white sm:text-5xl">What's next?</h2>
+            <h2 className="font-display text-4xl leading-none text-white sm:text-5xl">What's next?</h2>
             <p className="mt-4 max-w-md leading-7 text-white/55">
               We're picking the date for our next open CTF. Follow along to hear the moment registrations open.
             </p>
-            <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 shadow-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-70 motion-reduce:hidden" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
-              </span>
-              <span className="font-mono text-xs uppercase tracking-[0.16em] text-white/70">Date — to be announced</span>
-            </div>
+            <p className="mt-4 text-[15px] font-semibold text-white/80">Date to be announced.</p>
           </div>
           <div className="relative flex flex-col gap-3 sm:flex-row md:col-span-2 lg:col-span-1 lg:flex-col">
             <a href="https://instagram.com/nulloriginctf" target="_blank" rel="noopener noreferrer" className="btn btn-lime">

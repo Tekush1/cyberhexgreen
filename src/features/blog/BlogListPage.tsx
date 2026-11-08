@@ -128,11 +128,7 @@ export default function BlogListPage() {
         {/* Header */}
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#0b1020] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-              The CyberHx blog
-            </span>
-            <h1 className="font-display mt-5 text-5xl text-white sm:text-6xl">
+            <h1 className="font-display text-5xl text-white sm:text-6xl">
               Read, learn,{' '}
               <span className="relative inline-block">
                 hack.

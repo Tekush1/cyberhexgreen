@@ -179,11 +179,7 @@ export default function FeedbackPage() {
         </Link>
 
         <header className="relative mt-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#0b1020] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-            {EVENT.name} · Feedback
-          </span>
-          <h1 className="font-display mt-5 text-5xl leading-[1.04] text-white sm:text-6xl">
+          <h1 className="font-display text-5xl leading-[1.04] text-white sm:text-6xl">
             24 hours.<br /> Your verdict.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-8 text-white/55">

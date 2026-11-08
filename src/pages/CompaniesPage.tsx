@@ -164,10 +164,7 @@ export default function CompaniesPage() {
         <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-[30rem] w-[52rem] -translate-x-1/2 rounded-full bg-glow/[0.09] blur-[130px]" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 sm:px-6 lg:grid-cols-[1fr_auto] lg:px-8">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#0b1020] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-lime" /> CyberHx for Companies · Open worldwide
-            </span>
-            <h1 className="font-display mt-6 max-w-3xl text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
+            <h1 className="font-display max-w-3xl text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
               Hire practitioners, <span className="text-white/45">not resumes.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">

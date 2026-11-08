@@ -79,7 +79,7 @@ function IdCard({ name, college, country }: { name: string; college: string; cou
         <div aria-hidden="true" className="absolute -right-4 -top-4 h-20 w-20 rounded-full border border-white/[0.06]" />
         <div className="flex items-center justify-between">
           <span className="font-mono text-[10.5px] uppercase tracking-[0.24em] text-lime">CyberHx · Global</span>
-          <span className="rounded-full border border-lime/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-lime">Explorer</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-lime">Explorer</span>
         </div>
         <p className="font-display mt-5 text-[26px] leading-none text-white">Student<br />Ambassador</p>
         <dl className="mt-6 space-y-3 text-[13px]">
@@ -181,10 +181,7 @@ export default function AmbassadorsPage() {
         <div aria-hidden="true" className="pointer-events-none absolute -right-20 top-44 hidden h-[24rem] w-[24rem] rounded-full border border-white/[0.05] lg:block" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:px-8">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#0b1020] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime" /> Global Student Ambassador Program · Applications open
-            </span>
-            <h1 className="font-display mt-6 max-w-3xl text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
+            <h1 className="font-display max-w-3xl text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
               Plant the flag <span className="text-white/45">on your campus.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">

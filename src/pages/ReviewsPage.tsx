@@ -50,10 +50,7 @@ export default function ReviewsPage() {
       <section className="relative overflow-hidden border-b border-white/[0.06] pb-14 pt-28 sm:pb-20 sm:pt-36">
         <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-[28rem] w-[50rem] -translate-x-1/2 rounded-full bg-glow/[0.08] blur-[130px]" />
         <div className="relative mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#0b1020] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-lime" /> Reviews · From the players
-          </span>
-          <div className="mt-8 grid items-end gap-10 lg:grid-cols-[1fr_auto]">
+          <div className="grid items-end gap-10 lg:grid-cols-[1fr_auto]">
             <h1 className="font-display max-w-3xl text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
               Played by thousands. <span className="text-white/45">Judged by them.</span>
             </h1>

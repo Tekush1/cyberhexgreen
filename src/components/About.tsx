@@ -600,10 +600,7 @@ export const About = () => (
     <div className="relative mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-          <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/60">
-            <span className="h-1.5 w-1.5 rounded-full bg-lime" /> About CyberHx
-          </p>
-          <h1 className="mt-6 font-display text-5xl leading-[1.02] text-white sm:text-6xl">
+          <h1 className="font-display text-5xl leading-[1.02] text-white sm:text-6xl">
             The people behind
             <span className="block text-white/45">the scoreboard.</span>
           </h1>

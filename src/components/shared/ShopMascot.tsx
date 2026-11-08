@@ -187,13 +187,6 @@ export const ShopMascot = ({
           </div>
         </div>
       </div>
-      <span className="shop-live">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-75" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime" />
-        </span>
-        {tag}
-      </span>
       </div>
     </div>
   );
