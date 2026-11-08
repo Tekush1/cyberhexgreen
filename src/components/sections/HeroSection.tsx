@@ -6,7 +6,6 @@ import { Mascot } from '../shared/Mascot';
 import { CountUp } from '../shared/CountUp';
 import { builderPricing, plans } from '../../data/hosting';
 import { stats } from '../../data/stats';
-import { events } from '../../data/events';
 
 /* ─────────────────────────────────────────────────────────────
    The Arena: a CTF stage. A perspective grid floor runs to a
@@ -29,7 +28,6 @@ const ease = [0.16, 1, 0.3, 1] as const;
 
 export const HeroSection = () => {
   const reduce = !!useReducedMotion();
-  const latest = events[0];
 
   /* pointer parallax */
   const mx = useMotionValue(0);
@@ -84,23 +82,17 @@ export const HeroSection = () => {
 
       <div className="mx-auto grid w-full max-w-7xl items-center gap-4 px-5 sm:gap-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-4 lg:px-8">
         {/* ── Copy ─────────────────────────────────────────── */}
-        <div className="relative z-10">
-          {latest && (
-            <motion.div {...rise(0.05, 12)}>
-              <Link
-                to="/events"
-                className="group inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/[0.1] bg-white/[0.04] py-1.5 pl-1.5 pr-4 text-sm text-white/80 backdrop-blur transition hover:border-white/25 hover:text-white"
-              >
-                <span className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold text-ink">{latest.status === 'completed' ? 'New' : 'Next'}</span>
-                <span className="truncate">
-                  {latest.status === 'completed'
-                    ? `${latest.title}: ${latest.participants.toLowerCase()}`
-                    : [latest.title, latest.shortDate, latest.entry === 'Paid' ? 'paid entry, registrations open' : 'registrations open'].filter(Boolean).join(' · ')}
-                </span>
-                <ArrowRight size={14} className="shrink-0 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </motion.div>
-          )}
+        <div className="relative z-10 min-w-0">
+          <motion.div {...rise(0.05, 12)}>
+            <Link
+              to="/ambassadors"
+              className="group inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/[0.1] bg-white/[0.04] py-1.5 pl-1.5 pr-4 text-sm text-white/80 backdrop-blur transition hover:border-white/25 hover:text-white"
+            >
+              <span className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold text-ink">New</span>
+              <span className="truncate"><span className="hidden sm:inline">Global Student Ambassador Program · applications open</span><span className="sm:hidden">Student Ambassador Program · apply now</span></span>
+              <ArrowRight size={14} className="shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </motion.div>
 
           <h1 className="font-display mt-7 text-[clamp(2.1rem,10.6vw,2.6rem)] leading-[0.98] tracking-[-0.01em] text-white sm:text-6xl lg:text-[3.7rem] xl:text-[4.25rem] lg:[&>span]:whitespace-nowrap">
             <span className="block overflow-hidden pb-1">
