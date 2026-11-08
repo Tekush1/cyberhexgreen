@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Seo } from '../features/seo/Seo';
 import { Mail, Clock, CheckCircle, ChevronDown, ChevronUp, ExternalLink, FileText } from 'lucide-react';
 import { Bug, AlertTriangle, Eye, Lock, Award } from '../components/shared/icons';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -92,6 +93,7 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 const ResponsibleDisclosurePage = () => {
   return (
     <div className="min-h-screen bg-dark-300">
+      <Seo title="Responsible Disclosure Policy — Report a Vulnerability | CyberHx" description="How to report a security vulnerability in CyberHx platforms safely: scope, rules, what to include, response times and recognition in our Hall of Fame." path="/responsible-disclosure" />
       {/* Hero */}
       <section className="relative py-24 border-b border-gray-900 overflow-hidden">
         <div

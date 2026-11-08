@@ -1,4 +1,5 @@
 import React from 'react';
+import { Seo } from '../features/seo/Seo';
 import { motion } from 'framer-motion';
 import { FileSignature, MapPin, Mail, ArrowUpRight, Globe } from 'lucide-react';
 import { Handshake, Building2, Bug, Server, BookOpen, Megaphone, Trophy, Users, Cpu } from '../components/shared/icons';
@@ -98,6 +99,7 @@ const colabTypes = [
 const CollaborationsPage = () => {
   return (
     <div className="min-h-screen bg-dark-300">
+      <Seo title="Partners & Collaborations — Work with CyberHx" description="Partner with CyberHx: co-host CTFs, sponsor global events, contribute challenges or run security programs with a community of players from 90+ countries." path="/collaborations" />
 
       {/* Hero */}
       <section className="relative py-24 border-b border-gray-900 overflow-hidden">

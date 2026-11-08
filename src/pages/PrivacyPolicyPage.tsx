@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Seo } from '../features/seo/Seo';
 import { Lock, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -155,6 +156,7 @@ const PrivacyPolicyPage = () => {
 
   return (
     <div className="min-h-screen bg-dark-300">
+      <Seo title="Privacy Policy | CyberHx" description="How CyberHx collects, uses and protects personal data across our CTF platform, Pentest Lab, events and website." path="/privacy" />
       {/* Hero */}
       <section className="relative py-20 border-b border-gray-900 overflow-hidden">
         <div

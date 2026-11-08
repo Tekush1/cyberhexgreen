@@ -10,6 +10,7 @@ export const CertificationsPage = () => (
       description="Earn the CAPT ($149) or CPPT ($199) penetration-testing certification on the CyberHx Pentest Lab: hands-on machines, MITRE ATT&CK mapped practice and a credential anyone can verify."
       path="/certifications"
     />
+    <h1 className="sr-only">CAPT and CPPT hands-on penetration testing certifications by CyberHx</h1>
     <div className="pt-16 sm:pt-20" />
     <PentestLabSection />
     <CertificationsSection />

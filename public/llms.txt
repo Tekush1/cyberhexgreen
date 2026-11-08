@@ -1,0 +1,22 @@
+# CyberHx
+
+> CyberHx is a global cybersecurity community. We run capture-the-flag (CTF) competitions for players worldwide, host ready-made CTFs for universities, companies and communities, train people on the CyberHx Pentest Lab, and award the CAPT and CPPT penetration-testing certifications. Players from 90+ countries have taken part in our events.
+
+## Main pages
+- [Home](https://cyberhx.com/): what CyberHx does, upcoming and past CTFs, the CTF builder, the Pentest Lab and player reviews.
+- [Host your CTF](https://cyberhx.com/host-your-ctf): ready-made CTF packages from $89, hosting only from $49 per 8-hour round, challenges from $2 each, and a builder to price your own event.
+- [Events](https://cyberhx.com/events): every CTF we have run, with dates, players, prizes, leaderboards and certificates.
+- [Certifications](https://cyberhx.com/certifications): CAPT (associate) and CPPT (professional) hands-on penetration-testing certifications.
+- [For companies](https://cyberhx.com/companies): hiring CTFs, talent access and security training for companies in any country.
+- [Student Ambassador Program](https://cyberhx.com/ambassadors): students at any college or university worldwide can lead CyberHx on their campus.
+- [Reviews](https://cyberhx.com/reviews): ratings and comments from players of our CTFs.
+- [Blog](https://cyberhx.com/blog): CTF write-ups, scam alerts and security tutorials.
+- [About](https://cyberhx.com/about): the team behind CyberHx.
+- [Contact](https://cyberhx.com/contact): questions, partnerships and careers.
+
+## Other
+- [Partners and collaborations](https://cyberhx.com/collaborations)
+- [Responsible disclosure](https://cyberhx.com/responsible-disclosure)
+- [Pentest Lab](https://pentestlab.cyberhx.com)
+- [CTF platform](https://ctf.cyberhx.com)
+- [Instagram](https://instagram.com/cyberhx__)

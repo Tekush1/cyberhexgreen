@@ -28,7 +28,7 @@
     },
     {
       "source": "/((?!api/|assets/).*)",
-      "destination": "/index.html"
+      "destination": "/app-shell.html"
     }
   ],
   "headers": [

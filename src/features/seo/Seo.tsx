@@ -41,7 +41,12 @@ const upsertLink = (rel: string, href: string) => {
 
 const MANAGED_LD = 'data-seo-jsonld';
 
+/** Build-time prerender (src/entry-server.tsx) reads the last page's tags from here,
+    because effects never run on the server. */
+export const ssrSeo: { current: SeoProps | null } = { current: null };
+
 export const Seo = ({ title, description, path, image, type = 'website', noindex, keywords, jsonLd }: SeoProps) => {
+  if (typeof window === 'undefined') ssrSeo.current = { title, description, path, image, type, noindex, keywords, jsonLd };
   useEffect(() => {
     const url = SITE + (path === '/' ? '/' : path.replace(/\/$/, ''));
     const img = image || DEFAULT_OG;

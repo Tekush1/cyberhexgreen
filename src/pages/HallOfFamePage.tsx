@@ -1,4 +1,5 @@
 import React from 'react';
+import { Seo } from '../features/seo/Seo';
 import { SiteIcon } from '../components/shared/SiteIcon';
 import { ExternalLink, Mail } from 'lucide-react';
 import { Trophy, Award, Star } from '../components/shared/icons';
@@ -44,6 +45,7 @@ const severityBadge = {
 const HallOfFamePage = () => {
   return (
     <div className="min-h-screen bg-dark-300">
+      <Seo title="Hall of Fame — Security Researchers | CyberHx" description="Researchers who responsibly disclosed vulnerabilities in CyberHx platforms. Find one, report it under our disclosure policy, and earn your place here." path="/hall-of-fame" />
 
       {/* Hero */}
       <section className="relative py-24 border-b border-gray-900 overflow-hidden">

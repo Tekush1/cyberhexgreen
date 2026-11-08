@@ -59,13 +59,15 @@ function ScrollManager() {
   return null;
 }
 
-function App() {
+/** Everything inside the router. The browser wraps it in BrowserRouter (App below);
+    the build-time prerender (src/entry-server.tsx) wraps it in StaticRouter. */
+export function AppShell() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
 
   const closeHiringPopup = () => setIsHiringPopupOpen(false);
 
   return (
-    <Router>
+    <>
       <ScrollManager />
       <div className="min-h-screen bg-dark-300 flex flex-col">
         <Navigation />
@@ -122,6 +124,14 @@ function App() {
           </Suspense>
         )}
       </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppShell />
     </Router>
   );
 }

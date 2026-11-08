@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Seo } from '../features/seo/Seo';
 import { FileText, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -159,6 +160,7 @@ const TermsOfServicePage = () => {
 
   return (
     <div className="min-h-screen bg-dark-300">
+      <Seo title="Terms of Service | CyberHx" description="The terms for using CyberHx: CTF events, the Pentest Lab, certifications, payments and community rules." path="/terms" />
       {/* Hero */}
       <section className="relative py-20 border-b border-gray-900 overflow-hidden">
         <div
