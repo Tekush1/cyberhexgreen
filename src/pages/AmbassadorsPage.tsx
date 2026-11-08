@@ -46,7 +46,7 @@ const FAQ = [
   { q: 'Is it paid?', a: 'It is a volunteer role with real rewards: certification, lab access, mentorship, merch and introductions to hiring partners. The more your campus does, the more you unlock.' },
   { q: 'Can there be more than one ambassador at my college?', a: 'Yes. Large campuses can have a small team of ambassadors. If someone from your college is already in, you join them and run events together.' },
   { q: 'My college has no security club. Can I still apply?', a: 'Yes, and those campuses need it most. We help you start a CyberHx circle from zero, with a first event that is easy to run.' },
-  { q: 'Is this only for students in India?', a: 'No. The program is global. We welcome ambassadors from every country; everything runs online, and our CTFs already draw players from 90+ countries.' },
+  { q: 'Can I apply from any country?', a: 'Yes. The program is global. We welcome ambassadors from every country; everything runs online, and our CTFs already draw players from 90+ countries.' },
 ];
 
 const YEARS = ['1st year', '2nd year', '3rd year', '4th year', '5th year', 'Master\'s', 'PhD', 'Diploma'];

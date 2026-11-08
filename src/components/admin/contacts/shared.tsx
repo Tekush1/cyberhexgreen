@@ -98,9 +98,9 @@ export const TEMPLATES: { id: string; label: string; subject: string; body: stri
     subject: 'Co-hosting a space security CTF with {org}?',
     body: `Hi {first_name},
 
-I'm {sender} from Cyber HX (cyberhx.com). We run CTF competitions for colleges and communities in India and abroad, on our own platform.
+I'm {sender} from Cyber HX (cyberhx.com). We run CTF competitions for universities and security communities worldwide, on our own platform, with players from 90+ countries.
 
-We're planning a space security CTF: satellite, ground station and radio challenges, all simulated and safe to play. CERT-In published cyber security guidelines for space systems this year, and we want students to start training on exactly this.
+We're planning a space security CTF: satellite, ground station and radio challenges, all simulated and safe to play. Space systems are a new attack surface, governments are now writing cyber security rules for them, and almost no CTF trains people for it.
 
 We'd love {org} to co-host it. You bring the venue and the students; we bring the platform, the challenges and the running of the event. Sponsors cover the prizes.
 
@@ -132,7 +132,7 @@ Cyber HX`,
     subject: 'Partnering with Cyber HX on a national CTF',
     body: `Hi {first_name},
 
-I'm {sender} from Cyber HX (cyberhx.com). We run CTF competitions that thousands of students across India and abroad take part in.
+I'm {sender} from Cyber HX (cyberhx.com). We run global CTF competitions that thousands of players from 90+ countries take part in.
 
 We're looking for a few partners for our next event. Sponsors get their name on the platform and the scoreboard, a challenge category in their name, and direct access to the top players for hiring.
 

@@ -59,7 +59,7 @@ const STEPS = [
 ];
 
 const FAQ = [
-  { q: 'Can companies outside India apply?', a: 'Yes. CyberHx for Companies is open to companies in any country. Everything runs online, and we work across time zones.' },
+  { q: 'Can companies anywhere in the world apply?', a: 'Yes. CyberHx for Companies is open to companies in any country. Everything runs online, and we work across time zones.' },
   { q: 'Do candidates know which company is hiring?', a: 'For a hiring CTF, yes: it runs under your brand, so the right people come to you. For placement, we share profiles with you first and introduce candidates once you are interested.' },
   { q: 'What does it cost?', a: 'It depends on what you need: the size of the event, the number of roles, or the size of the team to train. We scope it on the intro call and send a clear quote.' },
   { q: 'Can we train our existing team instead of hiring?', a: 'Yes. Workforce Training gives your team private CTFs, Pentest Lab seats and CAPT or CPPT certification, and you can follow their progress.' },
