@@ -1,5 +1,6 @@
 import { HeroSection } from '../components/sections/HeroSection';
 import { TrustedBySection } from '../components/sections/TrustedBySection';
+import { AudienceSection } from '../components/sections/AudienceSection';
 import { WhatWeDoSection } from '../components/sections/WhatWeDoSection';
 import { PentestLabSection } from '../components/sections/PentestLabSection';
 import { CertificationsSection } from '../components/sections/CertificationsSection';
@@ -17,6 +18,7 @@ export const HomePage = () => (
     />
     <HeroSection />
     <TrustedBySection compact />
+    <AudienceSection />
     <WhatWeDoSection />
     <PentestLabSection />
     <CertificationsSection />
