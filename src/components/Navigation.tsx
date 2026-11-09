@@ -35,7 +35,7 @@ const GROUPS: Group[] = [
       { name: 'Certifications', desc: 'CAPT and CPPT: practical pentest exams', to: '/certifications', tag: 'from $149' },
       { name: 'CTF Platform', desc: 'Play live challenges and climb the board', to: 'https://ctf.cyberhx.com' },
     ],
-    foot: { text: 'See every price on one page', to: '/pricing' },
+    foot: { text: 'See all pricing', to: '/pricing' },
   },
   {
     key: 'solutions',
@@ -47,6 +47,7 @@ const GROUPS: Group[] = [
       { name: 'For Students', desc: 'Play our CTFs, get certified, join the community', to: '/events' },
       { name: 'Student Ambassadors', desc: 'Lead CyberHx on your campus, anywhere in the world', to: '/ambassadors' },
     ],
+    foot: { text: 'Plans and prices for universities and companies', to: '/pricing' },
   },
   {
     key: 'resources',
@@ -188,7 +189,7 @@ export const Navigation = () => {
             {GROUPS.slice(2).map(groupButton)}
 
             <div className="ml-3 flex items-center gap-2" onMouseEnter={hoverClose}>
-              <Link to="/pricing" className="btn btn-ghost !hidden !min-h-[44px] !px-4 !text-sm xl:!inline-flex">
+              <Link to="/pricing" className="btn btn-ghost !min-h-[44px] !px-4 !text-sm">
                 Pricing
               </Link>
               <Link to="/host-your-ctf" className="btn btn-lime !min-h-[44px] !px-5 !text-sm">
@@ -272,8 +273,8 @@ function Panel({ group }: { group: Group }) {
         {group.items.map((it) => <ItemLink key={it.to} item={it} />)}
       </div>
       {group.foot && (
-        <Link to={group.foot.to} className="mt-1 flex items-center justify-between gap-3 rounded-2xl border-t border-white/[0.07] px-3 py-3 text-[13px] text-white/60 transition-colors hover:text-white">
-          {group.foot.text} <ArrowRight size={14} className="shrink-0 text-lime" />
+        <Link to={group.foot.to} className="mt-2 flex items-center justify-between gap-3 rounded-2xl bg-lime px-4 py-3.5 text-[15px] font-semibold text-ink transition-colors hover:bg-white">
+          {group.foot.text} <ArrowRight size={16} className="shrink-0" />
         </Link>
       )}
     </div>
