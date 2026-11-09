@@ -1,5 +1,10 @@
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { planIntent } from '../lib/planIntent';
+import { plans as programs, annualPerMonthUsd } from '../data/plans';
+import { plans as ctfPackages } from '../data/hosting';
+
+const pro = ctfPackages.find((p) => p.id === 'pro')!;
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
@@ -61,7 +66,7 @@ const STEPS = [
 const FAQ = [
   { q: 'Can companies anywhere in the world apply?', a: 'Yes. CyberHx for Companies is open to companies in any country. Everything runs online, and we work across time zones.' },
   { q: 'Do candidates know which company is hiring?', a: 'For a hiring CTF, yes: it runs under your brand, so the right people come to you. For placement, we share profiles with you first and introduce candidates once you are interested.' },
-  { q: 'What does it cost?', a: 'It depends on what you need: the size of the event, the number of roles, or the size of the team to train. We scope it on the intro call and send a clear quote.' },
+  { q: 'What does it cost?', a: `Yearly plans start at $${annualPerMonthUsd(programs.companies[0])} a month (Team), with Hiring and Enterprise plans for teams that hire every quarter or run a CTF every month. Annual plans get two months free and an extra CTF. A single hiring CTF is $${pro.usd}. Everything is on the pricing page, and anything bigger we scope on the intro call.` },
   { q: 'Can we train our existing team instead of hiring?', a: 'Yes. Workforce Training gives your team private CTFs, Pentest Lab seats and CAPT or CPPT certification, and you can follow their progress.' },
 ];
 
@@ -88,7 +93,9 @@ const empty = { company: '', website: '', country: '', size: '', name: '', email
 
 export default function CompaniesPage() {
   const reduce = useReducedMotion();
-  const [f, setF] = useState(empty);
+  const { search } = useLocation();
+  // Arriving from a plan on /pricing opens the message with that plan named.
+  const [f, setF] = useState(() => ({ ...empty, message: planIntent(search) }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState('');
@@ -296,6 +303,16 @@ export default function CompaniesPage() {
               <p className="mt-3 leading-7 text-white/55">{s.text}</p>
             </motion.div>
           ))}
+        </div>
+        <div className="mt-10 grid gap-6 rounded-[24px] border border-lime/25 bg-lime/[0.04] p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+          <div>
+            <h3 className="font-display text-2xl">Monthly or yearly, or one event</h3>
+            <p className="mt-2 leading-7 text-white/70">Yearly plans from ${annualPerMonthUsd(programs.companies[0])} a month with CTFs on the calendar, Lab seats for your team and a shortlist after every hiring round. Annual gets two months free and an extra CTF. Or run a single hiring CTF for ${pro.usd}.</p>
+          </div>
+          <div className="flex flex-wrap gap-3 lg:justify-end">
+            <Link to="/pricing#companies" className="btn btn-lime">See plans</Link>
+            <a href="#apply" className="btn btn-ghost">Talk to us</a>
+          </div>
         </div>
       </section>
 

@@ -1,5 +1,10 @@
 import { useState, useRef, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { planIntent } from '../lib/planIntent';
+import { plans as programs, annualPerMonthUsd } from '../data/plans';
+import { plans as ctfPackages } from '../data/hosting';
+
+const beginner = ctfPackages.find((p) => p.id === 'beginner')!;
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
@@ -136,7 +141,9 @@ const empty = { name: '', email: '', role: '', institution: '', country: '', cit
 
 export default function UniversitiesPage() {
   const reduce = useReducedMotion();
-  const [f, setF] = useState(empty);
+  const { search } = useLocation();
+  // Arriving from a plan on /pricing opens the message with that plan named.
+  const [f, setF] = useState(() => ({ ...empty, message: planIntent(search) }));
   const [wants, setWants] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -351,12 +358,12 @@ export default function UniversitiesPage() {
           </div>
           <div className="mt-10 grid gap-6 rounded-[24px] border border-lime/25 bg-lime/[0.04] p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
             <div>
-              <h3 className="font-display text-2xl">Academic pricing</h3>
-              <p className="mt-2 leading-7 text-white/70">An academic discount on every CTF package, batch pricing for the Pentest Lab and certifications, and one yearly price for partnerships. Pay online through Razorpay and get an invoice for every payment.</p>
+              <h3 className="font-display text-2xl">Academic pricing, monthly or yearly</h3>
+              <p className="mt-2 leading-7 text-white/70">Yearly campus plans from ${annualPerMonthUsd(programs.institutions[0])} a month with CTFs, Lab seats and a report after every event, or a single CTF from ${beginner.usd}. Annual plans get two months free and an extra CTF for your fest. Pay through Razorpay or against a purchase order, with an invoice for every payment.</p>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
-              <Link to="/host-your-ctf" className="btn btn-ghost">See CTF packages</Link>
-              <a href="#plan" className="btn btn-lime">Get a quote</a>
+              <Link to="/pricing#institutions" className="btn btn-lime">See campus plans</Link>
+              <a href="#plan" className="btn btn-ghost">Get a quote</a>
             </div>
           </div>
         </div>

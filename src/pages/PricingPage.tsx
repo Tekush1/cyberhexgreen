@@ -6,16 +6,18 @@ import { Local } from '../components/shared/Local';
 import { TrustedBySection } from '../components/sections/TrustedBySection';
 import { plans, builderPricing as P, builderCategories } from '../data/hosting';
 import { certifications, pentestLabUrl } from '../data/pentest';
+import { plans as programs, annualUsd, annualPerMonthUsd, annualSavingPct, type Plan, type PlanAudience } from '../data/plans';
 
 /* /pricing: every price on one page, split by who is buying.
-   Companies · Institutions · Learners. Three tiers each, the middle one recommended, the third a
-   conversation for anything bigger. Prices come from data/hosting.ts and data/pentest.ts so they
-   stay in step with checkout. Typography only: no icons, no badges. */
+   Companies · Institutions · Learners. For companies and institutions: three yearly plans first (monthly or
+   annual, annual by default with two months free and an extra CTF), then the per-event packages for a one-off.
+   Learners: play free, pay per year for a credential. Prices come from data/hosting.ts, data/pentest.ts and
+   data/plans.ts so they stay in step with checkout. Typography only: no icons, no badges. */
 
 type Audience = 'companies' | 'institutions' | 'learners';
 const AUDIENCES: { key: Audience; label: string; lead: string }[] = [
-  { key: 'companies', label: 'Companies', lead: 'Hire by skill, train by doing. Priced per event, not per seat.' },
-  { key: 'institutions', label: 'Institutions', lead: 'A campus CTF costs less than the snacks. Academic pricing on everything.' },
+  { key: 'companies', label: 'Companies', lead: 'Hire by skill, train by doing. A plan for the year, or one event at a time.' },
+  { key: 'institutions', label: 'Institutions', lead: 'A campus program for less than a textbook per student. Academic pricing on everything.' },
   { key: 'learners', label: 'Learners', lead: 'Every CTF is free. Pay for a year of the Lab when you are ready for a credential.' },
 ];
 
@@ -55,11 +57,11 @@ const TIERS: Record<Audience, Tier[]> = {
       note: 'Add challenges built around your role from $' + cheapestChallenge + ' each.',
     },
     {
-      name: 'Enterprise',
-      promise: 'Training, certification and placement for the whole team.',
-      price: { custom: 'Custom' },
-      includes: ['Private CTFs on your calendar', 'Pentest Lab seats for the team', 'CAPT and CPPT certification in bulk', 'Talent placement from our community', 'One named contact at CyberHx'],
-      cta: { label: 'Talk to us', to: '/companies#apply' },
+      name: 'Build your own',
+      promise: 'Start with hosting and add exactly what you need.',
+      price: { usd: P.hosting.usd, unit: `per ${P.hosting.hours}-hour round` },
+      includes: [`${players} players included, more at $${P.extraPlayersUsd} per ${P.playerBlock.toLocaleString('en-US')}`, `Challenges from $${cheapestChallenge} each, by category and difficulty`, `Extra hours at $${P.extraHourUsd} each`, `A 3D event website for $${P.website3dUsd}`],
+      cta: { label: 'Open the builder', to: '/host-your-ctf#build' },
     },
   ],
   institutions: [
@@ -80,11 +82,11 @@ const TIERS: Record<Audience, Tier[]> = {
       note: 'Academic pricing applies. Ask for your quote.',
     },
     {
-      name: 'Campus Program',
-      promise: 'A CTF every semester. Labs for a batch. One person who knows your campus.',
-      price: { custom: 'Custom' },
-      includes: ['A CTF every semester, under your name', 'Pentest Lab seats and CAPT or CPPT for a batch', 'Workshops from practitioners', 'Student ambassadors on your campus', 'One yearly price, one invoice'],
-      cta: { label: 'Plan your program', to: '/universities#plan' },
+      name: 'Build your own',
+      promise: 'Start with hosting and add exactly what you need.',
+      price: { usd: P.hosting.usd, unit: `per ${P.hosting.hours}-hour round` },
+      includes: [`${players} players included, more at $${P.extraPlayersUsd} per ${P.playerBlock.toLocaleString('en-US')}`, `Challenges from $${cheapestChallenge} each, by category and difficulty`, `Extra hours at $${P.extraHourUsd} each`, `A 3D event website for $${P.website3dUsd}`],
+      cta: { label: 'Open the builder', to: '/host-your-ctf#build' },
     },
   ],
   learners: [
@@ -115,9 +117,13 @@ const TIERS: Record<Audience, Tier[]> = {
 };
 
 const FAQ = [
-  { q: 'Do I get an invoice?', a: 'Yes. Every payment goes through Razorpay and comes with an invoice your accounts team can file.' },
+  { q: 'Do I get an invoice?', a: 'Yes. Every payment goes through Razorpay and comes with an invoice your accounts team can file. Annual plans can also be paid by bank transfer against a purchase order.' },
   { q: 'Which currency do you charge in?', a: 'Prices are in US dollars. We show an estimate in your currency next to each price; your bank converts at its own rate.' },
   { q: 'What if something goes wrong during our event?', a: 'If there is any downtime from our side during your event, you get 100% of your money back. Our team is live for the whole event.' },
+  { q: 'Monthly or annual: what is the difference?', a: 'The same plan, two ways to pay. Monthly is billed every month and you can pause or cancel any time. Annual is twelve months for the price of ten, locks the price for the year, and adds an extra CTF on us. Most departments and teams pick annual because it fits one budget line and one invoice.' },
+  { q: 'Can we start monthly and switch?', a: 'Yes. Start monthly, and switch to annual whenever you like: the month you have already paid is credited against the annual price.' },
+  { q: 'What if a plan turns out not to be the right fit?', a: 'Tell us after your first event. If it is not working for you, we refund the rest of the year, no questions.' },
+  { q: 'What does a Pentest Lab seat include?', a: 'A year of the CyberHx Pentest Lab for one person: the course, the machines and the practice exams. The CAPT or CPPT exam itself is at academic or team price for seat holders.' },
   { q: 'Is there academic pricing?', a: 'Yes. Colleges and universities get an academic discount on every package and batch pricing for labs and certifications. Tell us your numbers and we send a quote.' },
   { q: 'Can we change a package?', a: 'Yes. Add hours, players, challenges or a 3D event site to any package, or build your own from scratch. The builder shows the price as you go.' },
   { q: 'Do learners pay anything to play?', a: 'No. Every public CyberHx CTF is free to enter. You pay only for a certification, which gives you a year of the course, the Pentest Lab and the exam.' },
@@ -127,6 +133,7 @@ export default function PricingPage() {
   const { hash } = useLocation();
   const fromHash = (h: string): Audience | null => (['companies', 'institutions', 'learners'] as Audience[]).find((a) => h === `#${a}`) || null;
   const [aud, setAud] = useState<Audience>(fromHash(hash) || 'companies');
+  const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');
   const [open, setOpen] = useState<number | null>(0);
   useEffect(() => { const a = fromHash(hash); if (a) setAud(a); }, [hash]);
 
@@ -136,7 +143,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-ink text-white">
       <Seo
         title="Pricing — CyberHx for Companies, Institutions and Learners"
-        description={`CTF hosting from $${P.hosting.usd}, ready-made CTF packages from $${beginner.usd}, CAPT $${capt.usd} and CPPT $${cppt.usd}. Clear prices for companies, universities and learners, with Razorpay invoices and a money-back promise on downtime.`}
+        description={`Yearly plans for universities from $${annualPerMonthUsd(programs.institutions[0])} a month and for companies from $${annualPerMonthUsd(programs.companies[0])} a month, single CTFs from $${beginner.usd}, hosting from $${P.hosting.usd}, CAPT $${capt.usd} and CPPT $${cppt.usd} per year. Clear prices, Razorpay invoices, money back on downtime.`}
         path="/pricing"
         keywords="ctf hosting price, ctf package cost, host a ctf price, capt certification price, cppt price, cybersecurity training pricing"
       />
@@ -171,16 +178,75 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Tiers */}
+      {/* Plans, then per-event packages */}
       <section id={`panel-${aud}`} role="tabpanel" aria-labelledby={`tab-${aud}`} className="mx-auto max-w-7xl px-5 pb-20 sm:px-6 lg:px-8">
-        <div className="grid gap-5 lg:grid-cols-3">
+        {aud !== 'learners' && (
+          <>
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="font-display text-3xl sm:text-4xl">A plan for the year.</h2>
+                <p className="mt-2 max-w-xl leading-7 text-white/60">
+                  {aud === 'institutions'
+                    ? 'CTFs on the calendar, Lab seats for your students, a report after every event. One budget line.'
+                    : 'CTFs on the calendar, Lab seats for your team, a shortlist after every hiring round. One budget line.'}
+                </p>
+              </div>
+              <div role="group" aria-label="Billing" className="inline-flex self-start rounded-2xl border border-white/[0.09] bg-white/[0.04] p-1.5 sm:self-auto">
+                {(['annual', 'monthly'] as const).map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    aria-pressed={billing === b}
+                    onClick={() => setBilling(b)}
+                    className={`rounded-xl px-4 py-2 text-[15px] font-semibold transition-colors ${billing === b ? 'bg-white text-ink' : 'text-white/65 hover:text-white'}`}
+                  >
+                    {b === 'annual' ? 'Annual · 2 months free' : 'Monthly'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-5 lg:grid-cols-3">
+              {programs[aud as PlanAudience].map((p) => <PlanCard key={p.id} plan={p} billing={billing} />)}
+            </div>
+
+            <div className="mt-8 grid gap-4 rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-6 sm:grid-cols-3 sm:p-8">
+              {billing === 'annual' ? (
+                <>
+                  <Stat v="2 months" k="free on every annual plan: twelve months for the price of ten" />
+                  <Stat v="+1 CTF" k="on us, every year you stay annual" />
+                  <Stat v="12 months" k="price locked. Not the right fit after your first event? We refund the rest of the year." />
+                </>
+              ) : (
+                <>
+                  <Stat v="Any time" k="pause or cancel. No notice period, no exit fee." />
+                  <Stat v={`${annualSavingPct}%`} k="is what you leave on the table against annual, plus the extra CTF" />
+                  <Stat v="Credited" k="switch to annual later and the month you paid comes off the price" />
+                </>
+              )}
+            </div>
+            <p className="mt-4 text-[15px] text-white/50">
+              Each CTF in a plan is our Pro package: 40 challenges, an {P.hosting.hours}-hour round, our team live.{' '}
+              {aud === 'institutions' ? 'More than one campus? ' : 'A bigger scope? '}
+              <Link to={aud === 'institutions' ? '/universities#plan' : '/companies#apply'} className="font-semibold text-white hover:text-lime">Ask for a group price →</Link>
+            </p>
+
+            <div className="mt-20 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="font-display text-3xl sm:text-4xl">Just one event?</h2>
+              <p className="max-w-md text-[15px] leading-7 text-white/50">Pay per CTF. Every package is yours to change in the builder.</p>
+            </div>
+          </>
+        )}
+
+        {aud === 'learners' && <h2 className="sr-only">Plans for learners</h2>}
+        <div className={`grid gap-5 lg:grid-cols-3 ${aud !== 'learners' ? 'mt-8' : ''}`}>
           {TIERS[aud].map((t) => (
             <article
               key={t.name}
               className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${t.recommended ? 'border-lime/50 bg-gradient-to-b from-lime/[0.07] to-[#080d1a] shadow-[0_40px_80px_-40px_rgba(198,241,53,.35)]' : 'border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a]'}`}
             >
               <p className={`text-[13px] font-medium ${t.recommended ? 'text-lime' : 'text-transparent select-none'}`} aria-hidden={!t.recommended}>Recommended</p>
-              <h2 className="font-display mt-2 text-3xl">{t.name}</h2>
+              <h3 className="font-display mt-2 text-3xl">{t.name}</h3>
               <p className="mt-3 min-h-[3.5rem] leading-7 text-white/60">{t.promise}</p>
               <div className="mt-6 flex items-end gap-2">
                 {'custom' in t.price ? (
@@ -302,6 +368,46 @@ export default function PricingPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** One yearly plan. Annual by default: the monthly-equivalent price leads, the yearly total follows. */
+function PlanCard({ plan: p, billing }: { plan: Plan; billing: 'annual' | 'monthly' }) {
+  const annual = billing === 'annual';
+  const perMonth = annual ? annualPerMonthUsd(p) : p.monthlyUsd;
+  const yearly = annual ? annualUsd(p) : p.monthlyUsd * 12;
+  // What the same CTFs and Lab seats cost one by one, at list price.
+  const oneByOne = Math.round((p.ctfs * pro.usd + p.seats * capt.usd) / 100) * 100;
+  return (
+    <article className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${p.recommended ? 'order-first border-lime/50 bg-gradient-to-b from-lime/[0.07] to-[#080d1a] shadow-[0_40px_80px_-40px_rgba(198,241,53,.35)] lg:order-none' : 'border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a]'}`}>
+      <p className={`text-[13px] font-medium ${p.recommended ? 'text-lime' : 'text-transparent select-none'}`} aria-hidden={!p.recommended}>Recommended</p>
+      <h3 className="font-display mt-2 text-3xl">{p.name}</h3>
+      <p className="mt-3 min-h-[3.5rem] leading-7 text-white/60">{p.who}</p>
+      <div className="mt-6 flex items-end gap-2">
+        <span className="font-display text-5xl tabular-nums">${perMonth}</span>
+        <span className="pb-1.5 text-[15px] text-white/50">per month</span>
+      </div>
+      <p className="mt-1 flex flex-wrap gap-x-2 text-[13px] text-white/45">
+        <span>{annual ? `Billed $${yearly.toLocaleString('en-US')} a year` : 'Billed monthly, pause or cancel any time'}</span>
+        <Local usd={annual ? yearly : p.monthlyUsd} className="text-white/45" />
+      </p>
+      <p className="mt-1 text-[13px] text-white/45">One by one, the same CTFs and seats cost about ${oneByOne.toLocaleString('en-US')} a year.</p>
+      <ul className="mt-7 space-y-3">
+        {p.includes.map((x) => (
+          <li key={x} className="flex items-start gap-3 text-[15px] leading-6 text-white/85"><Check size={17} className="mt-0.5 shrink-0 text-lime" />{x}</li>
+        ))}
+        <li className={`flex items-start gap-3 text-[15px] leading-6 ${annual ? 'text-white' : 'text-white/40'}`}>
+          <Check size={17} className={`mt-0.5 shrink-0 ${annual ? 'text-lime' : 'text-white/25'}`} />
+          {annual ? `${cap(p.annualBonus)}. Price locked for 12 months.` : `On the annual plan: ${p.annualBonus}, and the price locked for 12 months.`}
+        </li>
+      </ul>
+      <div className="mt-auto pt-8">
+        <Link to={p.cta.to.replace('#', `?plan=${p.id}&billing=${billing}#`)} className={`btn w-full ${p.recommended ? 'btn-lime' : 'btn-ghost'}`}>{p.cta.label} <ArrowRight size={16} /></Link>
+        <p className="mt-3 text-center text-[13px] text-white/45">{p.framing}</p>
+      </div>
+    </article>
   );
 }
 
