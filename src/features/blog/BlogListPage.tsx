@@ -430,7 +430,7 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
   );
 }
 
-const Count = ({ n }: { n: number }) => <span className="ml-1.5 text-[13px] font-medium tabular-nums text-white/35">{n}</span>;
+const Count = ({ n }: { n: number }) => (n > 0 ? <span className="ml-1.5 text-[13px] font-medium tabular-nums text-white/35">{n}</span> : null);
 
 /* Write-ups arranged by event or by writer, or the latest ones at one difficulty. All client-side from one load. */
 function WriteupViews({ view, difficulty, search, cards, error, expanded, onToggle, onClear }: {
