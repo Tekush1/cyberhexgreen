@@ -118,6 +118,7 @@ const FORM_LABEL: Record<string, string> = {
   feedback: 'Event feedback',
   company: 'Company application',
   ambassador: 'Ambassador application',
+  university: 'University enquiry',
   other: 'Other',
 };
 

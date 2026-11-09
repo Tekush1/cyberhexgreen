@@ -8,7 +8,8 @@ const links = [
   { name: 'Events', to: '/events' },
   { name: 'Host a CTF', to: '/host-your-ctf' },
   { name: 'Certifications', to: '/certifications' },
-  { name: 'For Companies', to: '/companies' },
+  { name: 'Universities', to: '/universities' },
+  { name: 'Companies', to: '/companies' },
   { name: 'Blog', to: '/blog' },
   { name: 'About', to: '/about' },
   { name: 'Contact', to: '/contact' },
@@ -67,7 +68,7 @@ export const Navigation = () => {
   const light = false;
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
-    `rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold transition-colors ${
+    `whitespace-nowrap rounded-xl px-3 py-2 text-[0.95rem] font-semibold transition-colors xl:px-3.5 ${
       isActive
         ? light
           ? 'text-ink underline decoration-lime decoration-2 underline-offset-[10px]'
@@ -111,7 +112,7 @@ export const Navigation = () => {
               type="button"
               onClick={() => setPlatformsOpen((v) => !v)}
               aria-expanded={platformsOpen}
-              className={`flex items-center gap-1 rounded-xl px-3.5 py-2 text-[0.95rem] font-semibold transition-colors ${
+              className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-3 py-2 text-[0.95rem] font-semibold transition-colors xl:px-3.5 ${
                 light ? 'text-ink/60 hover:text-ink' : 'text-white/75 hover:text-white'
               }`}
             >
