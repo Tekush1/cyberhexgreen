@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronDown, ExternalLink, ArrowRight } from 'lucide-react';
-import { SiteIcon, type IconName } from './shared/SiteIcon';
 import { Mascot } from './shared/Mascot';
 
 /* Site navigation. Five groups instead of a flat row of links, so a visitor can tell at a glance what
@@ -13,7 +12,6 @@ interface Item {
   name: string;
   desc: string;
   to: string;           // internal path or https:// URL
-  icon?: IconName;      // Products and Solutions show the site's own illustrated icons
   tag?: string;         // short note on the right, e.g. "from $89"
 }
 interface Group {
@@ -22,7 +20,7 @@ interface Group {
   items: Item[];
   /** Line under the panel; a hint on where to start. */
   foot?: { text: string; to: string };
-  /** Panel layout: two columns of illustrated cards, or a single text list. */
+  /** Panel layout: two columns, or a single list. */
   layout: 'cards' | 'list';
 }
 
@@ -32,22 +30,22 @@ const GROUPS: Group[] = [
     label: 'Products',
     layout: 'cards',
     items: [
-      { name: 'Host a CTF', desc: 'Ready-made CTF packages, built and run for you', to: '/host-your-ctf', icon: 'ctf-green', tag: 'from $89' },
-      { name: 'Pentest Lab', desc: 'Hands-on hacking labs on real targets', to: 'https://pentestlab.cyberhx.com', icon: 'toolbox' },
-      { name: 'Certifications', desc: 'CAPT and CPPT: practical pentest exams', to: '/certifications', icon: 'lock-key', tag: 'from $149' },
-      { name: 'CTF Platform', desc: 'Play live challenges and climb the board', to: 'https://ctf.cyberhx.com', icon: 'swords' },
+      { name: 'Host a CTF', desc: 'Ready-made CTF packages, built and run for you', to: '/host-your-ctf', tag: 'from $89' },
+      { name: 'Pentest Lab', desc: 'Hands-on hacking labs on real targets', to: 'https://pentestlab.cyberhx.com' },
+      { name: 'Certifications', desc: 'CAPT and CPPT: practical pentest exams', to: '/certifications', tag: 'from $149' },
+      { name: 'CTF Platform', desc: 'Play live challenges and climb the board', to: 'https://ctf.cyberhx.com' },
     ],
-    foot: { text: 'Not sure where to start? Compare the CTF packages', to: '/host-your-ctf#packages' },
+    foot: { text: 'See every price on one page', to: '/pricing' },
   },
   {
     key: 'solutions',
     label: 'Solutions',
     layout: 'cards',
     items: [
-      { name: 'For Universities', desc: 'Campus CTFs, labs for a batch and the Campus League', to: '/universities', icon: 'hacker-team' },
-      { name: 'For Companies', desc: 'Hiring CTFs, verified talent and team training', to: '/companies', icon: 'network' },
-      { name: 'For Students', desc: 'Play our CTFs, get certified, join the community', to: '/events', icon: 'hacker-climb' },
-      { name: 'Student Ambassadors', desc: 'Lead CyberHx on your campus, anywhere in the world', to: '/ambassadors', icon: 'trophy' },
+      { name: 'For Universities', desc: 'Campus CTFs, labs for a batch and the Campus League', to: '/universities' },
+      { name: 'For Companies', desc: 'Hiring CTFs, verified talent and team training', to: '/companies' },
+      { name: 'For Students', desc: 'Play our CTFs, get certified, join the community', to: '/events' },
+      { name: 'Student Ambassadors', desc: 'Lead CyberHx on your campus, anywhere in the world', to: '/ambassadors' },
     ],
   },
   {
@@ -77,12 +75,11 @@ const isExternal = (to: string) => to.startsWith('http');
 const inGroup = (g: Group, path: string) => g.items.some((i) => !isExternal(i.to) && (path === i.to || (i.to !== '/events' && path.startsWith(i.to + '/'))));
 
 /** One entry in a dropdown or the mobile sheet. Internal paths use the router; platforms open in a new tab. */
-function ItemLink({ item, onPick, compact = false }: { item: Item; onPick?: () => void; compact?: boolean }) {
+function ItemLink({ item, onPick }: { item: Item; onPick?: () => void }) {
   const inner = (
     <>
-      {item.icon && <SiteIcon name={item.icon} size={compact ? 40 : 46} alt="" />}
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5 font-semibold text-white">
+        <span className="flex items-center gap-1.5 text-[15px] font-semibold text-white">
           <span className="truncate">{item.name}</span>
           {isExternal(item.to) && <ExternalLink size={13} className="shrink-0 text-white/40" />}
           {item.tag && <span className="ml-auto shrink-0 font-mono text-[11px] text-lime">{item.tag}</span>}
@@ -91,7 +88,7 @@ function ItemLink({ item, onPick, compact = false }: { item: Item; onPick?: () =
       </span>
     </>
   );
-  const cls = `flex items-start gap-3 rounded-2xl p-2.5 transition-colors hover:bg-white/[0.05] focus:outline-none focus-visible:bg-white/[0.06]`;
+  const cls = `flex items-start gap-3 rounded-2xl px-3.5 py-3 transition-colors hover:bg-white/[0.05] focus:outline-none focus-visible:bg-white/[0.06]`;
   return isExternal(item.to) ? (
     <a href={item.to} target="_blank" rel="noopener noreferrer" className={cls} onClick={onPick}>{inner}</a>
   ) : (
@@ -189,8 +186,8 @@ export const Navigation = () => {
             {GROUPS.slice(2).map(groupButton)}
 
             <div className="ml-3 flex items-center gap-2" onMouseEnter={hoverClose}>
-              <Link to="/certifications" className="btn btn-ghost !hidden !min-h-[44px] !px-4 !text-sm xl:!inline-flex">
-                Get certified
+              <Link to="/pricing" className="btn btn-ghost !hidden !min-h-[44px] !px-4 !text-sm xl:!inline-flex">
+                Pricing
               </Link>
               <Link to="/host-your-ctf" className="btn btn-lime !min-h-[44px] !px-5 !text-sm">
                 Host a CTF
@@ -217,7 +214,7 @@ export const Navigation = () => {
           <div className="flex min-h-full flex-col px-5 pb-10 pt-3">
             <div className="grid grid-cols-2 gap-3">
               <Link to="/host-your-ctf" className="btn btn-lime !min-h-[48px] !px-3 !text-[15px]">Host a CTF</Link>
-              <Link to="/certifications" className="btn btn-ghost !min-h-[48px] !px-3 !text-[15px]">Get certified</Link>
+              <Link to="/pricing" className="btn btn-ghost !min-h-[48px] !px-3 !text-[15px]">Pricing</Link>
             </div>
 
             <NavLink
@@ -242,8 +239,8 @@ export const Navigation = () => {
                     <ChevronDown size={24} className={`text-white/40 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                   </button>
                   {expanded && (
-                    <div className="-mx-2.5 grid gap-0.5 pb-3">
-                      {g.items.map((it) => <ItemLink key={it.to} item={it} compact onPick={() => setIsOpen(false)} />)}
+                    <div className="-mx-3.5 grid gap-0.5 pb-3">
+                      {g.items.map((it) => <ItemLink key={it.to} item={it} onPick={() => setIsOpen(false)} />)}
                     </div>
                   )}
                 </div>
@@ -267,7 +264,7 @@ function Panel({ group }: { group: Group }) {
   return (
     <div
       role="menu"
-      className={`sticker absolute left-1/2 top-full mt-3 -translate-x-1/2 p-2 ${cards ? 'w-[38rem]' : 'w-72'}`}
+      className={`sticker absolute left-1/2 top-full mt-3 -translate-x-1/2 p-2 ${cards ? 'w-[34rem]' : 'w-72'}`}
     >
       <div className={cards ? 'grid grid-cols-2 gap-0.5' : 'grid gap-0.5'}>
         {group.items.map((it) => <ItemLink key={it.to} item={it} />)}

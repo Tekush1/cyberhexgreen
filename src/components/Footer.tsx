@@ -20,6 +20,7 @@ const columns = [
       { label: 'Blog', to: '/blog' },
       { label: 'For companies', to: '/companies' },
       { label: 'Reviews', to: '/reviews' },
+      { label: 'Pricing', to: '/pricing' },
       { label: 'For universities', to: '/universities' },
       { label: 'Student ambassadors', to: '/ambassadors' },
       { label: 'Collaborations', to: '/collaborations' },

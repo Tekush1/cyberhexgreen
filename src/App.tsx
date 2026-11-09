@@ -15,6 +15,7 @@ const CompaniesPage = lazy(retryImport(() => import('./pages/CompaniesPage')));
 const ReviewsPage = lazy(retryImport(() => import('./pages/ReviewsPage')));
 const AmbassadorsPage = lazy(retryImport(() => import('./pages/AmbassadorsPage')));
 const UniversitiesPage = lazy(retryImport(() => import('./pages/UniversitiesPage')));
+const PricingPage = lazy(retryImport(() => import('./pages/PricingPage')));
 const ContactPage = lazy(retryImport(() => import('./pages/ContactPage').then(module => ({ default: module.ContactPage }))));
 const BecomeMentorPage = lazy(retryImport(() => import('./pages/BecomeMentorPage').then(module => ({ default: module.BecomeMentorPage }))));
 const BookSessionPage = lazy(retryImport(() => import('./pages/BookSessionPage').then(module => ({ default: module.BookSessionPage }))));
@@ -90,6 +91,7 @@ export function AppShell() {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/reviews" element={<ReviewsPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/universities" element={<UniversitiesPage />} />
               <Route path="/colleges" element={<UniversitiesPage />} />
               <Route path="/university" element={<UniversitiesPage />} />
