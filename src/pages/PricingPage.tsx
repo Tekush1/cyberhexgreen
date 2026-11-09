@@ -16,7 +16,7 @@ type Audience = 'companies' | 'institutions' | 'learners';
 const AUDIENCES: { key: Audience; label: string; lead: string }[] = [
   { key: 'companies', label: 'Companies', lead: 'Hire by skill, train by doing. Priced per event, not per seat.' },
   { key: 'institutions', label: 'Institutions', lead: 'A campus CTF costs less than the snacks. Academic pricing on everything.' },
-  { key: 'learners', label: 'Learners', lead: 'Every CTF is free. Pay once when you are ready for a credential.' },
+  { key: 'learners', label: 'Learners', lead: 'Every CTF is free. Pay for a year of the Lab when you are ready for a credential.' },
 ];
 
 interface Tier {
@@ -98,18 +98,18 @@ const TIERS: Record<Audience, Tier[]> = {
     {
       name: capt.code,
       promise: capt.tagline,
-      price: { usd: capt.usd, unit: 'once' },
+      price: { usd: capt.usd, unit: 'per year' },
       includes: capt.includes,
       cta: { label: `Start ${capt.code}`, to: pentestLabUrl },
     },
     {
       name: cppt.code,
       promise: cppt.tagline,
-      price: { usd: cppt.usd, unit: 'once' },
+      price: { usd: cppt.usd, unit: 'per year' },
       includes: cppt.includes,
       cta: { label: `Start ${cppt.code}`, to: pentestLabUrl },
       recommended: true,
-      note: 'Pay once. No subscription. Verifiable by anyone.',
+      note: 'One year of the course, the Lab and the exam. Verifiable by anyone.',
     },
   ],
 };
@@ -120,7 +120,7 @@ const FAQ = [
   { q: 'What if something goes wrong during our event?', a: 'If there is any downtime from our side during your event, you get 100% of your money back. Our team is live for the whole event.' },
   { q: 'Is there academic pricing?', a: 'Yes. Colleges and universities get an academic discount on every package and batch pricing for labs and certifications. Tell us your numbers and we send a quote.' },
   { q: 'Can we change a package?', a: 'Yes. Add hours, players, challenges or a 3D event site to any package, or build your own from scratch. The builder shows the price as you go.' },
-  { q: 'Do learners pay anything to play?', a: 'No. Every public CyberHx CTF is free to enter. You pay only if you want a CAPT or CPPT credential.' },
+  { q: 'Do learners pay anything to play?', a: 'No. Every public CyberHx CTF is free to enter. You pay only for a certification, which gives you a year of the course, the Pentest Lab and the exam.' },
 ];
 
 export default function PricingPage() {
@@ -220,7 +220,7 @@ export default function PricingPage() {
             <>
               <Stat v="Free" k="to play every CTF we run" />
               <Stat v={`$${capt.usd}`} k="for your first verifiable credential" />
-              <Stat v="Once" k="no subscription, no renewal fee" />
+              <Stat v="1 year" k="of course, Lab access and the exam, in every certification" />
             </>
           ) : (
             <>

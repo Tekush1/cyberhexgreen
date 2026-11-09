@@ -1,10 +1,20 @@
-// Server-rendered HTML for blog posts, served ONLY to crawlers and link-preview
+// Server-rendered HTML for the blog, served ONLY to crawlers and link-preview
 // bots (Google, Bing, WhatsApp, Twitter, LinkedIn, Slack, Facebook, …) via a
 // user-agent rewrite in vercel.json. Humans always get the normal React app.
 //
 // Why: those bots don't run JavaScript, so without this they'd see an empty
-// shell. This returns the real title, description, cover image, Article
-// structured data and the post text, so posts get indexed and share cards work.
+// shell. This returns the real title, description, cover image, structured
+// data and the text, so every page gets indexed and share cards work:
+//   ?slug=<post>        one post                      (/blog/<slug>)
+//   ?slug=<section>     a section listing             (/blog/news, /blog/writeups, …)
+//   ?slug=writers       every writer                  (/blog/writers)
+//   ?page=blog          the blog hub                  (/blog)
+//   ?author=<slug>      one writer and their posts    (/blog/author/<slug>)
+
+import { BLOG_SECTIONS, blogSection, sectionForCategory, type BlogSection } from '../shared/blogSections.js';
+import { events } from '../src/data/events.js';
+
+const eventTitle = (slug: string) => events.find((e) => e.slug === slug)?.title || slug.replace(/-/g, ' ');
 
 const SITE = 'https://cyberhx.com';
 
@@ -85,27 +95,269 @@ const firstParagraph = (md: string) =>
   (md.replace(/```[\s\S]*?```/g, '').split(/\n{2,}/).map((x) => x.trim()).find((x) => x && !/^(#|!\[|>|-|\*|\d+\.)/.test(x)) || '')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().slice(0, 280);
 
-async function getPost(slug: string): Promise<Post | null> {
+/** One REST read from Supabase as the public (anon) role; null when unreachable. */
+async function sb<T>(path: string): Promise<T | null> {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
   try {
-    const res = await fetch(
-      `${url}/rest/v1/blog_posts?select=*&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` } },
-    );
+    const res = await fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
     if (!res.ok) return null;
-    const rows = (await res.json()) as Post[];
-    return rows[0] || null;
+    return (await res.json()) as T;
   } catch {
     return null;
   }
 }
 
+async function getPost(slug: string): Promise<Post | null> {
+  const rows = await sb<Post[]>(`blog_posts?select=*&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`);
+  return rows?.[0] || null;
+}
+
+type Card = Pick<Post, 'title' | 'slug' | 'excerpt' | 'category' | 'author_name' | 'author_slug' | 'published_at' | 'read_time' | 'event_slug' | 'cover_image'> & { difficulty: string | null };
+const CARD = 'title,slug,excerpt,category,author_name,author_slug,published_at,read_time,event_slug,cover_image,difficulty';
+const inList = (xs: string[]) => `in.(${xs.map((x) => `"${x.replace(/"/g, '')}"`).join(',')})`;
+
+const listCards = (filter: string, limit = 120) =>
+  sb<Card[]>(`blog_posts?select=${CARD}&status=eq.published&${filter}&order=published_at.desc&limit=${limit}`);
+
+type Writer = { slug: string; name: string; role: string | null; bio: string | null; url: string | null; avatar: string | null; posts: number; views: number; likes: number };
+const listWriters = (filter = '', limit = 300) =>
+  sb<Writer[]>(`blog_authors?select=slug,name,role,bio,url,avatar,posts,views,likes${filter ? `&${filter}` : ''}&order=posts.desc,likes.desc&limit=${limit}`);
+
+const fmtDate = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const authorLink = (c: Pick<Card, 'author_name' | 'author_slug'>) =>
+  c.author_slug && !isAnon(c.author_name) ? `<a href="${SITE}/blog/author/${esc(c.author_slug)}">${esc(c.author_name)}</a>` : esc(isAnon(c.author_name) ? 'Anonymous contributor' : c.author_name);
+const cardLd = (c: Card) => ({
+  '@type': 'BlogPosting',
+  headline: c.title,
+  url: `${SITE}/blog/${c.slug}`,
+  datePublished: c.published_at || undefined,
+  author: { '@type': 'Person', name: isAnon(c.author_name) ? 'Anonymous contributor' : c.author_name },
+  image: c.cover_image && /^https?:\/\//.test(c.cover_image) ? c.cover_image : undefined,
+  articleSection: c.category,
+});
+
+/** A list of posts as plain, crawlable HTML. */
+const cardsHtml = (cards: Card[]) =>
+  cards.length
+    ? `<ol>${cards
+        .map(
+          (c) => `<li><article><h3><a href="${SITE}/blog/${esc(c.slug)}">${esc(c.title)}</a></h3>${
+            c.excerpt && norm(c.excerpt) !== norm(c.title) ? `<p>${esc(c.excerpt)}</p>` : ''
+          }<p>By ${authorLink(c)}${c.published_at ? ` · ${fmtDate(c.published_at)}` : ''} · ${Number(c.read_time) || 1} min read · ${esc(c.category)}${
+            c.difficulty ? ` · ${esc(c.difficulty)}` : ''
+          }</p></article></li>`,
+        )
+        .join('')}</ol>`
+    : '<p>Nothing published here yet.</p>';
+
+const sectionsNav = (current?: string) =>
+  `<nav aria-label="Blog sections"><ul><li>${current ? `<a href="${SITE}/blog">All posts</a>` : '<strong>All posts</strong>'}</li>${BLOG_SECTIONS.map(
+    (s) => `<li>${s.slug === current ? `<strong>${esc(s.name)}</strong>` : `<a href="${SITE}/blog/${s.slug}">${esc(s.name)}</a>`}</li>`,
+  ).join('')}<li>${current === 'writers' ? '<strong>Writers</strong>' : `<a href="${SITE}/blog/writers">Writers</a>`}</li></ul></nav>`;
+
+const head = (o: { title: string; desc: string; canonical: string; ld: unknown[]; image?: string; type?: string }) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(o.title)}</title>
+<meta name="description" content="${esc(o.desc)}">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="${o.canonical}">
+<meta property="og:type" content="${o.type || 'website'}">
+<meta property="og:site_name" content="CyberHx">
+<meta property="og:title" content="${esc(o.title)}">
+<meta property="og:description" content="${esc(o.desc)}">
+<meta property="og:url" content="${o.canonical}">
+<meta property="og:image" content="${esc(o.image || `${SITE}/og-image.png`)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(o.title)}">
+<meta name="twitter:description" content="${esc(o.desc)}">
+<meta name="twitter:image" content="${esc(o.image || `${SITE}/og-image.png`)}">
+${o.ld.map((x) => `<script type="application/ld+json">${ld(x)}</script>`).join('\n')}
+</head>
+<body>`;
+
+const crumbs = (items: { name: string; url: string }[]) => ({
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: it.url })),
+});
+const crumbsHtml = (items: { name: string; url: string }[]) =>
+  `<nav aria-label="Breadcrumb">${items.map((it, i) => (i === items.length - 1 ? esc(it.name) : `<a href="${it.url}">${esc(it.name)}</a>`)).join(' › ')}</nav>`;
+
+/** Group cards by a key, biggest group first. */
+const group = (cards: Card[], key: (c: Card) => string | null) => {
+  const m = new Map<string, Card[]>();
+  for (const c of cards) {
+    const k = key(c);
+    if (k) m.set(k, [...(m.get(k) || []), c]);
+  }
+  return [...m.entries()].sort((a, b) => b[1].length - a[1].length);
+};
+
+/** /blog — the hub: the newest posts, every section, the top writers. */
+async function hubPage(): Promise<string> {
+  const [cards, writers] = await Promise.all([listCards('', 60), listWriters('', 12)]);
+  const canonical = `${SITE}/blog`;
+  const title = 'CyberHx Blog — CTF Write-ups, News, Tutorials and Security Research';
+  const desc = 'Write-ups, news, tutorials, scam alerts and research from the CyberHx community in 90+ countries. Learn, practice and stay ahead.';
+  const blogLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: 'CyberHx Blog',
+    url: canonical,
+    description: desc,
+    publisher: { '@type': 'Organization', name: 'CyberHx', url: SITE },
+    blogPost: (cards || []).slice(0, 30).map(cardLd),
+  };
+  return `${head({ title, desc, canonical, ld: [blogLd, crumbs([{ name: 'Home', url: SITE + '/' }, { name: 'Blog', url: canonical }])] })}
+<main>
+${crumbsHtml([{ name: 'Home', url: SITE + '/' }, { name: 'Blog', url: canonical }])}
+<h1>CyberHx Blog</h1>
+<p>${esc(desc)}</p>
+${sectionsNav()}
+<h2>Sections</h2>
+<ul>${BLOG_SECTIONS.map((s) => `<li><a href="${SITE}/blog/${s.slug}">${esc(s.name)}</a> — ${esc(s.lead)}</li>`).join('')}</ul>
+<h2>Latest posts</h2>
+${cardsHtml(cards || [])}
+${writers?.length ? `<h2>Top writers</h2><ul>${writers.map((w) => `<li><a href="${SITE}/blog/author/${esc(w.slug)}">${esc(w.name)}</a>${w.role ? ` — ${esc(w.role)}` : ''} · ${w.posts} ${w.posts === 1 ? 'post' : 'posts'}</li>`).join('')}</ul><p><a href="${SITE}/blog/writers">All writers</a></p>` : ''}
+<p><a href="${SITE}/blog/write">Write for CyberHx</a></p>
+</main>
+</body>
+</html>`;
+}
+
+/** /blog/<section> — one section's posts; write-ups also grouped by event and by writer. */
+async function sectionPage(s: BlogSection): Promise<string> {
+  const cards = (await listCards(`category=${inList(s.categories)}`, 200)) || [];
+  const canonical = `${SITE}/blog/${s.slug}`;
+  const ldList = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `${s.name} · CyberHx Blog`,
+    url: canonical,
+    description: s.description,
+    isPartOf: { '@type': 'Blog', name: 'CyberHx Blog', url: `${SITE}/blog` },
+    hasPart: cards.slice(0, 50).map(cardLd),
+  };
+  const path = [{ name: 'Home', url: SITE + '/' }, { name: 'Blog', url: `${SITE}/blog` }, { name: s.name, url: canonical }];
+  let grouped = '';
+  if (s.slug === 'writeups' && cards.length) {
+    const byEvent = group(cards, (c) => c.event_slug || null);
+    const byWriter = group(cards, (c) => (c.author_slug && !isAnon(c.author_name) ? c.author_slug : null));
+    const li = (c: Card) => `<li><a href="${SITE}/blog/${esc(c.slug)}">${esc(c.title)}</a>${c.difficulty ? ` · ${esc(c.difficulty)}` : ''}</li>`;
+    if (byEvent.length)
+      grouped += `<h2>Write-ups by event</h2>${byEvent
+        .map(([ev, list]) => `<h3><a href="${SITE}/events/${esc(ev)}">${esc(eventTitle(ev))}</a> · ${list.length} ${list.length === 1 ? 'write-up' : 'write-ups'}</h3><ul>${list.map(li).join('')}</ul>`)
+        .join('')}`;
+    if (byWriter.length)
+      grouped += `<h2>Write-ups by writer</h2>${byWriter
+        .map(([slug, list]) => `<h3><a href="${SITE}/blog/author/${esc(slug)}">${esc(list[0].author_name)}</a> · ${list.length} ${list.length === 1 ? 'write-up' : 'write-ups'}</h3><ul>${list.map(li).join('')}</ul>`)
+        .join('')}`;
+  }
+  return `${head({ title: s.title, desc: s.description, canonical, ld: [ldList, crumbs(path)] })}
+<main>
+${crumbsHtml(path)}
+<h1>${esc(s.name)}</h1>
+<p>${esc(s.lead)}</p>
+${sectionsNav(s.slug)}
+<h2>Latest ${esc(s.name.toLowerCase())}</h2>
+${cardsHtml(cards)}
+${grouped}
+<p><a href="${SITE}/blog/write">Write for CyberHx</a> · <a href="${SITE}/blog">All posts</a></p>
+</main>
+</body>
+</html>`;
+}
+
+/** /blog/writers — everyone who has published. */
+async function writersPage(): Promise<string> {
+  const writers = (await listWriters()) || [];
+  const canonical = `${SITE}/blog/writers`;
+  const title = 'Writers — CyberHx Blog';
+  const desc = 'The people writing for the CyberHx blog: CTF players, researchers and students from around the world, with every write-up and article they have published.';
+  const path = [{ name: 'Home', url: SITE + '/' }, { name: 'Blog', url: `${SITE}/blog` }, { name: 'Writers', url: canonical }];
+  const pageLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Writers · CyberHx Blog',
+    url: canonical,
+    description: desc,
+    hasPart: writers.slice(0, 100).map((w) => ({ '@type': 'ProfilePage', name: w.name, url: `${SITE}/blog/author/${w.slug}` })),
+  };
+  return `${head({ title, desc, canonical, ld: [pageLd, crumbs(path)] })}
+<main>
+${crumbsHtml(path)}
+<h1>Writers</h1>
+<p>${esc(desc)}</p>
+${sectionsNav('writers')}
+${writers.length ? `<ul>${writers.map((w) => `<li><a href="${SITE}/blog/author/${esc(w.slug)}">${esc(w.name)}</a>${w.role ? ` — ${esc(w.role)}` : ''} · ${w.posts} ${w.posts === 1 ? 'post' : 'posts'}</li>`).join('')}</ul>` : '<p>No writers yet.</p>'}
+<p><a href="${SITE}/blog/write">Write for CyberHx</a></p>
+</main>
+</body>
+</html>`;
+}
+
+/** /blog/author/<slug> — one writer and everything they have published. */
+async function authorPage(slug: string, res: any): Promise<string> {
+  const [writers, cards] = await Promise.all([listWriters(`slug=eq.${encodeURIComponent(slug)}`, 1), listCards(`author_slug=eq.${encodeURIComponent(slug)}`, 200)]);
+  const w = writers?.[0];
+  if (!w) {
+    res.status(404);
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Writer not found · CyberHx Blog</title><meta name="robots" content="noindex"><link rel="canonical" href="${SITE}/blog/writers"></head><body>Writer not found. <a href="${SITE}/blog/writers">See all writers</a>.</body></html>`;
+  }
+  const canonical = `${SITE}/blog/author/${esc(w.slug)}`;
+  const title = `${w.name} — Writer at CyberHx`;
+  const desc = (w.bio || `${w.name}${w.role ? `, ${w.role}` : ''} has published ${w.posts} ${w.posts === 1 ? 'post' : 'posts'} on the CyberHx blog.`).slice(0, 300);
+  const path = [{ name: 'Home', url: SITE + '/' }, { name: 'Blog', url: `${SITE}/blog` }, { name: 'Writers', url: `${SITE}/blog/writers` }, { name: w.name, url: canonical }];
+  const profileLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    url: canonical,
+    mainEntity: {
+      '@type': 'Person',
+      name: w.name,
+      ...(w.role ? { jobTitle: w.role } : {}),
+      ...(w.bio ? { description: w.bio } : {}),
+      ...(w.avatar && /^https?:\/\//.test(w.avatar) ? { image: w.avatar } : {}),
+      ...(w.url ? { sameAs: [w.url] } : {}),
+      url: canonical,
+    },
+    hasPart: (cards || []).slice(0, 50).map(cardLd),
+  };
+  return `${head({ title, desc, canonical, ld: [profileLd, crumbs(path)], image: w.avatar && /^https?:\/\//.test(w.avatar) ? w.avatar : undefined, type: 'profile' })}
+<main>
+${crumbsHtml(path)}
+<h1>${esc(w.name)}</h1>
+${w.role ? `<p>${esc(w.role)}</p>` : ''}
+${w.bio ? `<p>${esc(w.bio)}</p>` : ''}
+<p>${w.posts} ${w.posts === 1 ? 'post' : 'posts'} · ${w.views} reads · ${w.likes} likes${w.url ? ` · <a href="${esc(w.url)}" rel="nofollow noopener">${esc(w.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a>` : ''}</p>
+<h2>Posts by ${esc(w.name)}</h2>
+${cardsHtml(cards || [])}
+<p><a href="${SITE}/blog/writers">All writers</a> · <a href="${SITE}/blog">All posts</a></p>
+</main>
+</body>
+</html>`;
+}
+
 export default async function handler(req: any, res: any) {
   const slug = String(req.query?.slug || '').replace(/[^a-z0-9-]/gi, '');
+  const page = String(req.query?.page || '').replace(/[^a-z]/gi, '');
+  const author = String(req.query?.author || '').replace(/[^a-z0-9-]/gi, '');
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=600, s-maxage=600, stale-while-revalidate=86400');
+  res.setHeader('Vary', 'User-Agent');
+
+  // Listing pages: the hub, a section, every writer, one writer.
+  if (page === 'blog') { res.status(200).send(await hubPage()); return; }
+  if (author) { res.send(await authorPage(author, res)); return; }
+  const section = blogSection(slug);
+  if (section) { res.status(200).send(await sectionPage(section)); return; }
+  if (slug === 'writers') { res.status(200).send(await writersPage()); return; }
 
   // /blog/feedback is a page, not a post: give link previews its own title instead of "Post not found".
   if (slug === 'feedback') {
@@ -130,6 +382,7 @@ export default async function handler(req: any, res: any) {
   const desc = (post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`).slice(0, 300);
   const authorName = isAnon(post.author_name) ? 'Anonymous contributor' : post.author_name;
   const authorUrl = post.author_slug && !isAnon(post.author_name) ? `${SITE}/blog/author/${post.author_slug}` : '';
+  const home = sectionForCategory(post.category);
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -150,7 +403,8 @@ export default async function handler(req: any, res: any) {
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: SITE + '/' },
       { '@type': 'ListItem', position: 2, name: 'Blog', item: SITE + '/blog' },
-      { '@type': 'ListItem', position: 3, name: post.title, item: canonical },
+      ...(home ? [{ '@type': 'ListItem', position: 3, name: home.name, item: `${SITE}/blog/${home.slug}` }] : []),
+      { '@type': 'ListItem', position: home ? 4 : 3, name: post.title, item: canonical },
     ],
   };
 
@@ -181,10 +435,10 @@ ${(post.tags || []).map((t) => `<meta property="article:tag" content="${esc(t)}"
 </head>
 <body>
 <article>
-<nav><a href="${SITE}/">Home</a> › <a href="${SITE}/blog">Blog</a> › <a href="${SITE}/blog?category=${encodeURIComponent(post.category)}">${esc(post.category)}</a></nav>
+<nav><a href="${SITE}/">Home</a> › <a href="${SITE}/blog">Blog</a> › ${home ? `<a href="${SITE}/blog/${home.slug}">${esc(home.name)}</a>` : esc(post.category)}</nav>
 <h1>${esc(post.title)}</h1>
 <p>By ${authorUrl ? `<a href="${authorUrl}">${esc(authorName)}</a>` : esc(authorName)} · ${Number(post.read_time) || 1} min read</p>
-${post.event_slug && /^[a-z0-9-]+$/.test(post.event_slug) ? `<p>About the CTF: <a href="${SITE}/events/${post.event_slug}">${esc(post.event_slug.replace(/-/g, ' '))}</a></p>` : ''}
+${post.event_slug && /^[a-z0-9-]+$/.test(post.event_slug) ? `<p>About the CTF: <a href="${SITE}/events/${post.event_slug}">${esc(eventTitle(post.event_slug))}</a></p>` : ''}
 ${post.excerpt ? `<p>${esc(post.excerpt)}</p>` : ''}
 <img src="${esc(img)}" alt="${esc(post.title)}" width="1200">
 ${mdToHtml(post.content)}
@@ -193,6 +447,5 @@ ${mdToHtml(post.content)}
 </body>
 </html>`;
 
-  res.setHeader('Vary', 'User-Agent');
   res.status(200).send(html);
 }

@@ -3,12 +3,16 @@
 // discover and re-crawl posts, so new posts show up without any manual step.
 
 import { events } from '../src/data/events.js';
+import { BLOG_SECTIONS } from '../shared/blogSections.js';
 
 const SITE = 'https://cyberhx.com';
 
 const STATIC: { path: string; priority: number; changefreq: string }[] = [
   { path: '/', priority: 1.0, changefreq: 'weekly' },
   { path: '/blog', priority: 0.9, changefreq: 'daily' },
+  // Each blog section is a page of its own (/blog/news, /blog/writeups, …).
+  ...BLOG_SECTIONS.map((s) => ({ path: `/blog/${s.slug}`, priority: 0.8, changefreq: 'daily' })),
+  { path: '/blog/writers', priority: 0.6, changefreq: 'weekly' },
   { path: '/host-your-ctf', priority: 0.9, changefreq: 'weekly' },
   { path: '/events', priority: 0.8, changefreq: 'weekly' },
   { path: '/certifications', priority: 0.8, changefreq: 'monthly' },

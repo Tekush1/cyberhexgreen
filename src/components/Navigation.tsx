@@ -53,7 +53,9 @@ const GROUPS: Group[] = [
     label: 'Resources',
     layout: 'list',
     items: [
-      { name: 'Blog', desc: 'CTF write-ups, scam alerts and tutorials', to: '/blog' },
+      { name: 'Blog', desc: 'Write-ups, news, tutorials and research', to: '/blog' },
+      { name: 'CTF write-ups', desc: 'Solutions by event and by writer', to: '/blog/writeups' },
+      { name: 'News', desc: 'Events, results and announcements', to: '/blog/news' },
       { name: 'Reviews', desc: 'What players say about our events', to: '/reviews' },
       { name: 'Hall of Fame', desc: 'Researchers who reported bugs to us', to: '/hall-of-fame' },
       { name: 'Responsible disclosure', desc: 'How to report a vulnerability', to: '/responsible-disclosure' },

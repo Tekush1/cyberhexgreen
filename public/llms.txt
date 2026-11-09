@@ -7,12 +7,12 @@
 - [Host your CTF](https://cyberhx.com/host-your-ctf): ready-made CTF packages from $89, hosting only from $49 per 8-hour round, challenges from $2 each, and a builder to price your own event.
 - [Events](https://cyberhx.com/events): every CTF we have run, with dates, players, prizes, leaderboards and certificates.
 - [Certifications](https://cyberhx.com/certifications): CAPT (associate) and CPPT (professional) hands-on penetration-testing certifications.
-- [Pricing](https://cyberhx.com/pricing): all prices by audience. Companies: Team CTF $89, Hiring CTF $148, Enterprise custom. Institutions: Campus CTF $89, Campus CTF Pro $148, Campus Program custom, academic pricing. Learners: every CTF free, CAPT $149 once, CPPT $199 once. Hosting only from $49 per 8-hour round.
+- [Pricing](https://cyberhx.com/pricing): all prices by audience. Companies: Team CTF $89, Hiring CTF $148, Enterprise custom. Institutions: Campus CTF $89, Campus CTF Pro $148, Campus Program custom, academic pricing. Learners: every CTF free, CAPT $149 per year, CPPT $199 per year (a year of the course, the Pentest Lab and the exam). Hosting only from $49 per 8-hour round.
 - [For universities](https://cyberhx.com/universities): campus CTFs we build and run, Pentest Lab and CAPT/CPPT for a whole batch, a department report after every event, academic pricing with Razorpay invoices, and the CyberHx Campus League (a global ranking of universities across our CTFs).
 - [For companies](https://cyberhx.com/companies): hiring CTFs, talent access and security training for companies in any country.
 - [Student Ambassador Program](https://cyberhx.com/ambassadors): students at any college or university worldwide can lead CyberHx on their campus.
 - [Reviews](https://cyberhx.com/reviews): ratings and comments from players of our CTFs.
-- [Blog](https://cyberhx.com/blog): CTF write-ups, scam alerts and security tutorials.
+- [Blog](https://cyberhx.com/blog): write-ups, news, tutorials, scam alerts and research from the community. Sections: [News](https://cyberhx.com/blog/news), [CTF Write-ups](https://cyberhx.com/blog/writeups) (by event and by writer), [Tutorials](https://cyberhx.com/blog/tutorials), [Scam alerts](https://cyberhx.com/blog/scam-alerts), [Research](https://cyberhx.com/blog/research), [Writers](https://cyberhx.com/blog/writers).
 - [About](https://cyberhx.com/about): the team behind CyberHx.
 - [Contact](https://cyberhx.com/contact): questions, partnerships and careers.
 

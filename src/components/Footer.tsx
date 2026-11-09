@@ -18,6 +18,7 @@ const columns = [
     links: [
       { label: 'About', to: '/about' },
       { label: 'Blog', to: '/blog' },
+      { label: 'CTF write-ups', to: '/blog/writeups' },
       { label: 'For companies', to: '/companies' },
       { label: 'Reviews', to: '/reviews' },
       { label: 'Pricing', to: '/pricing' },

@@ -147,7 +147,7 @@ function CertScreen({ cert, tone, mirrored, pinned }: { cert: Cert; tone: 'lime'
             <div className="cx-scr-rule my-7 h-px bg-white/[0.12]" />
             <div className="flex flex-wrap items-center justify-between gap-6">
               <div>
-                <p className="text-[13px] tracking-[0.2em] text-[#f4f4f0]/45">ONE-TIME</p>
+                <p className="text-[13px] tracking-[0.2em] text-[#f4f4f0]/45">PER YEAR</p>
                 <p className={`font-display mt-1.5 text-7xl leading-none tracking-[-0.035em] sm:text-[5rem] ${tone === 'cyan' ? 'text-glow' : 'text-[#f4f4f0]'}`}>
                   ${cert.usd}
                 </p>

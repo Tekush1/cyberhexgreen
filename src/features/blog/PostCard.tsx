@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import type { PostCard as Card } from './api';
-import { authorLabel, DIFFICULTY, formatDate, isAnonymous, sameText } from './utils';
+import type { Author, PostCard as Card } from './api';
+import { authorLabel, compactNumber, DIFFICULTY, formatDate, isAnonymous, sameText } from './utils';
 
 // Four on-brand gradients. A post with no uploaded cover still gets an
 // intentional one, picked from its text so it stays the same every time.
@@ -106,4 +106,20 @@ export const CardSkeleton = () => (
       <div className="h-4 w-full animate-pulse rounded bg-white/[0.04]" />
     </div>
   </div>
+);
+
+/** One writer, linking to their page. Used on the blog hub and on /blog/writers. */
+export const WriterCard = ({ w }: { w: Author }) => (
+  <li>
+    <Link to={`/blog/author/${w.slug}`} className="group flex items-center gap-4 rounded-3xl border border-white/[0.07] bg-white/[0.04] p-4 transition hover:-translate-y-0.5 hover:border-white/15">
+      {w.avatar
+        ? <img src={w.avatar} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
+        : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-lime/20 text-lg font-bold text-lime">{w.name[0]?.toUpperCase()}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold text-white group-hover:text-lime">{w.name}</span>
+        {w.role && <span className="block truncate text-sm text-white/45">{w.role}</span>}
+        <span className="mt-1 block text-xs text-white/40">{w.posts} post{w.posts === 1 ? '' : 's'} · {compactNumber(w.views)} reads · {compactNumber(w.likes)} likes</span>
+      </span>
+    </Link>
+  </li>
 );

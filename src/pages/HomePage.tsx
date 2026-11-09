@@ -1,6 +1,7 @@
 import { HeroSection } from '../components/sections/HeroSection';
 import { TrustedBySection } from '../components/sections/TrustedBySection';
 import { AudienceSection } from '../components/sections/AudienceSection';
+import { AmbassadorSection } from '../components/sections/AmbassadorSection';
 import { WhatWeDoSection } from '../components/sections/WhatWeDoSection';
 import { PentestLabSection } from '../components/sections/PentestLabSection';
 import { CertificationsSection } from '../components/sections/CertificationsSection';
@@ -23,6 +24,7 @@ export const HomePage = () => (
     <PentestLabSection />
     <CertificationsSection />
     <PlatformsSection />
+    <AmbassadorSection />
     <ReviewsSection />
     <CallToActionSection />
   </>

@@ -10,6 +10,7 @@ import { Seo, breadcrumbLd, SITE } from '../seo/Seo';
 import { authorLabel, compactNumber, excerptFrom, isAnonymous, prettyUrl, sameText, stripLeadingTitle, tocFrom } from './utils';
 import { BlogCompanion } from './BlogCompanion';
 import { eventBySlug, nextEvent } from '../../data/events';
+import { sectionForCategory } from '../../../shared/blogSections';
 import { certifications, pentestLabUrl } from '../../data/pentest';
 
 /* "What next" tiles, Apple-style: copy on top, the picture peeking up from the bottom edge. */
@@ -263,7 +264,12 @@ export default function BlogPostPage() {
         image={absImg}
         type="article"
         keywords={(post.tags || []).join(', ')}
-        jsonLd={[articleLd, breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Blog', path: '/blog' }, { name: post.title, path: `/blog/${post.slug}` }])]}
+        jsonLd={[articleLd, breadcrumbLd([
+          { name: 'Home', path: '/' },
+          { name: 'Blog', path: '/blog' },
+          ...(sectionForCategory(post.category) ? [{ name: sectionForCategory(post.category)!.name, path: `/blog/${sectionForCategory(post.category)!.slug}` }] : []),
+          { name: post.title, path: `/blog/${post.slug}` },
+        ])]}
       />
       {/* Reading progress */}
       <div className="fixed inset-x-0 top-16 z-40 h-0.5 sm:top-[72px]" aria-hidden="true">
@@ -283,7 +289,7 @@ export default function BlogPostPage() {
             )}
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link to={`/blog?category=${encodeURIComponent(post.category)}`} className="hover:opacity-80">
+            <Link to={sectionForCategory(post.category) ? `/blog/${sectionForCategory(post.category)!.slug}` : `/blog?category=${encodeURIComponent(post.category)}`} className="hover:opacity-80">
               <Kicker post={post} className="text-sm" />
             </Link>
             {event && (

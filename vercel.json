@@ -5,6 +5,28 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/blog",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|discordbot|telegrambot|embedly|pinterest|redditbot|applebot|bingbot|googlebot|google-inspectiontool|bingpreview|quora|vkshare|skypeuripreview|nuzzel|yandex|baiduspider|duckduckbot).*"
+        }
+      ],
+      "destination": "/api/prerender?page=blog"
+    },
+    {
+      "source": "/blog/author/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|discordbot|telegrambot|embedly|pinterest|redditbot|applebot|bingbot|googlebot|google-inspectiontool|bingpreview|quora|vkshare|skypeuripreview|nuzzel|yandex|baiduspider|duckduckbot).*"
+        }
+      ],
+      "destination": "/api/prerender?author=:slug"
+    },
+    {
       "source": "/blog/:slug",
       "has": [
         {

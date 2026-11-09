@@ -127,17 +127,27 @@ export async function checkAdmin(): Promise<boolean> {
 
 /* ───────────── Public reads ───────────── */
 
-export async function listPosts(opts: { page?: number; category?: string; search?: string; tag?: string }) {
-  const { page = 1, category, search, tag } = opts;
-  const from = (page - 1) * PAGE_SIZE;
+export async function listPosts(opts: {
+  page?: number;
+  /** One category, or the categories of a section (any of them). */
+  category?: string | string[];
+  search?: string;
+  tag?: string;
+  pageSize?: number;
+}) {
+  const { page = 1, category, search, tag, pageSize = PAGE_SIZE } = opts;
+  const from = (page - 1) * pageSize;
   let q = supabase
     .from('blog_posts')
     .select(CARD_FIELDS, { count: 'exact' })
     .eq('status', 'published')
     .order('featured', { ascending: false })
     .order('published_at', { ascending: false })
-    .range(from, from + PAGE_SIZE - 1);
-  if (category) q = q.eq('category', category);
+    .range(from, from + pageSize - 1);
+  if (Array.isArray(category)) {
+    if (category.length === 1) q = q.eq('category', category[0]);
+    else if (category.length) q = q.in('category', category);
+  } else if (category) q = q.eq('category', category);
   if (tag) q = q.contains('tags', [tag]);
   const term = search?.trim().replace(/[%,()]/g, ' ');
   if (term) q = q.or(`title.ilike.%${term}%,excerpt.ilike.%${term}%,author_name.ilike.%${term}%`);
@@ -220,6 +230,32 @@ export async function postsForEvent(eventSlug: string) {
     .limit(12);
   if (error) throw error;
   return (data ?? []) as PostCard[];
+}
+
+/** Every published write-up card (newest first), for the Write-ups section's by-event and by-writer views. */
+export async function listWriteups(limit = 300) {
+  const { data, error } = await supabase
+    .from('blog_posts')
+    .select(CARD_FIELDS)
+    .eq('status', 'published')
+    .eq('category', 'CTF Writeups')
+    .order('published_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as PostCard[];
+}
+
+/** Group cards by a key, keeping the newest-first order inside each group and ordering groups by size. */
+export function groupCards<K extends string>(cards: PostCard[], key: (c: PostCard) => K | null) {
+  const groups = new Map<K, PostCard[]>();
+  for (const c of cards) {
+    const k = key(c);
+    if (!k) continue;
+    const g = groups.get(k);
+    if (g) g.push(c);
+    else groups.set(k, [c]);
+  }
+  return [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
 }
 
 export async function listCategories() {

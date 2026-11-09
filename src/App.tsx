@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
+import { BLOG_SECTIONS } from '../shared/blogSections';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
@@ -25,6 +26,7 @@ const BlogPostPage = lazy(retryImport(() => import('./features/blog/BlogPostPage
 const BlogEditorPage = lazy(retryImport(() => import('./features/blog/EditorPage')));
 const BlogAuthorPage = lazy(retryImport(() => import('./features/blog/AuthorPage')));
 const BlogFeedbackPage = lazy(retryImport(() => import('./features/blog/FeedbackPage')));
+const BlogWritersPage = lazy(retryImport(() => import('./features/blog/WritersPage')));
 const AdminPage = lazy(retryImport(() => import('./pages/AdminPage').then(module => ({ default: module.default }))));
 const EventDetailPage = lazy(retryImport(() => import('./pages/EventDetailPage').then(module => ({ default: module.default }))));
 const CertificationsPage = lazy(retryImport(() => import('./pages/CertificationsPage').then(module => ({ default: module.CertificationsPage }))));
@@ -80,6 +82,11 @@ export function AppShell() {
               <Route path="/about" element={<AboutPage />} />
               {/* Blog */}
               <Route path="/blog" element={<BlogPage />} />
+              {/* Sections are pages of their own (shared/blogSections.ts); they must come before /blog/:slug. */}
+              {BLOG_SECTIONS.map((s) => (
+                <Route key={s.slug} path={`/blog/${s.slug}`} element={<BlogPage section={s.slug} />} />
+              ))}
+              <Route path="/blog/writers" element={<BlogWritersPage />} />
               <Route path="/blog/write" element={<BlogEditorPage />} />
               <Route path="/blog/edit/:id" element={<BlogEditorPage />} />
               <Route path="/blog/author/:slug" element={<BlogAuthorPage />} />
