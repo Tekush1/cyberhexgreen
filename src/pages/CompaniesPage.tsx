@@ -66,7 +66,7 @@ const STEPS = [
 const FAQ = [
   { q: 'Can companies anywhere in the world apply?', a: 'Yes. CyberHx for Companies is open to companies in any country. Everything runs online, and we work across time zones.' },
   { q: 'Do candidates know which company is hiring?', a: 'For a hiring CTF, yes: it runs under your brand, so the right people come to you. For placement, we share profiles with you first and introduce candidates once you are interested.' },
-  { q: 'What does it cost?', a: `Yearly plans start at $${annualPerMonthUsd(programs.companies[0])} a month (Team), with Hiring and Enterprise plans for teams that hire every quarter or run a CTF every month. Annual plans get two months free and an extra CTF. A single hiring CTF is $${pro.usd}. Everything is on the pricing page, and anything bigger we scope on the intro call.` },
+  { q: 'What does it cost?', a: `Yearly plans start at $${annualPerMonthUsd(programs.companies[0])} a month (Team), with Hiring and Enterprise plans for teams that hire every quarter or run a CTF every month. Annual plans get two months free and an extra CTF. A single hiring CTF is $${pro.usd}. Team training seats start at $89 a person a year with 5 seats or more. Everything is on the pricing page, and anything bigger we scope on the intro call.` },
   { q: 'Can we train our existing team instead of hiring?', a: 'Yes. Workforce Training gives your team private CTFs, Pentest Lab seats and CAPT or CPPT certification, and you can follow their progress.' },
 ];
 
@@ -95,7 +95,7 @@ export default function CompaniesPage() {
   const reduce = useReducedMotion();
   const { search } = useLocation();
   // Arriving from a plan on /pricing opens the message with that plan named.
-  const [f, setF] = useState(() => ({ ...empty, message: planIntent(search) }));
+  const [f, setF] = useState(() => ({ ...empty, message: planIntent(search, 'company') }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState('');
@@ -306,11 +306,11 @@ export default function CompaniesPage() {
         </div>
         <div className="mt-10 grid gap-6 rounded-[24px] border border-lime/25 bg-lime/[0.04] p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
           <div>
-            <h3 className="font-display text-2xl">Monthly or yearly, or one event</h3>
-            <p className="mt-2 leading-7 text-white/70">Yearly plans from ${annualPerMonthUsd(programs.companies[0])} a month with CTFs on the calendar, Lab seats for your team and a shortlist after every hiring round. Annual gets two months free and an extra CTF. Or run a single hiring CTF for ${pro.usd}.</p>
+            <h3 className="font-display text-2xl">Seats for your team, from $89 a person a year</h3>
+            <p className="mt-2 leading-7 text-white/70">Each seat is a year of the Pentest Lab, the CAPT and CPPT courses and both exams, with a skills report for the manager. From 5 people; free manager seats and private team CTFs included as you grow. Hiring? Yearly plans from ${annualPerMonthUsd(programs.companies[0])} a month, or a single hiring CTF for ${pro.usd}.</p>
           </div>
           <div className="flex flex-wrap gap-3 lg:justify-end">
-            <Link to="/pricing#companies" className="btn btn-lime">See plans</Link>
+            <Link to="/pricing#companies" className="btn btn-lime">Price your team</Link>
             <a href="#apply" className="btn btn-ghost">Talk to us</a>
           </div>
         </div>

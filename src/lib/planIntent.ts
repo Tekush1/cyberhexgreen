@@ -1,8 +1,20 @@
 import { plans, annualUsd } from '../data/plans';
+import { quoteSeats, seatLists } from '../data/seats';
 
-/** "Interested in the Campus plan, annual ($1,490 a year)." from ?plan=campus&billing=annual, or '' when absent. */
-export function planIntent(search: string): string {
+/** An opening line for the enquiry form from the link that brought the visitor:
+ *  ?plan=campus&billing=annual → "Interested in the Campus plan, annual ($1,490 a year)."
+ *  ?seats=64 on /universities → "Quote for 64 student seats (Department slab, $39 / ₹2,999 a seat)." */
+export function planIntent(search: string, audience: 'academic' | 'company' = 'academic'): string {
   const q = new URLSearchParams(search);
+  const seats = Number(q.get('seats'));
+  if (seats) {
+    const list = seatLists[audience];
+    const usd = quoteSeats(list, seats, 'usd');
+    const inr = quoteSeats(list, seats, 'inr');
+    if (usd && inr) {
+      return `Quote for ${seats} ${audience === 'academic' ? 'student' : 'team'} seats (${usd.slab.name} slab, $${usd.perSeat} / ₹${inr.perSeat.toLocaleString('en-IN')} a seat, a year).`;
+    }
+  }
   const id = q.get('plan');
   if (!id) return '';
   const plan = [...plans.institutions, ...plans.companies].find((p) => p.id === id);

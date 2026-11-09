@@ -7,6 +7,8 @@ import { TrustedBySection } from '../components/sections/TrustedBySection';
 import { plans, builderPricing as P, builderCategories } from '../data/hosting';
 import { certifications, pentestLabUrl } from '../data/pentest';
 import { plans as programs, annualUsd, annualPerMonthUsd, annualSavingPct, type Plan, type PlanAudience } from '../data/plans';
+import { SeatPricing } from '../components/pricing/SeatPricing';
+import { seatLists } from '../data/seats';
 
 /* /pricing: every price on one page, split by who is buying.
    Companies · Institutions · Learners. For companies and institutions: three yearly plans first (monthly or
@@ -123,8 +125,10 @@ const FAQ = [
   { q: 'Monthly or annual: what is the difference?', a: 'The same plan, two ways to pay. Monthly is billed every month and you can pause or cancel any time. Annual is twelve months for the price of ten, locks the price for the year, and adds an extra CTF on us. Most departments and teams pick annual because it fits one budget line and one invoice.' },
   { q: 'Can we start monthly and switch?', a: 'Yes. Start monthly, and switch to annual whenever you like: the month you have already paid is credited against the annual price.' },
   { q: 'What if a plan turns out not to be the right fit?', a: 'Tell us after your first event. If it is not working for you, we refund the rest of the year, no questions.' },
-  { q: 'What does a Pentest Lab seat include?', a: 'A year of the CyberHx Pentest Lab for one person: the course, the machines and the practice exams. The CAPT or CPPT exam itself is at academic or team price for seat holders.' },
-  { q: 'Is there academic pricing?', a: 'Yes. Colleges and universities get an academic discount on every package and batch pricing for labs and certifications. Tell us your numbers and we send a quote.' },
+  { q: 'What is a seat?', a: `One named person and twelve months of the CyberHx Pentest Lab, from the day they activate it. A student seat includes the CAPT course, the exam and a verifiable certificate. A company seat includes the CAPT and CPPT courses, both exams and a skills report for the manager.` },
+  { q: 'How does the price per seat work?', a: `The more seats, the less each costs. Students start at ${seatLists.academic.min} seats and teams at ${seatLists.company.min}. If the next slab up costs the same or less, we bill that slab and the extra seats are yours, free. Colleges get free faculty seats and companies get free manager seats.` },
+  { q: 'Do you charge GST or other taxes?', a: 'No. The price you see is the total you pay.' },
+  { q: 'Is there academic pricing?', a: 'Yes. Student seats are priced for colleges, from ₹1,499 a seat in India, and every CTF package carries an academic discount. Tell us your numbers and we send a quote.' },
   { q: 'Can we change a package?', a: 'Yes. Add hours, players, challenges or a 3D event site to any package, or build your own from scratch. The builder shows the price as you go.' },
   { q: 'Do learners pay anything to play?', a: 'No. Every public CyberHx CTF is free to enter. You pay only for a certification, which gives you a year of the course, the Pentest Lab and the exam.' },
 ];
@@ -182,12 +186,14 @@ export default function PricingPage() {
       <section id={`panel-${aud}`} role="tabpanel" aria-labelledby={`tab-${aud}`} className="mx-auto max-w-7xl px-5 pb-20 sm:px-6 lg:px-8">
         {aud !== 'learners' && (
           <>
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <SeatPricing key={aud} audience={aud === 'institutions' ? 'academic' : 'company'} />
+
+            <div className="mt-24 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="font-display text-3xl sm:text-4xl">A plan for the year.</h2>
+                <h2 className="font-display text-3xl sm:text-4xl">{aud === 'institutions' ? 'Or a plan for your club or cell.' : 'Or a plan for the year.'}</h2>
                 <p className="mt-2 max-w-xl leading-7 text-white/60">
                   {aud === 'institutions'
-                    ? 'CTFs on the calendar, Lab seats for your students, a report after every event. One budget line.'
+                    ? 'CTFs on the calendar, Lab seats for the organising team, a report after every event. One budget line.'
                     : 'CTFs on the calendar, Lab seats for your team, a shortlist after every hiring round. One budget line.'}
                 </p>
               </div>
