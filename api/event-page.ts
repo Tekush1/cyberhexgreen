@@ -67,6 +67,7 @@ export default async function handler(req: any, res: any) {
 <nav><a href="${SITE}/">Home</a> › <a href="${SITE}/events">Events</a> › ${esc(e.title)}</nav>
 <h1>${esc(e.title)}</h1>
 <p>${esc(e.subtitle)}</p>
+${e.note ? `<p>${esc(e.note)}</p>` : ''}
 <img src="${esc(img)}" alt="${esc(e.title)} artwork" width="969" height="431">
 <dl>${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
 <h2>About ${esc(e.title)}</h2>

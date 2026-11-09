@@ -1,6 +1,6 @@
 // Search-engine copy and structured data for an event page. Shared by the React page (/events/:slug)
 // and the server-rendered copy crawlers get (api/event-page.ts), so both always say the same thing.
-import type { Event } from './events.js';
+import { hasCount, type Event } from './events.js';
 
 export const SITE = 'https://cyberhx.com';
 export const eventUrl = (e: Event) => `${SITE}/events/${e.slug}`;
@@ -21,7 +21,9 @@ export function eventDescription(e: Event) {
   const bits = [
     `${e.title}${year(e) && !e.title.includes(year(e)) ? ` ${year(e)}` : ''}: ${e.subtitle.replace(/\.$/, '')}.`,
     `${e.status === 'completed' ? 'Held' : 'On'} ${when}${e.duration ? `, ${e.duration.toLowerCase()}` : ''}.`,
-    e.status === 'completed' ? `${e.participants.replace(/\s*hackers?/i, '')} players.` : isPrivate(e) ? 'Private event, invite only.' : e.entry ? `${e.entry} entry, registrations open.` : '',
+    e.status === 'completed'
+      ? hasCount(e) ? `${e.participants.replace(/\s*hackers?/i, '')} players.` : e.note || ''
+      : isPrivate(e) ? 'Private event, invite only.' : e.entry ? `${e.entry} entry${e.register ? ', registrations open' : ''}.` : '',
     e.prize ? `${e.prize.replace(/\s*rewards?$/i, '')} in prizes.` : '',
     'Hosted on CyberHx.',
   ];

@@ -28,7 +28,7 @@ export const partners: Partner[] = [
     name: 'Thapar Institute of Engineering & Technology',
     short: 'TIET',
     note: 'Deemed to be University · CyberHeist, run by its Backslash society',
-    event: 'CyberHeist (private) · 31 Oct 2026',
+    event: 'CyberHeist · 30 Oct 2026',
     logo: '/events/thapar-logo.webp',
     to: '/events/cyberheist',
   },
@@ -73,9 +73,9 @@ export const TrustedBySection = ({ compact = false }: { compact?: boolean }) => 
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold leading-6 text-white">{p.name}</span>
                 <span className="mt-1 block text-sm leading-6 text-muted">{p.note}</span>
-                <span className="mt-2.5 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-lime/25 bg-lime/[0.07] px-3 py-1 text-xs font-semibold text-lime">
+                <span className="mt-2.5 inline-flex items-center gap-1 text-sm font-semibold text-white/80">
                   {p.event}
-                  {p.to && <ArrowUpRight size={13} />}
+                  {p.to && <ArrowUpRight size={14} className="text-lime" />}
                 </span>
               </span>
             </>

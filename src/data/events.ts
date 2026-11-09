@@ -32,6 +32,8 @@ export interface Event {
   shortDate?: string;
   /** Where people register (upcoming events). */
   register?: string;
+  /** One line of status shown with the event: what happened, or what is still to come. */
+  note?: string;
   highlights?: string[];
   location: string;
   image: string;
@@ -61,6 +63,33 @@ export const nextEvent = () => events.find((e) => e.status === 'upcoming' || e.s
 
 export const events: Event[] = [
   {
+    id: 5,
+    slug: 'beyond-the-earth',
+    startDate: '2027-02',
+    organizers: [{ name: 'CyberHx', url: 'https://cyberhx.com' }],
+    searchTerms: ['null origin beyond the earth', 'beyond the earth ctf', 'space ctf 2027', 'space security ctf', 'null origin ctf 2027', 'satellite hacking ctf'],
+    title: 'Null Origin: Beyond the Earth',
+    subtitle: 'A 24-hour space security CTF, open to the world',
+    description:
+      'Null Origin: Beyond the Earth is the next edition of our international 24-hour Capture The Flag, built around space systems: satellite communication, ground stations, navigation, telemetry and the software behind them, alongside web, cryptography, forensics, OSINT and pwn. Online, free to play, for teams from anywhere on Earth. The exact dates are announced soon.',
+    date: 'February 2027',
+    duration: '24 Hours',
+    participants: 'Registrations open soon',
+    entry: 'Free',
+    shortDate: 'Feb 2027',
+    prize: '',
+    tags: ['International CTF', 'Space Security', 'Satellite Communication', 'Web Exploitation', 'Cryptography', 'Digital Forensics', 'OSINT', 'Pwn', 'Jeopardy CTF'],
+    status: 'upcoming',
+    category: 'Hacking',
+    highlights: ['24-hour online CTF', 'A space systems track: satellites, ground stations, telemetry', 'Open to teams worldwide', 'Free to play'],
+    location: 'Online — Globally',
+    image: '/events/beyond-the-earth.webp',
+    note: 'Exact dates announced soon. Campus ambassadors bring their teams first.',
+    social: {
+      instagram: 'https://instagram.com/nulloriginctf',
+    },
+  },
+  {
     id: 3,
     slug: 'pinaka-ctf',
     startDate: '2026-10-31T10:00:00+05:30',
@@ -75,19 +104,21 @@ export const events: Event[] = [
     subtitle: 'National-Level 24-Hour Capture The Flag Challenge',
 
     description:
-      'Pinaka CTF is a national-level Capture The Flag competition hosted by the National Forensic Sciences University (NFSU), Chennai Campus — an Institution of National Importance under the Ministry of Home Affairs, Government of India. The 24-hour online qualifier runs on ctf.cyberhx.com, with CyberHX powering the platform, and top teams advancing to an offline final at NFSU Chennai.',
+      'Pinaka CTF is a national-level Capture The Flag competition hosted by the National Forensic Sciences University (NFSU), Chennai Campus — an Institution of National Importance under the Ministry of Home Affairs, Government of India. The 24-hour online qualifier ran on ctf.cyberhx.com on 31 October 2026, with CyberHx powering the platform; the top teams advance to an offline final at NFSU Chennai.',
 
-    date: '31 October 2026, 10:00 IST',
+    date: '31 October 2026',
 
     duration: '24 Hours',
 
-    participants: 'Registrations open',
+    participants: '',
 
     entry: 'Paid',
 
     shortDate: '31 Oct',
 
     register: 'https://pinakactf.com',
+
+    note: 'Online qualifier held 31 Oct – 1 Nov 2026. Top teams go on to the offline final at NFSU Chennai.',
 
     prize: '₹1 Cr+',
 
@@ -102,7 +133,7 @@ export const events: Event[] = [
       'Jeopardy CTF',
     ],
 
-    status: 'upcoming',
+    status: 'completed',
 
     category: 'Hacking',
 
@@ -134,7 +165,7 @@ export const events: Event[] = [
   {
     id: 4,
     slug: 'cyberheist',
-    startDate: '2026-10-31',
+    startDate: '2026-10-30',
     organizers: [{ name: 'Backslash, Thapar Institute of Engineering & Technology' }, { name: 'CyberHx', url: 'https://cyberhx.com' }],
     searchTerms: ['cyberheist ctf', 'cyberheist thapar', 'backslash thapar ctf', 'tiet ctf 2026'],
     venue: 'Thapar Institute of Engineering & Technology',
@@ -142,15 +173,16 @@ export const events: Event[] = [
     title: 'CyberHeist',
     subtitle: 'CTF by Backslash, the security society at TIET',
     description:
-      'CyberHeist is a private capture-the-flag competition organised by Backslash at Thapar Institute of Engineering & Technology (Deemed to be University) for its students, with CyberHx hosting the platform and running the event on the day. It is not open for public registration.',
-    date: '31 October 2026',
+      'CyberHeist was a private capture-the-flag competition organised by Backslash at Thapar Institute of Engineering & Technology (Deemed to be University) for its students on 30 October 2026, with CyberHx hosting the platform and running the event on the day. It was not open for public registration.',
+    date: '30 October 2026',
     duration: '',
-    participants: 'Invite only',
+    participants: '',
     entry: 'Private',
-    shortDate: '31 Oct',
+    shortDate: '30 Oct',
     prize: '',
     tags: ['CTF', 'Jeopardy CTF', 'Thapar Institute'],
-    status: 'upcoming',
+    status: 'completed',
+    note: 'Private event for students of TIET. Results were shared with the participants directly.',
     category: 'Hacking',
     highlights: ['Private event for TIET', 'Organised by Backslash, TIET', 'Hosted by CyberHx'],
     location: 'Thapar Institute of Engineering & Technology',

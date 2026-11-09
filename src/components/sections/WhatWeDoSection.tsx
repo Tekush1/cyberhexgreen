@@ -115,7 +115,7 @@ export const WhatWeDoSection = () => {
                   <div className="min-w-0 flex-1 px-4 py-3">
                     <p className="truncate font-semibold text-white">{e.title}</p>
                     <p className="mt-0.5 truncate text-xs text-muted">
-                      {e.date}, {e.duration.toLowerCase()}
+                      {e.date}{e.duration ? `, ${e.duration.toLowerCase()}` : ''}
                     </p>
                   </div>
                   {/* Ticket perforation */}
@@ -132,7 +132,7 @@ export const WhatWeDoSection = () => {
                     ) : (
                       <>
                         <p className="whitespace-nowrap font-display text-lg leading-6 text-lime">{e.shortDate || 'Soon'}</p>
-                        <p className="text-xs text-muted">{entryLabel(e) || 'Upcoming'}</p>
+                        <p className="text-xs text-muted">{e.status === 'completed' ? 'Completed' : entryLabel(e) || 'Upcoming'}</p>
                       </>
                     )}
                   </div>

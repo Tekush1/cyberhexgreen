@@ -11,7 +11,7 @@ import { retryImport } from './lib/chunkReload';
 const HomePage = lazy(retryImport(() => import('./pages/HomePage').then(module => ({ default: module.HomePage }))));
 const AboutPage = lazy(retryImport(() => import('./pages/AboutPage').then(module => ({ default: module.AboutPage }))));
 const PrizesPage = lazy(retryImport(() => import('./pages/PrizesPage').then(module => ({ default: module.PrizesPage }))));
-const GalleryPage = lazy(retryImport(() => import('./pages/GalleryPage').then(module => ({ default: module.GalleryPage }))));
+const EventsPage = lazy(retryImport(() => import('./pages/EventsPage')));
 const CompaniesPage = lazy(retryImport(() => import('./pages/CompaniesPage')));
 const ReviewsPage = lazy(retryImport(() => import('./pages/ReviewsPage')));
 const AmbassadorsPage = lazy(retryImport(() => import('./pages/AmbassadorsPage')));
@@ -94,7 +94,7 @@ export function AppShell() {
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/prizes" element={<PrizesPage />} />
               <Route path="/collaborations" element={<CollaborationsPage />} />
-              <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/gallery" element={<EventsPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/reviews" element={<ReviewsPage />} />
@@ -109,7 +109,7 @@ export function AppShell() {
               <Route path="/book-session" element={<BookSessionPage />} />
               <Route path="/register" element={<RegistrationPage />} />
               <Route path="/admin" element={<AdminPage />} />
-              <Route path="/events" element={<GalleryPage />} />
+              <Route path="/events" element={<EventsPage />} />
               <Route path="/events/:slug" element={<EventDetailPage />} />
               <Route path="/certifications" element={<CertificationsPage />} />
               <Route path="/book-interview" element={<BookInterviewPage />} />

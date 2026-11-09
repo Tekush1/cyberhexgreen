@@ -1,7 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
-import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowUpRight, Award, Calendar, ChevronRight, Clock, Flag, Globe, Instagram, Linkedin, ListOrdered, Lock, MapPin, Trophy, Twitter, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowUpRight, ChevronRight } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
+import { SubscribeForm } from '../components/shared/SubscribeForm';
 import { entryLabel, eventBySlug, events, hasCount, playersText, type Event } from '../data/events';
 import { absImage, eventBreadcrumb, eventDescription, eventJsonLd, eventKeywords, eventTitle } from '../data/eventSeo';
 import NotFoundPage from './NotFoundPage';
@@ -11,18 +12,19 @@ import { PostCard } from '../features/blog/PostCard';
 /* /events/:slug — one page per CTF, so a search for the event's name lands here.
    Data: src/data/events.ts. Crawlers get a server-rendered copy from api/event-page.ts. */
 
-const statusPill = (e: Event) =>
+/** "Completed · 31 October 2026", "Next · February 2027 · Free to play", "Live now". */
+const statusLine = (e: Event) =>
   e.status === 'live'
-    ? { text: 'Live now', cls: 'bg-red-500/10 text-red-300 ring-red-400/30' }
+    ? 'Live now'
     : e.status === 'upcoming'
-      ? { text: e.entry === 'Private' ? 'Upcoming · private' : 'Upcoming', cls: 'bg-amber-400/10 text-amber-200 ring-amber-300/30' }
-      : { text: 'Completed', cls: 'bg-emerald-400/10 text-emerald-200 ring-emerald-300/30' };
+      ? ['Next', e.date, e.entry === 'Private' ? 'Private event' : e.entry ? `${e.entry} to play` : ''].filter(Boolean).join(' · ')
+      : `Completed · ${e.date}`;
 
-function Fact({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-      <dt className="flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-muted">{icon}{label}</dt>
-      <dd className="mt-1.5 font-semibold leading-6 text-white">{value}</dd>
+    <div className="border-t border-white/10 pt-4">
+      <dt className="text-sm text-white/45">{label}</dt>
+      <dd className="mt-1 font-semibold leading-6 text-white">{value}</dd>
     </div>
   );
 }
@@ -39,7 +41,6 @@ export default function EventDetailPage() {
   }, [e]);
   if (!e) return <NotFoundPage />;
 
-  const pill = statusPill(e);
   const year = (e.startDate.match(/^\d{4}/) || [''])[0];
   const others = events.filter((x) => x.slug !== e.slug);
   const isPrivate = e.entry === 'Private';
@@ -54,22 +55,22 @@ export default function EventDetailPage() {
           : null;
 
   const links = [
-    { href: e.social?.website, label: 'Website', icon: <Globe size={15} /> },
-    { href: e.social?.leaderboard, label: 'Leaderboard', icon: <ListOrdered size={15} /> },
-    { href: e.social?.certificates, label: 'Certificates', icon: <Award size={15} /> },
-    { href: e.social?.ctftime, label: 'CTFtime', icon: <Flag size={15} /> },
-    { href: e.social?.instagram, label: 'Instagram', icon: <Instagram size={15} /> },
-    { href: e.social?.x, label: 'X', icon: <Twitter size={15} /> },
-    { href: e.social?.linkedin, label: 'LinkedIn', icon: <Linkedin size={15} /> },
-  ].filter((l) => l.href && l.href !== primary?.href);
+    { href: e.social?.website, label: 'Website' },
+    { href: e.social?.leaderboard, label: 'Leaderboard' },
+    { href: e.social?.certificates, label: 'Certificates' },
+    { href: e.social?.ctftime, label: 'CTFtime' },
+    { href: e.social?.instagram, label: 'Instagram' },
+    { href: e.social?.x, label: 'X' },
+    { href: e.social?.linkedin, label: 'LinkedIn' },
+  ].filter((l) => l.href && l.href !== primary?.href) as { href: string; label: string }[];
 
   const facts = [
-    { icon: <Calendar size={13} />, label: 'Date', value: e.date },
-    e.duration && { icon: <Clock size={13} />, label: 'Duration', value: e.duration },
-    { icon: <Users size={13} />, label: hasCount(e) ? 'Players' : 'Entry', value: hasCount(e) ? playersText(e) : entryLabel(e) || e.participants },
-    e.prize && { icon: <Trophy size={13} />, label: 'Prizes', value: e.prize },
-    { icon: <MapPin size={13} />, label: 'Where', value: e.location },
-  ].filter(Boolean) as { icon: ReactNode; label: string; value: string }[];
+    { label: 'Date', value: e.date },
+    e.duration && { label: 'Duration', value: e.duration },
+    (hasCount(e) || entryLabel(e) || e.participants) && { label: hasCount(e) ? 'Players' : 'Entry', value: hasCount(e) ? playersText(e) : entryLabel(e) || e.participants },
+    e.prize && { label: 'Prizes', value: e.prize },
+    { label: 'Where', value: e.location },
+  ].filter(Boolean) as { label: string; value: string }[];
 
   return (
     <>
@@ -91,24 +92,25 @@ export default function EventDetailPage() {
 
           <header className="mt-6 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ${pill.cls}`}>
-                <span className="h-1.5 w-1.5 rounded-full bg-current" />{pill.text}
-              </span>
+              <p className="text-[15px] text-white/55">{statusLine(e)}</p>
               <h1 className="font-display mt-4 text-4xl leading-[1.02] text-white sm:text-6xl">
                 {e.title}{year && !e.title.includes(year) ? <span className="text-white/40"> {year}</span> : null}
               </h1>
               <p className="mt-4 max-w-xl text-lg leading-8 text-muted">{e.subtitle}</p>
+              {e.note && <p className="mt-3 max-w-xl text-[15px] leading-7 text-white/80">{e.note}</p>}
+              {e.status !== 'completed' && !e.register && !isPrivate && (
+                <div className="mt-7 max-w-md">
+                  <p className="mb-3 text-[15px] font-semibold text-white">Hear the moment registrations open.</p>
+                  <SubscribeForm source={`event-${e.slug}`} />
+                </div>
+              )}
               <div className="mt-7 flex flex-wrap gap-3">
                 {primary && (
                   <a href={primary.href} target="_blank" rel="noopener noreferrer" className="btn btn-lime">
                     {primary.label} <ArrowUpRight size={16} />
                   </a>
                 )}
-                {isPrivate && (
-                  <span className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-white/15 px-5 text-sm font-semibold text-white/80">
-                    <Lock size={15} /> Private event · invite only
-                  </span>
-                )}
+                {e.status !== 'completed' && !isPrivate && <Link to="/ambassadors" className={primary ? 'btn btn-ghost' : 'btn btn-lime'}>Bring your campus</Link>}
                 <Link to="/host-your-ctf" className="btn btn-ghost">Host a CTF like this</Link>
               </div>
             </div>
@@ -117,7 +119,7 @@ export default function EventDetailPage() {
             </div>
           </header>
 
-          <dl className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <dl className="mt-12 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
             {facts.map((f) => <Fact key={f.label} {...f} />)}
           </dl>
 
@@ -132,16 +134,14 @@ export default function EventDetailPage() {
                   ))}
                 </ul>
               )}
-              <h3 className="mt-10 text-sm font-semibold uppercase tracking-[0.14em] text-muted">Categories</h3>
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {e.tags.map((t) => <li key={t} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 font-mono text-xs text-white/80">{t}</li>)}
-              </ul>
+              <h3 className="mt-10 text-sm text-white/45">Categories</h3>
+              <p className="mt-2 leading-7 text-white/80">{e.tags.join(' · ')}</p>
             </section>
 
             <aside className="space-y-5">
               {!!e.hostLogos?.length && (
-                <div className="sticker p-5">
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted">Organised by</h2>
+                <div className="border-t border-white/10 pt-5">
+                  <h2 className="text-sm text-white/45">Organised by</h2>
                   <ul className="mt-4 space-y-3">
                     {e.hostLogos.map((h) => (
                       <li key={h.name} className="flex items-center gap-3">
@@ -154,13 +154,13 @@ export default function EventDetailPage() {
                 </div>
               )}
               {!!links.length && (
-                <div className="sticker p-5">
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted">Links</h2>
-                  <ul className="mt-3 flex flex-wrap gap-2">
+                <div className="border-t border-white/10 pt-5">
+                  <h2 className="text-sm text-white/45">Links</h2>
+                  <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
                     {links.map((l) => (
                       <li key={l.label}>
-                        <a href={l.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3.5 py-2 text-sm text-white/85 transition hover:border-white/30 hover:text-white">
-                          {l.icon}{l.label}
+                        <a href={l.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[15px] font-semibold text-white/80 transition hover:text-white">
+                          {l.label} <ArrowUpRight size={15} className="text-lime" />
                         </a>
                       </li>
                     ))}
@@ -171,7 +171,7 @@ export default function EventDetailPage() {
           </div>
 
           {/* Write-ups and posts about this event (blog posts tagged with it) */}
-          <section aria-labelledby="writeups-h" className="mt-16 border-t border-white/[0.07] pt-10">
+          <section id="writeups" aria-labelledby="writeups-h" className="mt-16 scroll-mt-28 border-t border-white/[0.07] pt-10">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 id="writeups-h" className="font-display text-2xl text-white">{e.title} write-ups</h2>

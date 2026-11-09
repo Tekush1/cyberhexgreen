@@ -5,7 +5,7 @@
 ## Main pages
 - [Home](https://cyberhx.com/): what CyberHx does, upcoming and past CTFs, the CTF builder, the Pentest Lab and player reviews.
 - [Host your CTF](https://cyberhx.com/host-your-ctf): ready-made CTF packages from $89, hosting only from $49 per 8-hour round, challenges from $2 each, and a builder to price your own event.
-- [Events](https://cyberhx.com/events): every CTF we have run, with dates, players, prizes, leaderboards and certificates.
+- [Events](https://cyberhx.com/events): what is next and every CTF we have run, with dates, players, prizes, leaderboards and certificates. Next: [Null Origin: Beyond the Earth](https://cyberhx.com/events/beyond-the-earth), a free 24-hour space security CTF in February 2027 (exact dates to be announced). Past: Pinaka CTF with NFSU Chennai (31 Oct 2026), CyberHeist with TIET (30 Oct 2026, private), Null Origin CTF 2026 (6,000+ players), ZeroDay Heist (1.4K+ players).
 - [Certifications](https://cyberhx.com/certifications): CAPT (associate) and CPPT (professional) hands-on penetration-testing certifications.
 - [Pricing](https://cyberhx.com/pricing): all prices by audience. Companies: Team CTF $89, Hiring CTF $148, Enterprise custom. Institutions: Campus CTF $89, Campus CTF Pro $148, Campus Program custom, academic pricing. Learners: every CTF free, CAPT $149 per year, CPPT $199 per year (a year of the course, the Pentest Lab and the exam). Hosting only from $49 per 8-hour round.
 - [For universities](https://cyberhx.com/universities): campus CTFs we build and run, Pentest Lab and CAPT/CPPT for a whole batch, a department report after every event, academic pricing with Razorpay invoices, and the CyberHx Campus League (a global ranking of universities across our CTFs).
