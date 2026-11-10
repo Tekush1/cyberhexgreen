@@ -231,7 +231,8 @@ export default function BlogPostPage() {
     { label: 'Share on WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(`${post.title} ${url}`)}`, icon: <WhatsAppIcon /> },
   ];
 
-  const absImg = post.cover_image && /^https?:\/\//.test(post.cover_image) ? post.cover_image : undefined;
+  const shareImg = post.cover_image || post.first_image || '';
+  const absImg = /^https?:\/\//.test(shareImg) ? shareImg : undefined;
   const summary = post.excerpt && !sameText(post.excerpt, post.title) ? post.excerpt : excerptFrom(body, 200);
   const authorPath = post.author_slug && !isAnonymous(post.author_name) ? `/blog/author/${post.author_slug}` : '';
   const event = post.event_slug ? eventBySlug(post.event_slug) : undefined;

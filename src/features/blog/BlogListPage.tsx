@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, PenLine, Search, X } from 'lucide-react';
 import {
-  categoryCounts, explain, groupCards, isConfigured, listAuthors, listPosts, listWriteups, PAGE_SIZE,
+  categoryCounts, explain, coverOf, groupCards, isConfigured, listAuthors, listPosts, listWriteups, PAGE_SIZE, viewsOf,
   type Author, type PostCard as Card,
 } from './api';
 import { Byline, CardSkeleton, Cover, PostCard, WriterCard } from './PostCard';
@@ -17,8 +17,9 @@ import { eventBySlug } from '../../data/events';
    page of its own with a stable URL, so search engines can rank it. Write-ups can also be read by event or by
    writer, because many players write about the same CTF. */
 
-type View = 'latest' | 'event' | 'writer';
+type View = 'popular' | 'latest' | 'event' | 'writer';
 const VIEWS: { id: View; label: string }[] = [
+  { id: 'popular', label: 'Most read' },
   { id: 'latest', label: 'Latest' },
   { id: 'event', label: 'By event' },
   { id: 'writer', label: 'By writer' },
@@ -40,7 +41,10 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
   const rawCategory = params.get('category') ?? '';
   const tag = params.get('tag') ?? '';
   const viewParam = params.get('view') as View | null;
-  const view: View = section?.slug === 'writeups' && viewParam && VIEWS.some((v) => v.id === viewParam) ? viewParam : 'latest';
+  const isWriteups = section?.slug === 'writeups';
+  // Write-ups open on the most read; the other sections are newest first.
+  const view: View = isWriteups ? (viewParam && VIEWS.some((v) => v.id === viewParam) ? viewParam : 'popular') : 'latest';
+  const flat = view === 'popular' || view === 'latest';
   const difficulty = params.get('difficulty') ?? '';
   // Inside a section only its own categories can narrow the list.
   const category = section ? (section.categories.includes(rawCategory) ? rawCategory : '') : rawCategory;
@@ -99,7 +103,7 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
   const load = (p: number) => {
     const id = ++reqId.current;
     setState(p === 1 ? 'loading' : 'more');
-    listPosts({ page: p, category: category || section?.categories || undefined, search: q, tag })
+    listPosts({ page: p, category: category || section?.categories || undefined, search: q, tag, sort: view === 'popular' ? 'views' : 'latest' })
       .then(({ posts: rows, total: n }) => {
         if (id !== reqId.current) return;
         setPosts((prev) => (p === 1 ? rows : [...prev, ...rows]));
@@ -122,14 +126,14 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
     }
     load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, category, tag, sectionSlug]);
+  }, [q, category, tag, sectionSlug, view === 'popular']);
 
   // Every write-up at once, for the by-event and by-writer views and the difficulty filter.
   useEffect(() => {
     if (section?.slug !== 'writeups' || writeups || !isConfigured()) return;
-    if (view === 'latest' && !difficulty) return;
+    if (flat && !difficulty) return;
     listWriteups().then(setWriteups).catch((e) => setWriteupsError(explain(e)));
-  }, [section, view, difficulty, writeups]);
+  }, [section, flat, difficulty, writeups]);
 
   const setParam = (k: string, v: string) => {
     const next = new URLSearchParams(params);
@@ -185,7 +189,7 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
               url: `${SITE}/blog/${p.slug}`,
               datePublished: p.published_at || undefined,
               author: { '@type': 'Person', name: authorLabel(p.author_name) },
-              image: p.cover_image && /^https?:\/\//.test(p.cover_image) ? p.cover_image : undefined,
+              image: /^https?:\/\//.test(coverOf(p)) ? coverOf(p) : undefined,
             })),
           }
         : {}),
@@ -194,7 +198,7 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
   ];
 
   const showWriteupViews = section?.slug === 'writeups';
-  const grouped = view !== 'latest';
+  const grouped = !flat;
 
   return (
     <div className="min-h-screen bg-ink pb-24 pt-28 text-white">
@@ -253,7 +257,7 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
             <div className="hide-scrollbar -mx-5 flex items-center gap-6 overflow-x-auto px-5 lg:mx-0 lg:px-0">
               <div role="tablist" aria-label="Arrange write-ups" className="flex items-center gap-5">
                 {VIEWS.map((v) => (
-                  <button key={v.id} type="button" role="tab" aria-selected={view === v.id} onClick={() => setParam('view', v.id === 'latest' ? '' : v.id)} className={textFilterClass(view === v.id)}>
+                  <button key={v.id} type="button" role="tab" aria-selected={view === v.id} onClick={() => setParam('view', v.id === 'popular' ? '' : v.id)} className={textFilterClass(view === v.id)}>
                     {v.label}
                   </button>
                 ))}
@@ -347,7 +351,7 @@ export default function BlogListPage({ section: sectionSlug }: { section?: strin
                   className="group mb-10 grid overflow-hidden rounded-[28px] border border-white/[0.07] bg-white/[0.04] shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_30px_70px_-34px_rgba(16,24,40,0.3)] lg:grid-cols-[1.2fr_1fr]"
                 >
                   <div className="aspect-[16/9] overflow-hidden lg:aspect-[16/11]">
-                    <Cover src={featured.cover_image} alt="" eager seed={featured.slug} label={featured.category} className="transition-transform duration-700 group-hover:scale-[1.03]" />
+                    <Cover src={coverOf(featured)} alt="" eager seed={featured.slug} label={featured.category} className="transition-transform duration-700 group-hover:scale-[1.03]" />
                   </div>
                   <div className="flex flex-col justify-center p-7 sm:p-10">
                     <p className="text-sm font-semibold uppercase tracking-wide text-lime">
@@ -479,10 +483,12 @@ function WriteupViews({ view, difficulty, search, cards, error, expanded, onTogg
     );
   }
 
-  if (view === 'latest') {
+  if (view === 'popular' || view === 'latest') {
+    // Cards arrive most read first; "Latest" re-sorts them by date.
+    const list = view === 'latest' ? [...filtered].sort((a, b) => (b.published_at || '').localeCompare(a.published_at || '')) : filtered;
     return (
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((p) => <PostCard key={p.id} post={p} />)}
+        {list.map((p) => <PostCard key={p.id} post={p} />)}
       </div>
     );
   }
@@ -491,8 +497,8 @@ function WriteupViews({ view, difficulty, search, cards, error, expanded, onTogg
     view === 'event'
       ? groupCards(filtered, (c) => c.event_slug || '_other')
       : groupCards(filtered, (c) => (c.author_slug && !isAnonymous(c.author_name) ? c.author_slug : '_anon'));
-  // Named groups first; the catch-all last.
-  groups.sort((a, b) => Number(a[0].startsWith('_')) - Number(b[0].startsWith('_')) || b[1].length - a[1].length);
+  // Named groups first, the most read leading; the catch-all last.
+  groups.sort((a, b) => Number(a[0].startsWith('_')) - Number(b[0].startsWith('_')) || viewsOf(b[1]) - viewsOf(a[1]) || b[1].length - a[1].length);
   const LIMIT = 6;
 
   return (

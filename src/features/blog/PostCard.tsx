@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { Author, PostCard as Card } from './api';
+import { coverOf, type Author, type PostCard as Card } from './api';
 import { authorLabel, compactNumber, DIFFICULTY, formatDate, isAnonymous, sameText } from './utils';
 
 // Four on-brand gradients. A post with no uploaded cover still gets an
@@ -84,7 +84,7 @@ export const PostCard = ({ post }: { post: Card }) => (
     className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/[0.07] bg-white/[0.04] shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_26px_60px_-30px_rgba(16,24,40,0.3)]"
   >
     <div className="aspect-[16/9] overflow-hidden">
-      <Cover src={post.cover_image} alt="" seed={post.slug} label={post.category} className="transition-transform duration-500 group-hover:scale-105" />
+      <Cover src={coverOf(post)} alt="" seed={post.slug} label={post.category} className="transition-transform duration-500 group-hover:scale-105" />
     </div>
     <div className="flex flex-1 flex-col p-5 sm:p-6">
       <Kicker post={post} />

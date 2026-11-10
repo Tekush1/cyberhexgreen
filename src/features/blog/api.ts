@@ -42,6 +42,8 @@ export interface Post {
   difficulty: Difficulty | null;
   /** The CyberHx event this post is about (/events/<slug>). */
   event_slug: string | null;
+  /** Set by the database: the first image in the post's text, used as the cover when none was set. */
+  first_image: string | null;
 }
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
 export type PostCard = Omit<Post, 'content' | 'updated_at' | 'status' | 'author_bio' | 'author_url'>;
@@ -67,7 +69,10 @@ export interface Category {
 }
 
 const CARD_FIELDS =
-  'id,title,slug,excerpt,cover_image,category,tags,author_name,author_avatar,author_role,author_slug,published_at,read_time,views,likes,featured,difficulty,event_slug';
+  'id,title,slug,excerpt,cover_image,category,tags,author_name,author_avatar,author_role,author_slug,published_at,read_time,views,likes,featured,difficulty,event_slug,first_image';
+
+/** The picture for a card: the cover, else the first image in the post. */
+export const coverOf = (p: Pick<Post, 'cover_image' | 'first_image'>) => p.cover_image || p.first_image || '';
 
 /** A friendly message for any Supabase error. */
 export const explain = (e: unknown): string => {
@@ -134,16 +139,16 @@ export async function listPosts(opts: {
   search?: string;
   tag?: string;
   pageSize?: number;
+  /** 'views': most read first (write-ups); 'latest' (default): featured, then newest. */
+  sort?: 'latest' | 'views';
 }) {
-  const { page = 1, category, search, tag, pageSize = PAGE_SIZE } = opts;
+  const { page = 1, category, search, tag, pageSize = PAGE_SIZE, sort = 'latest' } = opts;
   const from = (page - 1) * pageSize;
-  let q = supabase
-    .from('blog_posts')
-    .select(CARD_FIELDS, { count: 'exact' })
-    .eq('status', 'published')
-    .order('featured', { ascending: false })
-    .order('published_at', { ascending: false })
-    .range(from, from + pageSize - 1);
+  let q = supabase.from('blog_posts').select(CARD_FIELDS, { count: 'exact' }).eq('status', 'published');
+  q = sort === 'views'
+    ? q.order('views', { ascending: false }).order('published_at', { ascending: false })
+    : q.order('featured', { ascending: false }).order('published_at', { ascending: false });
+  q = q.range(from, from + pageSize - 1);
   if (Array.isArray(category)) {
     if (category.length === 1) q = q.eq('category', category[0]);
     else if (category.length) q = q.in('category', category);
@@ -219,33 +224,35 @@ export async function postsByAuthor(slug: string) {
   return (data ?? []) as PostCard[];
 }
 
-/** Write-ups and posts about one CyberHx event (/events/<slug>). */
+/** Write-ups and posts about one CyberHx event (/events/<slug>), most read first. */
 export async function postsForEvent(eventSlug: string) {
   const { data, error } = await supabase
     .from('blog_posts')
     .select(CARD_FIELDS)
     .eq('status', 'published')
     .eq('event_slug', eventSlug)
+    .order('views', { ascending: false })
     .order('published_at', { ascending: false })
     .limit(12);
   if (error) throw error;
   return (data ?? []) as PostCard[];
 }
 
-/** Every published write-up card (newest first), for the Write-ups section's by-event and by-writer views. */
+/** Every published write-up card (most read first), for the Write-ups section's by-event and by-writer views. */
 export async function listWriteups(limit = 300) {
   const { data, error } = await supabase
     .from('blog_posts')
     .select(CARD_FIELDS)
     .eq('status', 'published')
     .eq('category', 'CTF Writeups')
+    .order('views', { ascending: false })
     .order('published_at', { ascending: false })
     .limit(limit);
   if (error) throw error;
   return (data ?? []) as PostCard[];
 }
 
-/** Group cards by a key, keeping the newest-first order inside each group and ordering groups by size. */
+/** Group cards by a key, keeping the incoming order inside each group; groups with the most views (then posts) first. */
 export function groupCards<K extends string>(cards: PostCard[], key: (c: PostCard) => K | null) {
   const groups = new Map<K, PostCard[]>();
   for (const c of cards) {
@@ -255,8 +262,10 @@ export function groupCards<K extends string>(cards: PostCard[], key: (c: PostCar
     if (g) g.push(c);
     else groups.set(k, [c]);
   }
-  return [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
+  return [...groups.entries()].sort((a, b) => viewsOf(b[1]) - viewsOf(a[1]) || b[1].length - a[1].length);
 }
+
+export const viewsOf = (cards: Pick<PostCard, 'views'>[]) => cards.reduce((n, c) => n + (Number(c.views) || 0), 0);
 
 export async function listCategories() {
   const { data, error } = await supabase.from('blog_categories').select('id,name,slug').order('name');

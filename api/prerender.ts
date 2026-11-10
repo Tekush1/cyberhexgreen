@@ -82,6 +82,7 @@ type Post = {
   title: string; slug: string; excerpt: string; content: string; cover_image: string;
   category: string; tags: string[]; author_name: string; published_at: string | null;
   updated_at: string | null; read_time: number; author_slug?: string | null; event_slug?: string | null;
+  first_image?: string | null; views?: number;
 };
 
 const norm = (t: string) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -114,12 +115,14 @@ async function getPost(slug: string): Promise<Post | null> {
   return rows?.[0] || null;
 }
 
-type Card = Pick<Post, 'title' | 'slug' | 'excerpt' | 'category' | 'author_name' | 'author_slug' | 'published_at' | 'read_time' | 'event_slug' | 'cover_image'> & { difficulty: string | null };
-const CARD = 'title,slug,excerpt,category,author_name,author_slug,published_at,read_time,event_slug,cover_image,difficulty';
+type Card = Pick<Post, 'title' | 'slug' | 'excerpt' | 'category' | 'author_name' | 'author_slug' | 'published_at' | 'read_time' | 'event_slug' | 'cover_image' | 'first_image' | 'views'> & { difficulty: string | null };
+const CARD = 'title,slug,excerpt,category,author_name,author_slug,published_at,read_time,event_slug,cover_image,first_image,views,difficulty';
+/** The picture for a post: its cover, else the first image in its text (absolute URLs only). */
+const imageOf = (p: { cover_image?: string; first_image?: string | null }) => [p.cover_image, p.first_image].find((u) => u && /^https?:\/\//.test(u)) || undefined;
 const inList = (xs: string[]) => `in.(${xs.map((x) => `"${x.replace(/"/g, '')}"`).join(',')})`;
 
-const listCards = (filter: string, limit = 120) =>
-  sb<Card[]>(`blog_posts?select=${CARD}&status=eq.published&${filter}&order=published_at.desc&limit=${limit}`);
+const listCards = (filter: string, limit = 120, order = 'published_at.desc') =>
+  sb<Card[]>(`blog_posts?select=${CARD}&status=eq.published&${filter}&order=${order}&limit=${limit}`);
 
 type Writer = { slug: string; name: string; role: string | null; bio: string | null; url: string | null; avatar: string | null; posts: number; views: number; likes: number };
 const listWriters = (filter = '', limit = 300) =>
@@ -135,7 +138,7 @@ const cardLd = (c: Card) => ({
   url: `${SITE}/blog/${c.slug}`,
   datePublished: c.published_at || undefined,
   author: { '@type': 'Person', name: isAnon(c.author_name) ? 'Anonymous contributor' : c.author_name },
-  image: c.cover_image && /^https?:\/\//.test(c.cover_image) ? c.cover_image : undefined,
+  image: imageOf(c),
   articleSection: c.category,
 });
 
@@ -233,7 +236,8 @@ ${writers?.length ? `<h2>Top writers</h2><ul>${writers.map((w) => `<li><a href="
 
 /** /blog/<section> — one section's posts; write-ups also grouped by event and by writer. */
 async function sectionPage(s: BlogSection): Promise<string> {
-  const cards = (await listCards(`category=${inList(s.categories)}`, 200)) || [];
+  // Write-ups list the most read first, like the page itself.
+  const cards = (await listCards(`category=${inList(s.categories)}`, 200, s.slug === 'writeups' ? 'views.desc,published_at.desc' : 'published_at.desc')) || [];
   const canonical = `${SITE}/blog/${s.slug}`;
   const ldList = {
     '@context': 'https://schema.org',
@@ -376,7 +380,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const img = post.cover_image && /^https?:\/\//.test(post.cover_image) ? post.cover_image : `${SITE}/og-image.png`;
+  const img = imageOf(post) || `${SITE}/og-image.png`;
   post.content = stripTitle(post.content, post.title);
   if (!post.excerpt || norm(post.excerpt) === norm(post.title)) post.excerpt = firstParagraph(post.content);
   const desc = (post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`).slice(0, 300);
