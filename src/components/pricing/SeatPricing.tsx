@@ -92,16 +92,27 @@ export function SeatPricing({ audience }: { audience: SeatAudience }) {
           <ul className="mt-6 space-y-2 text-[15px] text-white/85">
             {q.buyUp && <li className="font-semibold text-lime">{q.seats - n} extra seats free: {q.seats} seats cost less than {n} in the {list.slabs.find((s) => n >= s.min && n <= s.max)!.name} slab.</li>}
             <li>{q.freeSeats} free {list.freeSeats.label} {q.freeSeats === 1 ? 'seat' : 'seats'}</li>
-            {q.slab.ctfs > 0 && <li>{q.slab.ctfs === 1 ? 'One hosted CTF' : `${q.slab.ctfs} hosted CTFs`} a year included</li>}
+            {q.slab.ctfs > 0 && (
+              <li>
+                {q.slab.ctfs === 1 ? `One ${list.ctf.one}` : `${q.slab.ctfs} ${list.ctf.many}`} a year, free
+                <span className="text-white/50"> · worth {fmt(q.slab.ctfs * list.ctf[cur])}</span>
+              </li>
+            )}
             {q.slab.adds.filter((a) => !/CTF/.test(a)).map((a) => <li key={a}>{a}</li>)}
             {!q.buyUp && next && toNext > 0 && toNext <= 15 && (
-              <li className="text-white/55">Add {toNext} more and every seat drops to {fmt(next[cur])}.</li>
+              <li className="text-white/55">
+                Add {toNext} more and every seat drops to {fmt(next[cur])}
+                {next.ctfs > q.slab.ctfs ? `, with ${next.ctfs === 1 ? `a free ${list.ctf.one}` : `${next.ctfs} free ${list.ctf.many}`} a year` : ''}.
+              </li>
             )}
           </ul>
 
           <div className="mt-auto pt-8">
             <Link to={`${c.to}?seats=${q.seats}#${audience === 'academic' ? 'plan' : 'apply'}`} className="btn btn-lime w-full">{c.cta} <ArrowRight size={16} /></Link>
-            <p className="mt-3 text-center text-[13px] text-white/45">More than {list.max}? We quote it, from {fmt(list.floor[cur])} a seat.</p>
+            <ul className="mt-4 space-y-1 text-center text-[13px] text-white/55">
+              {list.terms.map((t) => <li key={t}>{t}</li>)}
+            </ul>
+            <p className="mt-2 text-center text-[13px] text-white/40">More than {list.max}? We quote it, from {fmt(list.floor[cur])} a seat.</p>
           </div>
         </div>
 

@@ -32,6 +32,10 @@ export interface SeatList {
   /** Free seats for the people running it: one per `per` seats, at least 1, at most `cap`. */
   freeSeats: { label: string; per: number; cap: number };
   upgrade: { label: string; usd: number; inr: number };
+  /** What an included CTF is called and what it would cost on its own. */
+  ctf: { one: string; many: string; usd: number; inr: number };
+  /** Short promises shown under the calculator. */
+  terms: string[];
 }
 
 export const seatLists: Record<SeatAudience, SeatList> = {
@@ -42,6 +46,8 @@ export const seatLists: Record<SeatAudience, SeatList> = {
     floor: { usd: 15, inr: 1199 },
     freeSeats: { label: 'faculty', per: 25, cap: 10 },
     upgrade: { label: 'Upgrade a seat to CPPT', usd: 20, inr: 1499 },
+    ctf: { one: 'hosted campus CTF', many: 'hosted campus CTFs', usd: 89, inr: 7999 },
+    terms: ['Inactive seats replaced free in the first 30 days', 'A 10–24 seat pilot is credited in full if you move to 50+ seats within 60 days'],
     slabs: [
       { name: 'Starter', min: 10, max: 24, usd: 59, inr: 4999, ctfs: 0, fits: 'A pilot for a club or one section', adds: ['Faculty view of progress and hours'] },
       { name: 'Section', min: 25, max: 49, usd: 49, inr: 3999, ctfs: 0, fits: 'One class section', adds: ['Faculty view of progress and hours'] },
@@ -58,6 +64,8 @@ export const seatLists: Record<SeatAudience, SeatList> = {
     floor: { usd: 69, inr: 5999 },
     freeSeats: { label: 'manager', per: 20, cap: 10 },
     upgrade: { label: 'Add a private team CTF', usd: 99, inr: 8999 },
+    ctf: { one: 'private team CTF', many: 'private team CTFs', usd: 99, inr: 8999 },
+    terms: ['30-day money-back on your first order', 'Seats move to a new person when someone leaves', '20% off hiring CTFs from 25 seats'],
     slabs: [
       { name: 'Team', min: 5, max: 9, usd: 199, inr: 16999, ctfs: 0, fits: 'A small security team', adds: ['Skills report per person'] },
       { name: 'Squad', min: 10, max: 24, usd: 179, inr: 14999, ctfs: 0, fits: 'A security team and its new hires', adds: ['Skills report per person', 'Manager dashboard'] },
