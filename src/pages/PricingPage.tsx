@@ -1,20 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
+import { useLocalCurrency } from '../lib/currency';
 import { Seo } from '../features/seo/Seo';
 import { Local } from '../components/shared/Local';
-import { TrustedBySection } from '../components/sections/TrustedBySection';
 import { plans, builderPricing as P, builderCategories } from '../data/hosting';
 import { certifications, pentestLabUrl } from '../data/pentest';
 import { plans as programs, annualUsd, annualPerMonthUsd, annualSavingPct, type Plan, type PlanAudience } from '../data/plans';
 import { SeatPricing } from '../components/pricing/SeatPricing';
 import { seatLists } from '../data/seats';
 
-/* /pricing: every price on one page, split by who is buying.
-   Companies · Institutions · Learners. For companies and institutions: three yearly plans first (monthly or
-   annual, annual by default with two months free and an extra CTF), then the per-event packages for a one-off.
-   Learners: play free, pay per year for a credential. Prices come from data/hosting.ts, data/pentest.ts and
-   data/plans.ts so they stay in step with checkout. Typography only: no icons, no badges. */
+/* /pricing, built as a path of small decisions so a visitor never faces every price at once:
+   1. Who are you? (Companies · Institutions · Learners)
+   2. What do you need? (train people · CTFs all year · one CTF) — three clear doors, the first chosen for you.
+   3. One offer for that answer, with one button. Everything else waits behind a click.
+   Proof sits next to the decision, reassurance next to the button, questions are filtered to the visitor.
+   Prices come from data/seats.ts, data/plans.ts, data/hosting.ts and data/pentest.ts. */
 
 type Audience = 'companies' | 'institutions' | 'learners';
 const AUDIENCES: { key: Audience; label: string; lead: string }[] = [
@@ -118,54 +119,95 @@ const TIERS: Record<Audience, Tier[]> = {
   ],
 };
 
-const FAQ = [
-  { q: 'Do I get an invoice?', a: 'Yes. Every payment goes through Razorpay and comes with an invoice your accounts team can file. Annual plans can also be paid by bank transfer against a purchase order.' },
-  { q: 'Which currency do you charge in?', a: 'Prices are in US dollars. We show an estimate in your currency next to each price; your bank converts at its own rate.' },
-  { q: 'What if something goes wrong during our event?', a: 'If there is any downtime from our side during your event, you get 100% of your money back. Our team is live for the whole event.' },
-  { q: 'Monthly or annual: what is the difference?', a: 'The same plan, two ways to pay. Monthly is billed every month and you can pause or cancel any time. Annual is twelve months for the price of ten, locks the price for the year, and adds an extra CTF on us. Most departments and teams pick annual because it fits one budget line and one invoice.' },
-  { q: 'Can we start monthly and switch?', a: 'Yes. Start monthly, and switch to annual whenever you like: the month you have already paid is credited against the annual price.' },
-  { q: 'What if a plan turns out not to be the right fit?', a: 'Tell us after your first event. If it is not working for you, we refund the rest of the year, no questions.' },
-  { q: 'What is a seat?', a: `One named person and twelve months of the CyberHx Pentest Lab, from the day they activate it. A student seat includes the CAPT course, the exam and a verifiable certificate. A company seat includes the CAPT and CPPT courses, both exams and a skills report for the manager.` },
-  { q: 'How does the price per seat work?', a: `The more seats, the less each costs. Students start at ${seatLists.academic.min} seats and teams at ${seatLists.company.min}. If the next slab up costs the same or less, we bill that slab and the extra seats are yours, free. Colleges get free faculty seats and companies get free manager seats.` },
-  { q: 'Which seat orders include free CTFs?', a: 'Colleges get a hosted campus CTF from 50 student seats, two from 100, four from 200 and six from 350. Companies get a private team CTF from 25 seats, two from 50, four from 100 and six from 250. Each is a full CTF under your name, run by our team.' },
-  { q: 'What if seats go unused or people leave?', a: 'Colleges: inactive seats are replaced free in the first 30 days. Companies: a seat moves to a new person when someone leaves, and your first order has a 30-day money-back. Every seat\'s year starts when it is activated, not when you pay.' },
-  { q: 'Do you charge GST or other taxes?', a: 'No. The price you see is the total you pay.' },
-  { q: 'Is there academic pricing?', a: 'Yes. Student seats are priced for colleges, from ₹1,499 a seat in India, and every CTF package carries an academic discount. Tell us your numbers and we send a quote.' },
-  { q: 'Can we change a package?', a: 'Yes. Add hours, players, challenges or a 3D event site to any package, or build your own from scratch. The builder shows the price as you go.' },
-  { q: 'Do learners pay anything to play?', a: 'No. Every public CyberHx CTF is free to enter. You pay only for a certification, which gives you a year of the course, the Pentest Lab and the exam.' },
+type FaqItem = { q: string; a: string; for: Audience[] };
+const ORG: Audience[] = ['companies', 'institutions'];
+const ALL: Audience[] = ['companies', 'institutions', 'learners'];
+const FAQ: FaqItem[] = [
+  { q: 'What is a seat?', for: ORG, a: 'One named person and twelve months of the CyberHx Pentest Lab, from the day they activate it. A student seat includes the CAPT course, the exam and a verifiable certificate. A company seat includes the CAPT and CPPT courses, both exams and a skills report for the manager.' },
+  { q: 'How does the price per seat work?', for: ORG, a: `The more seats, the less each costs. Students start at ${seatLists.academic.min} seats and teams at ${seatLists.company.min}. If the next step up costs the same or less, we bill that step and the extra seats are yours, free. Colleges get free faculty seats and companies get free manager seats.` },
+  { q: 'Do you charge GST or other taxes?', for: ALL, a: 'No. The price you see is the total you pay.' },
+  { q: 'Which seat orders include free CTFs?', for: ORG, a: 'Colleges get a hosted campus CTF from 50 student seats, two from 100, four from 200 and six from 350. Companies get a private team CTF from 25 seats, two from 50, four from 100 and six from 250. Each is a full CTF under your name, run by our team.' },
+  { q: 'What if seats go unused or people leave?', for: ORG, a: "Colleges: inactive seats are replaced free in the first 30 days. Companies: a seat moves to a new person when someone leaves, and your first order has a 30-day money-back. Every seat's year starts when it is activated, not when you pay." },
+  { q: 'Is there academic pricing?', for: ['institutions'], a: 'Yes. Student seats are priced for colleges, from ₹1,499 a seat in India, and every CTF package carries an academic discount. Tell us your numbers and we send a quote.' },
+  { q: 'Monthly or annual: what is the difference?', for: ORG, a: 'The same plan, two ways to pay. Monthly is billed every month and you can pause or cancel any time. Annual is twelve months for the price of ten, locks the price for the year, and adds an extra CTF on us.' },
+  { q: 'Can we start monthly and switch?', for: ORG, a: 'Yes. Start monthly and switch to annual whenever you like: the month you have already paid is credited against the annual price.' },
+  { q: 'What if a plan turns out not to be the right fit?', for: ORG, a: 'Tell us after your first event. If it is not working for you, we refund the rest of the year, no questions.' },
+  { q: 'What if something goes wrong during our event?', for: ORG, a: 'If there is any downtime from our side during your event, you get 100% of your money back. Our team is live for the whole event.' },
+  { q: 'Can we change a package?', for: ORG, a: 'Yes. Add hours, players, challenges or a 3D event site to any package, or build your own from scratch. The builder shows the price as you go.' },
+  { q: 'Do learners pay anything to play?', for: ['learners'], a: 'No. Every public CyberHx CTF is free to enter. You pay only for a certification, which gives you a year of the course, the Pentest Lab and the exam.' },
+  { q: 'What do I get with CAPT or CPPT?', for: ['learners'], a: 'A year of the course, the Pentest Lab and the exam, and a verifiable certificate anyone can check. CAPT is the associate level, CPPT the professional one.' },
+  { q: 'Do I get an invoice?', for: ALL, a: 'Yes. Every payment goes through Razorpay and comes with an invoice or receipt. Larger orders can also be paid by bank transfer against a purchase order.' },
+  { q: 'Which currency do you charge in?', for: ALL, a: 'Visitors in India see and pay rupee prices for seats; everyone else sees US dollars. Next to dollar prices we show an estimate in your currency; your bank converts at its own rate.' },
 ];
 
+type Need = 'train' | 'plan' | 'event';
+const NEED_KEYS: Need[] = ['train', 'plan', 'event'];
+
+const inrFmt = (n: number) => '₹' + n.toLocaleString('en-IN');
+
 export default function PricingPage() {
-  const { hash } = useLocation();
+  const { hash, search } = useLocation();
+  const { code } = useLocalCurrency();
+  const inIndia = code === 'INR';
   const fromHash = (h: string): Audience | null => (['companies', 'institutions', 'learners'] as Audience[]).find((a) => h === `#${a}`) || null;
+  const fromSearch = (q: string): Need | null => NEED_KEYS.find((n) => new URLSearchParams(q).get('need') === n) || null;
   const [aud, setAud] = useState<Audience>(fromHash(hash) || 'companies');
+  const [need, setNeed] = useState<Need>(fromSearch(search) || 'train');
   const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');
   const [open, setOpen] = useState<number | null>(0);
+  const [allFaq, setAllFaq] = useState(false);
   useEffect(() => { const a = fromHash(hash); if (a) setAud(a); }, [hash]);
 
+  const go = (a: Audience, n: Need = need) => {
+    setAud(a);
+    setNeed(n);
+    setOpen(0);
+    setAllFaq(false);
+    history.replaceState(null, '', `${n === 'train' ? '' : `?need=${n}`}#${a}`);
+  };
+
   const current = AUDIENCES.find((a) => a.key === aud)!;
+  const seatList = seatLists[aud === 'institutions' ? 'academic' : 'company'];
+  const cheapestSeat = seatList.slabs[seatList.slabs.length - 1];
+  const seatFrom = inIndia ? inrFmt(cheapestSeat.inr) : `$${cheapestSeat.usd}`;
+  const planFrom = annualPerMonthUsd(programs[aud === 'institutions' ? 'institutions' : 'companies'][0]);
+
+  const doors: Record<Need, { label: string; sub: string; head: string; lead: string }> =
+    aud === 'institutions'
+      ? {
+          train: { label: 'Train my students', sub: `Seats from ${seatFrom} a student a year`, head: 'Seats for every student.', lead: 'A year of the Lab, the CAPT course and the exam for each student. The bigger the batch, the less each seat costs.' },
+          plan: { label: 'CTFs all year', sub: `Plans from $${planFrom} a month`, head: 'A plan for your club, cell or department.', lead: 'CTFs on the calendar, Lab seats for the organisers, a report after every event. One budget line.' },
+          event: { label: 'Run one CTF', sub: `From $${beginner.usd} per event`, head: 'One CTF, built and run for you.', lead: 'Pick a package. Every package is yours to change in the builder.' },
+        }
+      : {
+          train: { label: 'Train my team', sub: `Seats from ${seatFrom} a person a year`, head: 'Seats for your team.', lead: 'A year of the Lab, the CAPT and CPPT courses and both exams for each person, with a skills report for the manager.' },
+          plan: { label: 'Hire security talent', sub: `Plans from $${planFrom} a month`, head: 'Hire by skill, all year.', lead: 'Hiring CTFs on the calendar, a ranked shortlist after every round, Lab seats for the team you already have.' },
+          event: { label: 'Run one CTF', sub: `From $${beginner.usd} per event`, head: 'One CTF, for your team or your hiring.', lead: 'Pick a package. Every package is yours to change in the builder.' },
+        };
+
+  const faqs = FAQ.filter((f) => f.for.includes(aud));
+  const shownFaqs = allFaq ? faqs : faqs.slice(0, 5);
+  const closeTo = aud === 'companies' ? '/companies#apply' : aud === 'institutions' ? '/universities#plan' : '/events';
 
   return (
     <div className="min-h-screen bg-ink text-white">
       <Seo
         title="Pricing — CyberHx for Companies, Institutions and Learners"
-        description={`Yearly plans for universities from $${annualPerMonthUsd(programs.institutions[0])} a month and for companies from $${annualPerMonthUsd(programs.companies[0])} a month, single CTFs from $${beginner.usd}, hosting from $${P.hosting.usd}, CAPT $${capt.usd} and CPPT $${cppt.usd} per year. Clear prices, Razorpay invoices, money back on downtime.`}
+        description={`Student seats from ₹1,499 ($19) and team seats from ₹7,499 ($89) a year, yearly plans, single CTFs from $${beginner.usd}, CAPT $${capt.usd} and CPPT $${cppt.usd} per year. No GST, no extra fees, money back on downtime.`}
         path="/pricing"
-        keywords="ctf hosting price, ctf package cost, host a ctf price, capt certification price, cppt price, cybersecurity training pricing"
+        keywords="ctf hosting price, cybersecurity training price per seat, academic cybersecurity lab pricing, capt certification price, cppt price, hiring ctf cost"
       />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden pb-10 pt-28 sm:pt-36">
+      {/* 1 · Who are you? */}
+      <section className="relative overflow-hidden pb-8 pt-28 sm:pt-36">
         <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-[26rem] w-[48rem] -translate-x-1/2 rounded-full bg-lime/[0.06] blur-[120px]" />
         <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-6">
           <h1 className="font-display text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
             Clear prices. <span className="text-white/45">No surprises.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/60">
-            Choose who you are. Every price below is the price you pay, in full, with an invoice.
-          </p>
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-8 text-white/60">Tell us who you are and what you need. You get one answer and one price.</p>
 
-          <div role="tablist" aria-label="Who is this for" className="mx-auto mt-10 inline-flex max-w-full rounded-2xl border border-white/[0.09] bg-white/[0.04] p-1.5">
+          <div role="tablist" aria-label="Who is this for" className="mx-auto mt-9 inline-flex max-w-full rounded-2xl border border-white/[0.09] bg-white/[0.04] p-1.5">
             {AUDIENCES.map((a) => (
               <button
                 key={a.key}
@@ -173,188 +215,116 @@ export default function PricingPage() {
                 id={`tab-${a.key}`}
                 aria-selected={aud === a.key}
                 aria-controls={`panel-${a.key}`}
-                onClick={() => { setAud(a.key); history.replaceState(null, '', `#${a.key}`); }}
+                onClick={() => go(a.key, 'train')}
                 className={`rounded-xl px-4 py-2.5 text-[15px] font-semibold transition-colors sm:px-6 ${aud === a.key ? 'bg-white text-ink shadow-[0_8px_24px_-12px_rgba(0,0,0,.8)]' : 'text-white/65 hover:text-white'}`}
               >
                 For {a.label}
               </button>
             ))}
           </div>
-          <p className="mt-6 text-[17px] text-white/70">{current.lead}</p>
+          <p className="mt-5 text-[14px] text-white/45">Trusted by NFSU Chennai and Thapar Institute · 7,400+ players from 90+ countries</p>
         </div>
       </section>
 
-      {/* Plans, then per-event packages */}
-      <section id={`panel-${aud}`} role="tabpanel" aria-labelledby={`tab-${aud}`} className="mx-auto max-w-7xl px-5 pb-20 sm:px-6 lg:px-8">
-        {aud !== 'learners' && (
+      <section id={`panel-${aud}`} role="tabpanel" aria-labelledby={`tab-${aud}`} className="mx-auto max-w-6xl px-5 pb-16 sm:px-6 lg:px-8">
+        {aud !== 'learners' ? (
           <>
-            <SeatPricing key={aud} audience={aud === 'institutions' ? 'academic' : 'company'} />
-
-            <div className="mt-24 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="font-display text-3xl sm:text-4xl">{aud === 'institutions' ? 'Or a plan for your club or cell.' : 'Or a plan for the year.'}</h2>
-                <p className="mt-2 max-w-xl leading-7 text-white/60">
-                  {aud === 'institutions'
-                    ? 'CTFs on the calendar, Lab seats for the organising team, a report after every event. One budget line.'
-                    : 'CTFs on the calendar, Lab seats for your team, a shortlist after every hiring round. One budget line.'}
-                </p>
-              </div>
-              <div role="group" aria-label="Billing" className="inline-flex self-start rounded-2xl border border-white/[0.09] bg-white/[0.04] p-1.5 sm:self-auto">
-                {(['annual', 'monthly'] as const).map((b) => (
+            {/* 2 · What do you need? */}
+            <h2 className="text-center text-[15px] font-semibold text-white/55">What do you need?</h2>
+            <div role="radiogroup" aria-label="What do you need" className="mx-auto mt-4 grid max-w-4xl gap-2 sm:grid-cols-3">
+              {NEED_KEYS.map((k) => {
+                const on = need === k;
+                return (
                   <button
-                    key={b}
+                    key={k}
                     type="button"
-                    aria-pressed={billing === b}
-                    onClick={() => setBilling(b)}
-                    className={`rounded-xl px-4 py-2 text-[15px] font-semibold transition-colors ${billing === b ? 'bg-white text-ink' : 'text-white/65 hover:text-white'}`}
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => go(aud, k)}
+                    className={`rounded-2xl border px-5 py-4 text-left transition-colors ${on ? 'border-lime bg-lime/[0.1]' : 'border-white/[0.09] bg-white/[0.03] hover:border-white/25'}`}
                   >
-                    {b === 'annual' ? 'Annual · 2 months free' : 'Monthly'}
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="text-[17px] font-semibold text-white">{doors[k].label}</span>
+                      <span aria-hidden="true" className={`h-4 w-4 shrink-0 rounded-full border-2 ${on ? 'border-lime bg-lime' : 'border-white/30'}`} />
+                    </span>
+                    <span className="mt-1 block text-[14px] text-white/55">{doors[k].sub}</span>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
 
-            <div className="mt-8 grid gap-5 lg:grid-cols-3">
-              {programs[aud as PlanAudience].map((p) => <PlanCard key={p.id} plan={p} billing={billing} />)}
+            {/* 3 · One offer */}
+            <div className="mt-14 text-center">
+              <h2 className="font-display text-3xl sm:text-5xl">{doors[need].head}</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-lg leading-8 text-white/60">{doors[need].lead}</p>
             </div>
 
-            <div className="mt-8 grid gap-4 rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-6 sm:grid-cols-3 sm:p-8">
-              {billing === 'annual' ? (
+            <div className="mt-10">
+              {need === 'train' && <SeatPricing key={aud} audience={aud === 'institutions' ? 'academic' : 'company'} />}
+
+              {need === 'plan' && (
                 <>
-                  <Stat v="2 months" k="free on every annual plan: twelve months for the price of ten" />
-                  <Stat v="+1 CTF" k="on us, every year you stay annual" />
-                  <Stat v="12 months" k="price locked. Not the right fit after your first event? We refund the rest of the year." />
+                  <div className="flex justify-center">
+                    <div role="group" aria-label="Billing" className="inline-flex rounded-2xl border border-white/[0.09] bg-white/[0.04] p-1.5">
+                      {(['annual', 'monthly'] as const).map((b) => (
+                        <button key={b} type="button" aria-pressed={billing === b} onClick={() => setBilling(b)}
+                          className={`rounded-xl px-4 py-2 text-[15px] font-semibold transition-colors ${billing === b ? 'bg-white text-ink' : 'text-white/65 hover:text-white'}`}>
+                          {b === 'annual' ? 'Annual · 2 months free' : 'Monthly'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-8 grid gap-5 lg:grid-cols-3">
+                    {programs[aud as PlanAudience].map((p) => <PlanCard key={p.id} plan={p} billing={billing} />)}
+                  </div>
+                  <p className="mt-6 text-center text-[15px] text-white/50">
+                    {billing === 'annual' ? `Annual: ${annualSavingPct}% less than monthly, an extra CTF on us, price locked for 12 months.` : 'Monthly: pause or cancel any time. Switch to annual later and the month you paid is credited.'}
+                  </p>
                 </>
-              ) : (
+              )}
+
+              {need === 'event' && (
                 <>
-                  <Stat v="Any time" k="pause or cancel. No notice period, no exit fee." />
-                  <Stat v={`${annualSavingPct}%`} k="is what you leave on the table against annual, plus the extra CTF" />
-                  <Stat v="Credited" k="switch to annual later and the month you paid comes off the price" />
+                  <div className="grid gap-5 lg:grid-cols-3">
+                    {TIERS[aud].map((t) => <TierCard key={t.name} t={t} />)}
+                  </div>
+                  <p className="mt-6 text-center text-[15px] text-white/50">
+                    Hosting only from ${P.hosting.usd} per {P.hosting.hours}-hour round, challenges from ${cheapestChallenge} each.{' '}
+                    <Link to="/host-your-ctf#build" className="font-semibold text-white hover:text-lime">Price it in the builder →</Link>
+                  </p>
                 </>
               )}
             </div>
-            <p className="mt-4 text-[15px] text-white/50">
-              Each CTF in a plan is our Pro package: 40 challenges, an {P.hosting.hours}-hour round, our team live.{' '}
-              {aud === 'institutions' ? 'More than one campus? ' : 'A bigger scope? '}
-              <Link to={aud === 'institutions' ? '/universities#plan' : '/companies#apply'} className="font-semibold text-white hover:text-lime">Ask for a group price →</Link>
-            </p>
-
-            <div className="mt-20 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <h2 className="font-display text-3xl sm:text-4xl">Just one event?</h2>
-              <p className="max-w-md text-[15px] leading-7 text-white/50">Pay per CTF. Every package is yours to change in the builder.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-center text-lg text-white/70">{current.lead}</p>
+            <h2 className="sr-only">Plans for learners</h2>
+            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+              {TIERS.learners.map((t) => <TierCard key={t.name} t={t} />)}
             </div>
           </>
         )}
 
-        {aud === 'learners' && <h2 className="sr-only">Plans for learners</h2>}
-        <div className={`grid gap-5 lg:grid-cols-3 ${aud !== 'learners' ? 'mt-8' : ''}`}>
-          {TIERS[aud].map((t) => (
-            <article
-              key={t.name}
-              className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${t.recommended ? 'border-lime/50 bg-gradient-to-b from-lime/[0.07] to-[#080d1a] shadow-[0_40px_80px_-40px_rgba(198,241,53,.35)]' : 'border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a]'}`}
-            >
-              <p className={`text-[13px] font-medium ${t.recommended ? 'text-lime' : 'text-transparent select-none'}`} aria-hidden={!t.recommended}>Recommended</p>
-              <h3 className="font-display mt-2 text-3xl">{t.name}</h3>
-              <p className="mt-3 min-h-[3.5rem] leading-7 text-white/60">{t.promise}</p>
-              <div className="mt-6 flex items-end gap-2">
-                {'custom' in t.price ? (
-                  <span className="font-display text-5xl">{t.price.custom}</span>
-                ) : t.price.usd === 0 ? (
-                  <span className="font-display text-5xl">Free</span>
-                ) : (
-                  <>
-                    <span className="font-display text-5xl tabular-nums">${t.price.usd}</span>
-                    <span className="pb-1.5 text-[15px] text-white/50">{t.price.unit}</span>
-                  </>
-                )}
-              </div>
-              <p className="mt-1 h-5 text-[13px] text-white/45">
-                {'custom' in t.price ? 'Priced for your scope, one invoice' : t.price.usd === 0 ? 'No card, no catch' : <Local usd={t.price.usd} className="text-white/45" />}
-              </p>
-              <ul className="mt-7 space-y-3">
-                {t.includes.map((x) => (
-                  <li key={x} className="flex items-start gap-3 text-[15px] leading-6 text-white/85"><Check size={17} className="mt-0.5 shrink-0 text-lime" />{x}</li>
-                ))}
-              </ul>
-              <div className="mt-auto pt-8">
-                {t.cta.to.startsWith('http') ? (
-                  <a href={t.cta.to} target="_blank" rel="noopener noreferrer" className={`btn w-full ${t.recommended ? 'btn-lime' : 'btn-ghost'}`}>{t.cta.label} <ArrowRight size={16} /></a>
-                ) : (
-                  <Link to={t.cta.to} className={`btn w-full ${t.recommended ? 'btn-lime' : 'btn-ghost'}`}>{t.cta.label} <ArrowRight size={16} /></Link>
-                )}
-                {t.note && <p className="mt-3 text-center text-[13px] text-white/45">{t.note}</p>}
-              </div>
-            </article>
+        {/* Reassurance, next to the decision */}
+        <ul className="mx-auto mt-14 grid max-w-5xl gap-6 border-y border-white/[0.07] py-8 text-center sm:grid-cols-3">
+          {(aud === 'learners'
+            ? [['Free', 'to play every CTF we run'], ['1 year', 'of course, Lab and exam in every certification'], ['Verifiable', 'certificates anyone can check']]
+            : [['No GST', 'the price you see is the total'], ['100% back', 'if downtime during your event is from our side'], ['2 days', 'for a reply from a real person, with a plan and a price']]
+          ).map(([v, k]) => (
+            <li key={v}>
+              <p className="font-display text-2xl">{v}</p>
+              <p className="mt-1 text-[14px] text-white/50">{k}</p>
+            </li>
           ))}
-        </div>
-
-        {/* The framing line: why this price is small */}
-        <div className="mt-8 grid gap-4 rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-6 sm:grid-cols-3 sm:p-8">
-          {aud === 'learners' ? (
-            <>
-              <Stat v="Free" k="to play every CTF we run" />
-              <Stat v={`$${capt.usd}`} k="for your first verifiable credential" />
-              <Stat v="1 year" k="of course, Lab access and the exam, in every certification" />
-            </>
-          ) : (
-            <>
-              <Stat v={`$${(beginner.usd / P.hosting.players).toFixed(2)}`} k={`per player on a ${players}-player ${aud === 'companies' ? 'Team' : 'Campus'} CTF`} />
-              <Stat v="100%" k="money back if downtime is from our side" />
-              <Stat v="0" k="servers, challenge writers or night shifts on your side" />
-            </>
-          )}
-        </div>
+        </ul>
       </section>
 
-      <TrustedBySection compact />
-
-      {/* Build your own */}
-      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-6 sm:py-24 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-start">
-          <div>
-            <h2 className="font-display text-4xl leading-tight sm:text-5xl">Or build it <span className="text-white/45">your way.</span></h2>
-            <p className="mt-5 max-w-lg text-lg leading-8 text-white/60">Start with hosting, add challenges by category and difficulty, set the hours and the players. The builder shows the total as you go, and every part is priced the same for everyone.</p>
-            <Link to="/host-your-ctf#build" className="btn btn-lime mt-8">Open the builder <ArrowRight size={16} /></Link>
-          </div>
-          <dl className="divide-y divide-white/[0.07] rounded-[24px] border border-white/[0.08] bg-white/[0.02]">
-            {[
-              ['Hosting', `$${P.hosting.usd} per ${P.hosting.hours}-hour round, ${players} players included`],
-              ['Extra hours', `$${P.extraHourUsd} per hour, up to ${P.maxHours} hours`],
-              ['Extra players', `$${P.extraPlayersUsd} per ${P.playerBlock.toLocaleString('en-US')} players, no upper limit`],
-              ['Challenges', `From $${cheapestChallenge} each: Web, OSINT, Crypto, Reverse, Boot2Root, Mobile, Steg`],
-              ['3D event website', `$${P.website3dUsd}, designed to match your theme`],
-              ['Qualifier + finale', 'Two rounds, priced as two rounds'],
-            ].map(([k, v]) => (
-              <div key={k} className="grid gap-1 px-6 py-4 sm:grid-cols-[11rem_1fr] sm:gap-4">
-                <dt className="font-semibold text-white">{k}</dt>
-                <dd className="text-[15px] leading-6 text-white/60">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
-      {/* Promise */}
-      <section className="border-y border-white/[0.06] bg-[#070b15]">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-6 sm:py-24 lg:grid-cols-3 lg:px-8">
-          {[
-            ['Our promise', 'If any downtime during your event is caused by us, you get 100% of your money back. No forms, no argument.'],
-            ['One invoice', 'Pay by card, UPI or net banking through Razorpay. The invoice arrives with the receipt.'],
-            ['Real people', 'A person from CyberHx is live for the whole event, and answers your email within two working days before it.'],
-          ].map(([h, t]) => (
-            <div key={h}>
-              <h3 className="font-display text-2xl">{h}</h3>
-              <p className="mt-3 leading-7 text-white/60">{t}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="mx-auto max-w-3xl px-5 py-20 sm:px-6 sm:py-24">
-        <h2 className="font-display text-3xl sm:text-4xl">Questions about pricing</h2>
-        <div className="mt-8 divide-y divide-white/[0.07] rounded-[24px] border border-white/[0.08] bg-white/[0.02]">
-          {FAQ.map((x, i) => (
+      {/* Questions, filtered to this visitor */}
+      <section className="mx-auto max-w-3xl px-5 pb-20 sm:px-6">
+        <h2 className="font-display text-3xl sm:text-4xl">Questions</h2>
+        <div className="mt-6 divide-y divide-white/[0.07] rounded-[24px] border border-white/[0.08] bg-white/[0.02]">
+          {shownFaqs.map((x, i) => (
             <div key={x.q}>
               <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)} className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left">
                 <span className="text-[16px] font-semibold">{x.q}</span>
@@ -364,22 +334,79 @@ export default function PricingPage() {
             </div>
           ))}
         </div>
+        {faqs.length > 5 && (
+          <button type="button" onClick={() => setAllFaq(!allFaq)} className="mt-4 text-[15px] font-semibold text-white/70 hover:text-white">
+            {allFaq ? 'Show fewer questions' : `Show all ${faqs.length} questions`}
+          </button>
+        )}
       </section>
 
       {/* Close */}
       <section className="mx-auto max-w-4xl px-5 pb-28 text-center sm:px-6">
         <h2 className="font-display text-4xl sm:text-5xl">Still deciding?</h2>
-        <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-white/60">Tell us what you are planning. We reply within two working days with a plan and a price, and no pressure.</p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link to="/host-your-ctf#packages" className="btn btn-lime">Host a CTF <ArrowRight size={16} /></Link>
-          <Link to="/contact" className="btn btn-ghost">Talk to us</Link>
-        </div>
+        <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-white/60">Tell us your numbers. We reply within two working days with a plan and a price, and no pressure.</p>
+        <Link to={closeTo} className="btn btn-lime mt-8">{aud === 'learners' ? 'See upcoming CTFs' : 'Talk to us'} <ArrowRight size={16} /></Link>
       </section>
     </div>
   );
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** A short list with the rest one click away, so cards stay calm. */
+function Includes({ items, extra }: { items: string[]; extra?: React.ReactNode }) {
+  const [more, setMore] = useState(false);
+  const shown = more ? items : items.slice(0, 3);
+  return (
+    <>
+      <ul className="mt-6 space-y-3">
+        {shown.map((x) => (
+          <li key={x} className="flex items-start gap-3 text-[15px] leading-6 text-white/85"><Check size={17} className="mt-0.5 shrink-0 text-lime" />{x}</li>
+        ))}
+        {extra}
+      </ul>
+      {items.length > 3 && (
+        <button type="button" onClick={() => setMore(!more)} className="mt-3 text-left text-[14px] font-semibold text-white/55 hover:text-white">
+          {more ? 'Show less' : `+ ${items.length - 3} more included`}
+        </button>
+      )}
+    </>
+  );
+}
+
+function TierCard({ t }: { t: Tier }) {
+  return (
+    <article className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${t.recommended ? 'order-first border-lime/50 bg-gradient-to-b from-lime/[0.07] to-[#080d1a] lg:order-none' : 'border-white/[0.08] bg-[#0a1020]'}`}>
+      {t.recommended && <p className="text-[13px] font-medium text-lime">Most chosen</p>}
+      <h3 className={`font-display text-3xl ${t.recommended ? 'mt-2' : 'mt-[1.625rem]'}`}>{t.name}</h3>
+      <p className="mt-2 leading-7 text-white/60">{t.promise}</p>
+      <div className="mt-6 flex items-end gap-2">
+        {'custom' in t.price ? (
+          <span className="font-display text-5xl">{t.price.custom}</span>
+        ) : t.price.usd === 0 ? (
+          <span className="font-display text-5xl">Free</span>
+        ) : (
+          <>
+            <span className="font-display text-5xl tabular-nums">${t.price.usd}</span>
+            <span className="pb-1.5 text-[15px] text-white/50">{t.price.unit}</span>
+          </>
+        )}
+      </div>
+      <p className="mt-1 h-5 text-[13px] text-white/45">
+        {'custom' in t.price ? 'Priced for your scope' : t.price.usd === 0 ? 'No card, no catch' : <Local usd={t.price.usd} className="text-white/45" />}
+      </p>
+      <Includes items={t.includes} />
+      <div className="mt-auto pt-8">
+        {t.cta.to.startsWith('http') ? (
+          <a href={t.cta.to} target="_blank" rel="noopener noreferrer" className={`btn w-full ${t.recommended ? 'btn-lime' : 'btn-ghost'}`}>{t.cta.label} <ArrowRight size={16} /></a>
+        ) : (
+          <Link to={t.cta.to} className={`btn w-full ${t.recommended ? 'btn-lime' : 'btn-ghost'}`}>{t.cta.label} <ArrowRight size={16} /></Link>
+        )}
+        {t.note && <p className="mt-3 text-center text-[13px] text-white/45">{t.note}</p>}
+      </div>
+    </article>
+  );
+}
 
 /** One yearly plan. Annual by default: the monthly-equivalent price leads, the yearly total follows. */
 function PlanCard({ plan: p, billing }: { plan: Plan; billing: 'annual' | 'monthly' }) {
@@ -389,41 +416,30 @@ function PlanCard({ plan: p, billing }: { plan: Plan; billing: 'annual' | 'month
   // What the same CTFs and Lab seats cost one by one, at list price.
   const oneByOne = Math.round((p.ctfs * pro.usd + p.seats * capt.usd) / 100) * 100;
   return (
-    <article className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${p.recommended ? 'order-first border-lime/50 bg-gradient-to-b from-lime/[0.07] to-[#080d1a] shadow-[0_40px_80px_-40px_rgba(198,241,53,.35)] lg:order-none' : 'border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a]'}`}>
-      <p className={`text-[13px] font-medium ${p.recommended ? 'text-lime' : 'text-transparent select-none'}`} aria-hidden={!p.recommended}>Recommended</p>
-      <h3 className="font-display mt-2 text-3xl">{p.name}</h3>
-      <p className="mt-3 min-h-[3.5rem] leading-7 text-white/60">{p.who}</p>
+    <article className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${p.recommended ? 'order-first border-lime/50 bg-gradient-to-b from-lime/[0.07] to-[#080d1a] lg:order-none' : 'border-white/[0.08] bg-[#0a1020]'}`}>
+      {p.recommended && <p className="text-[13px] font-medium text-lime">Most chosen</p>}
+      <h3 className={`font-display text-3xl ${p.recommended ? 'mt-2' : 'mt-[1.625rem]'}`}>{p.name}</h3>
+      <p className="mt-2 leading-7 text-white/60">{p.who}</p>
       <div className="mt-6 flex items-end gap-2">
         <span className="font-display text-5xl tabular-nums">${perMonth}</span>
         <span className="pb-1.5 text-[15px] text-white/50">per month</span>
       </div>
-      <p className="mt-1 flex flex-wrap gap-x-2 text-[13px] text-white/45">
-        <span>{annual ? `Billed $${yearly.toLocaleString('en-US')} a year` : 'Billed monthly, pause or cancel any time'}</span>
-        <Local usd={annual ? yearly : p.monthlyUsd} className="text-white/45" />
+      <p className="mt-1 text-[13px] text-white/45">
+        {annual ? `Billed $${yearly.toLocaleString('en-US')} a year` : 'Billed monthly'} · worth about ${oneByOne.toLocaleString('en-US')} one by one
       </p>
-      <p className="mt-1 text-[13px] text-white/45">One by one, the same CTFs and seats cost about ${oneByOne.toLocaleString('en-US')} a year.</p>
-      <ul className="mt-7 space-y-3">
-        {p.includes.map((x) => (
-          <li key={x} className="flex items-start gap-3 text-[15px] leading-6 text-white/85"><Check size={17} className="mt-0.5 shrink-0 text-lime" />{x}</li>
-        ))}
-        <li className={`flex items-start gap-3 text-[15px] leading-6 ${annual ? 'text-white' : 'text-white/40'}`}>
-          <Check size={17} className={`mt-0.5 shrink-0 ${annual ? 'text-lime' : 'text-white/25'}`} />
-          {annual ? `${cap(p.annualBonus)}. Price locked for 12 months.` : `On the annual plan: ${p.annualBonus}, and the price locked for 12 months.`}
-        </li>
-      </ul>
+      <Includes
+        items={p.includes}
+        extra={
+          <li className={`flex items-start gap-3 text-[15px] leading-6 ${annual ? 'text-white' : 'text-white/40'}`}>
+            <Check size={17} className={`mt-0.5 shrink-0 ${annual ? 'text-lime' : 'text-white/25'}`} />
+            {annual ? `${cap(p.annualBonus)}.` : `Annual adds ${p.annualBonus}.`}
+          </li>
+        }
+      />
       <div className="mt-auto pt-8">
         <Link to={p.cta.to.replace('#', `?plan=${p.id}&billing=${billing}#`)} className={`btn w-full ${p.recommended ? 'btn-lime' : 'btn-ghost'}`}>{p.cta.label} <ArrowRight size={16} /></Link>
         <p className="mt-3 text-center text-[13px] text-white/45">{p.framing}</p>
       </div>
     </article>
-  );
-}
-
-function Stat({ v, k }: { v: string; k: string }) {
-  return (
-    <div>
-      <p className="font-display text-4xl tabular-nums">{v}</p>
-      <p className="mt-1 text-[14px] leading-6 text-white/50">{k}</p>
-    </div>
   );
 }
