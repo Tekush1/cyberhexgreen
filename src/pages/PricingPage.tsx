@@ -8,7 +8,7 @@ import { plans, builderPricing as P, builderCategories } from '../data/hosting';
 import { certifications, pentestLabUrl } from '../data/pentest';
 import { plans as programs, annualUsd, annualPerMonthUsd, annualSavingPct, type Plan, type PlanAudience } from '../data/plans';
 import { SeatPricing } from '../components/pricing/SeatPricing';
-import { seatLists } from '../data/seats';
+import { seatLists, type SeatAudience } from '../data/seats';
 
 /* /pricing, built as a path of small decisions so a visitor never faces every price at once:
    1. Who are you? (Companies · Institutions · Learners)
@@ -27,9 +27,9 @@ const AUDIENCES: { key: Audience; label: string; lead: string }[] = [
 interface Tier {
   name: string;
   promise: string;
-  price: { usd: number; unit: string } | { custom: string };
+  price: { usd: number; unit: string } | { custom: string } | { text: string; unit: string; sub?: string };
   includes: string[];
-  cta: { label: string; to: string };
+  cta: { label: string; to: string; onSelect?: () => void };
   recommended?: boolean;
   note?: string;
 }
@@ -123,7 +123,7 @@ type FaqItem = { q: string; a: string; for: Audience[] };
 const ORG: Audience[] = ['companies', 'institutions'];
 const ALL: Audience[] = ['companies', 'institutions', 'learners'];
 const FAQ: FaqItem[] = [
-  { q: 'What is a seat?', for: ORG, a: 'One named person for twelve months, from the day they activate it. A college seat is a student on the CyberHx Academy: daily labs, practice challenges, and the college\'s classes, exams, syllabus and schedule, with the teacher dashboard and reports for staff (teachers are free). A company seat is a person on the Pentest Lab with the CAPT and CPPT courses, both exams and a skills report for the manager.' },
+  { q: 'What is a seat?', for: ORG, a: 'One named person for twelve months, from the day they activate it. A college seat is a student on the CyberHx Academy: daily labs, practice challenges, and the college\'s classes, exams, syllabus and schedule, with the teacher dashboard and reports for staff (teachers are free). The Academy + CAPT seat adds a year of the Pentest Lab and the CAPT exam and certificate. A company seat is a person on the Pentest Lab with the CAPT and CPPT courses, both exams and a skills report for the manager.' },
   { q: 'How does the price per seat work?', for: ORG, a: `The more seats, the less each costs. Students start at ${seatLists.academic.min} seats and teams at ${seatLists.company.min}. If the next step up costs the same or less, we bill that step and the extra seats are yours, free. Colleges get free faculty seats and companies get free manager seats.` },
   { q: 'Do you charge GST or other taxes?', for: ALL, a: 'No. The price you see is the total you pay.' },
   { q: 'Which seat orders include free CTFs?', for: ORG, a: 'Colleges get a hosted campus CTF from 50 student seats, two from 100, four from 200 and six from 350. Companies get a private team CTF from 25 seats, two from 50, four from 100 and six from 250. Each is a full CTF under your name, run by our team.' },
@@ -156,6 +156,7 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');
   const [open, setOpen] = useState<number | null>(0);
   const [allFaq, setAllFaq] = useState(false);
+  const [pkg, setPkg] = useState<SeatAudience>('academicCapt');
   useEffect(() => { const a = fromHash(hash); if (a) setAud(a); }, [hash]);
 
   const go = (a: Audience, n: Need = need) => {
@@ -175,7 +176,7 @@ export default function PricingPage() {
   const doors: Record<Need, { label: string; sub: string; head: string; lead: string }> =
     aud === 'institutions'
       ? {
-          train: { label: 'Academy for my college', sub: `Seats from ${seatFrom} a student a year`, head: 'The CyberHx Academy for your college.', lead: 'Classes, exams, syllabus, schedule and reports for your teachers; daily labs, practice challenges and leaderboards for every student. Teachers free.' },
+          train: { label: 'Academy for my college', sub: `From ${seatFrom} a student a year`, head: 'The CyberHx Academy for your college.', lead: 'Teach all year on the Academy, and add the CAPT certification so every student leaves with a credential. Teachers free.' },
           plan: { label: 'CTFs all year', sub: `Plans from $${planFrom} a month`, head: 'A plan for your club, cell or department.', lead: 'CTFs on the calendar, Lab seats for the organisers, a report after every event. One budget line.' },
           event: { label: 'Run one CTF', sub: `From $${beginner.usd} per event`, head: 'One CTF, built and run for you.', lead: 'Pick a package. Every package is yours to change in the builder.' },
         }
@@ -260,7 +261,19 @@ export default function PricingPage() {
             </div>
 
             <div className="mt-10">
-              {need === 'train' && <SeatPricing key={aud} audience={aud === 'institutions' ? 'academic' : 'company'} />}
+              {need === 'train' && aud === 'institutions' && (
+                <>
+                  <div className="grid gap-5 lg:grid-cols-3">
+                    {academyCards(inIndia, (p) => setPkg(p)).map((t) => <TierCard key={t.name} t={t} />)}
+                  </div>
+                  <div id="seats" className="mt-14 scroll-mt-24 text-center">
+                    <h3 className="font-display text-3xl sm:text-4xl">Price your batch.</h3>
+                    <p className="mx-auto mt-2 max-w-xl text-white/60">Pick the package, set the number of students. The bigger the batch, the less each seat costs.</p>
+                  </div>
+                  <div className="mt-8"><SeatPricing audience={pkg} packages={['academic', 'academicCapt']} onPackage={setPkg} /></div>
+                </>
+              )}
+              {need === 'train' && aud === 'companies' && <SeatPricing audience="company" />}
               {need === 'train' && aud === 'institutions' && (
                 <p className="mt-6 text-center text-[15px] text-white/50">
                   Teacher dashboard, exams, syllabus, schedule, reports and college leaderboards in every plan.{' '}
@@ -380,6 +393,43 @@ function Includes({ items, extra }: { items: string[]; extra?: React.ReactNode }
   );
 }
 
+/** The two college packages and the custom one, in the same friendly cards as everything else. */
+function academyCards(inIndia: boolean, pick: (p: SeatAudience) => void): Tier[] {
+  const from = (l: SeatAudience) => {
+    const sl = seatLists[l].slabs;
+    const low = sl[sl.length - 1];
+    const fmt = (x: { inr: number; usd: number }) => (inIndia ? `₹${x.inr.toLocaleString('en-IN')}` : `$${x.usd}`);
+    return { text: fmt(low), sub: `per student from ${low.min} students · ${fmt(sl[0])} for a pilot of ${sl[0].min}` };
+  };
+  const a = from('academic');
+  const c = from('academicCapt');
+  return [
+    {
+      name: 'Academy',
+      promise: 'Teach cybersecurity all year on the CyberHx Academy.',
+      price: { text: a.text, unit: 'a year', sub: a.sub },
+      includes: ['Teacher dashboard, exams, syllabus and reports', 'Daily labs and practice challenges for every student', 'Class, college and global leaderboards', 'Teacher seats free', 'Schedule, college challenges and CSV exports'],
+      cta: { label: 'Price your batch', to: '#seats', onSelect: () => pick('academic') },
+    },
+    {
+      name: 'Academy + CAPT',
+      promise: 'Teach all year, and every student leaves certified.',
+      price: { text: c.text, unit: 'a year', sub: c.sub },
+      includes: ['Everything in Academy', 'A year of the Pentest Lab for every student', 'The CAPT course and exam, with a verifiable certificate', 'One free retake per student'],
+      cta: { label: 'Price your batch', to: '#seats', onSelect: () => pick('academicCapt') },
+      recommended: true,
+      note: `On their own, CAPT is $${capt.usd} a person.`,
+    },
+    {
+      name: 'University-wide',
+      promise: 'More than 500 students, or several campuses.',
+      price: { custom: 'Custom' },
+      includes: ['Academy + CAPT for every department', 'A CTF every month', 'A named account manager', 'Purchase orders and one yearly invoice'],
+      cta: { label: 'Talk to us', to: '/universities#plan' },
+    },
+  ];
+}
+
 function TierCard({ t }: { t: Tier }) {
   return (
     <article className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${t.recommended ? 'order-first border-lime/50 bg-gradient-to-b from-lime/[0.07] to-[#080d1a] lg:order-none' : 'border-white/[0.08] bg-[#0a1020]'}`}>
@@ -387,7 +437,12 @@ function TierCard({ t }: { t: Tier }) {
       <h3 className={`font-display text-3xl ${t.recommended ? 'mt-2' : 'mt-[1.625rem]'}`}>{t.name}</h3>
       <p className="mt-2 leading-7 text-white/60">{t.promise}</p>
       <div className="mt-6 flex items-end gap-2">
-        {'custom' in t.price ? (
+        {'text' in t.price ? (
+          <>
+            <span className="font-display text-5xl tabular-nums">{t.price.text}</span>
+            <span className="pb-1.5 text-[15px] text-white/50">{t.price.unit}</span>
+          </>
+        ) : 'custom' in t.price ? (
           <span className="font-display text-5xl">{t.price.custom}</span>
         ) : t.price.usd === 0 ? (
           <span className="font-display text-5xl">Free</span>
@@ -398,12 +453,14 @@ function TierCard({ t }: { t: Tier }) {
           </>
         )}
       </div>
-      <p className="mt-1 h-5 text-[13px] text-white/45">
-        {'custom' in t.price ? 'Priced for your scope' : t.price.usd === 0 ? 'No card, no catch' : <Local usd={t.price.usd} className="text-white/45" />}
+      <p className="mt-1 min-h-[1.25rem] text-[13px] leading-5 text-white/45">
+        {'text' in t.price ? t.price.sub : 'custom' in t.price ? 'Priced for your scope' : t.price.usd === 0 ? 'No card, no catch' : <Local usd={t.price.usd} className="text-white/45" />}
       </p>
       <Includes items={t.includes} />
       <div className="mt-auto pt-8">
-        {t.cta.to.startsWith('http') ? (
+        {t.cta.onSelect ? (
+          <a href={t.cta.to} onClick={(e) => { e.preventDefault(); t.cta.onSelect!(); document.querySelector(t.cta.to)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className={`btn w-full ${t.recommended ? 'btn-lime' : 'btn-ghost'}`}>{t.cta.label} <ArrowRight size={16} /></a>
+        ) : t.cta.to.startsWith('http') ? (
           <a href={t.cta.to} target="_blank" rel="noopener noreferrer" className={`btn w-full ${t.recommended ? 'btn-lime' : 'btn-ghost'}`}>{t.cta.label} <ArrowRight size={16} /></a>
         ) : (
           <Link to={t.cta.to} className={`btn w-full ${t.recommended ? 'btn-lime' : 'btn-ghost'}`}>{t.cta.label} <ArrowRight size={16} /></Link>

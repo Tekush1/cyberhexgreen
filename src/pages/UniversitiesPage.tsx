@@ -362,7 +362,7 @@ export default function UniversitiesPage() {
           <div className="mt-10 grid gap-6 rounded-[24px] border border-lime/25 bg-lime/[0.04] p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
             <div>
               <h3 className="font-display text-2xl">Academy seats for every student, from $19 (₹1,499) a year</h3>
-              <p className="mt-2 leading-7 text-white/70">Each student gets a year on the CyberHx Academy; your teachers get the dashboard, exams, syllabus, schedule and reports, free. From 10 students; the bigger the batch, the less each seat costs, with campus CTFs included from 50. The Pentest Lab and CAPT for your students at an academic price. No GST, no extra fees. Or a single CTF from ${beginner.usd}, or a yearly plan from ${annualPerMonthUsd(programs.institutions[0])} a month for your club.</p>
+              <p className="mt-2 leading-7 text-white/70">Each student gets a year on the CyberHx Academy; your teachers get the dashboard, exams, syllabus, schedule and reports, free. From 10 students; the bigger the batch, the less each seat costs, with campus CTFs included from 50. Or Academy + CAPT, from $29 (₹2,499), so every student leaves certified. No GST, no extra fees. Or a single CTF from ${beginner.usd}, or a yearly plan from ${annualPerMonthUsd(programs.institutions[0])} a month for your club.</p>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <Link to="/academy#pricing" className="btn btn-lime">Price your batch</Link>

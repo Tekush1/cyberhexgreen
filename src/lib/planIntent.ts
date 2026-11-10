@@ -8,11 +8,12 @@ export function planIntent(search: string, audience: 'academic' | 'company' = 'a
   const q = new URLSearchParams(search);
   const seats = Number(q.get('seats'));
   if (seats) {
-    const list = seatLists[audience];
+    const capt = audience === 'academic' && q.get('pkg') === 'capt';
+    const list = seatLists[capt ? 'academicCapt' : audience];
     const usd = quoteSeats(list, seats, 'usd');
     const inr = quoteSeats(list, seats, 'inr');
     if (usd && inr) {
-      return `Quote for ${seats} ${audience === 'academic' ? 'Academy student' : 'Pentest Lab team'} seats (${usd.slab.name} slab, $${usd.perSeat} / ₹${inr.perSeat.toLocaleString('en-IN')} a seat, a year).`;
+      return `Quote for ${seats} ${audience === 'academic' ? (capt ? 'Academy + CAPT student' : 'Academy student') : 'Pentest Lab team'} seats (${usd.slab.name} slab, $${usd.perSeat} / ₹${inr.perSeat.toLocaleString('en-IN')} a seat, a year).`;
     }
   }
   const id = q.get('plan');

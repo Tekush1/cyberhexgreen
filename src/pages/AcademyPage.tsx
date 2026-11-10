@@ -5,7 +5,7 @@ import { Seo, breadcrumbLd, SITE } from '../features/seo/Seo';
 import { SeatPricing } from '../components/pricing/SeatPricing';
 import { Mascot } from '../components/shared/Mascot';
 import { academyUrl, setupFeatures, studentFeatures, teacherFeatures, type AcademyFeature } from '../data/academy';
-import { seatLists } from '../data/seats';
+import { seatLists, type SeatAudience } from '../data/seats';
 
 /* /academy — the CyberHx Academy, sold to colleges per student seat.
    Read top to bottom: what it is (one line), what teachers get, what students get, how a college starts,
@@ -16,7 +16,7 @@ const cheapest = academic.slabs[academic.slabs.length - 1];
 
 const FAQ = [
   { q: 'Who is the Academy for?', a: 'Colleges and universities that teach cybersecurity: a club, one section, a department or the whole institution. Teachers run classes, exams and the syllabus on it; students practise on it every day.' },
-  { q: 'Is it the same as the Pentest Lab?', a: 'No. The Academy is where a college teaches: classes, daily labs, practice challenges, exams, syllabus, schedule and reports. The Pentest Lab is where a learner trains for the CAPT and CPPT certifications. Colleges can add the Pentest Lab and CAPT for their students at an academic price.' },
+  { q: 'Is it the same as the Pentest Lab?', a: 'No. The Academy is where a college teaches: classes, daily labs, practice challenges, exams, syllabus, schedule and reports. The Pentest Lab is where a learner trains for the CAPT and CPPT certifications. Colleges can take the Academy + CAPT package, which adds a year of the Pentest Lab and the CAPT exam and certificate for every student.' },
   { q: 'Do teachers pay?', a: `No. Teacher seats are free: one for every ${academic.freeSeats.per} student seats, at least one and up to ${academic.freeSeats.cap}.` },
   { q: 'Can we try it first?', a: 'Start with a pilot of 10 to 24 seats for one section. If you move to 50 seats or more within 60 days, the whole pilot is credited.' },
   { q: 'Who can see our students?', a: 'Your college’s own challenges, exams and syllabus are only ever visible to your members. You can also mark your college private, which hides your students from other colleges on the boards.' },
@@ -38,6 +38,7 @@ function Grid({ items, cols = 3 }: { items: AcademyFeature[]; cols?: 2 | 3 }) {
 
 export default function AcademyPage() {
   const [open, setOpen] = useState<number | null>(0);
+  const [pkg, setPkg] = useState<SeatAudience>('academic');
 
   return (
     <div className="min-h-screen bg-ink text-white">
@@ -127,9 +128,9 @@ export default function AcademyPage() {
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="text-center">
             <h2 id="p-h" className="font-display text-4xl leading-tight sm:text-5xl">One price per student.</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-lg leading-8 text-white/60">The bigger the batch, the less each seat costs. Teachers are free, and CTFs come with the larger plans.</p>
+            <p className="mx-auto mt-3 max-w-2xl text-lg leading-8 text-white/60">The Academy on its own, or with the CAPT certification for every student. The bigger the batch, the less each seat costs; teachers are free.</p>
           </div>
-          <div className="mt-10"><SeatPricing audience="academic" /></div>
+          <div className="mt-10"><SeatPricing audience={pkg} packages={['academic', 'academicCapt']} onPackage={setPkg} /></div>
         </div>
       </section>
 

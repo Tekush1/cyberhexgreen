@@ -6,7 +6,7 @@
 // No GST is charged at the moment: the price shown is the total. Research behind these numbers:
 // "CyberHx-Academic-Seat-Pricing.pdf" and "CyberHx-Company-Seat-Pricing.pdf".
 
-export type SeatAudience = 'academic' | 'company';
+export type SeatAudience = 'academic' | 'academicCapt' | 'company';
 
 export interface Slab {
   name: string;
@@ -58,6 +58,24 @@ export const seatLists: Record<SeatAudience, SeatList> = {
       { name: 'School', min: 100, max: 199, usd: 29, inr: 2499, ctfs: 2, fits: 'Two to three batches', adds: ['Everything for teachers, plus your college logo', 'Two CTFs a year', 'One online workshop', 'Reports ready for NAAC/NBA files'] },
       { name: 'Campus', min: 200, max: 349, usd: 24, inr: 1999, ctfs: 4, fits: 'A whole department, all years', adds: ['A head of department who runs the teachers', 'A CTF every quarter', 'Campus ambassadors onboarded'] },
       { name: 'University', min: 350, max: 500, usd: 19, inr: 1499, ctfs: 6, fits: 'Several departments', adds: ['Six CTFs a year', 'A quarterly review', 'A named account manager'] },
+    ],
+  },
+  academicCapt: {
+    seat: 'Everything in an Academy seat, plus twelve months of the Pentest Lab, the CAPT course and the CAPT exam with a verifiable certificate for every student.',
+    min: 10,
+    max: 500,
+    floor: { usd: 25, inr: 1999 },
+    freeSeats: { label: 'teacher', per: 25, cap: 10 },
+    upgrade: { label: 'Upgrade a student to CPPT', usd: 20, inr: 1499 },
+    ctf: { one: 'hosted campus CTF', many: 'hosted campus CTFs', usd: 89, inr: 7999 },
+    terms: ['Inactive seats replaced free in the first 30 days', 'A 10–24 seat pilot is credited in full if you move to 50+ seats within 60 days', 'One CAPT attempt and one free retake per student'],
+    slabs: [
+      { name: 'Starter', min: 10, max: 24, usd: 79, inr: 6999, ctfs: 0, fits: 'A pilot for a club or one section', adds: ['Every student certified CAPT'] },
+      { name: 'Section', min: 25, max: 49, usd: 65, inr: 5499, ctfs: 0, fits: 'One class section', adds: ['Every student certified CAPT'] },
+      { name: 'Department', min: 50, max: 99, usd: 49, inr: 3999, ctfs: 1, fits: 'One batch of 60–64 students', adds: ['Every student certified CAPT', 'One hosted campus CTF a year'], recommended: true },
+      { name: 'School', min: 100, max: 199, usd: 42, inr: 3499, ctfs: 2, fits: 'Two to three batches', adds: ['Every student certified CAPT', 'Your college logo', 'Two CTFs a year', 'Reports ready for NAAC/NBA files'] },
+      { name: 'Campus', min: 200, max: 349, usd: 35, inr: 2999, ctfs: 4, fits: 'A whole department, all years', adds: ['Every student certified CAPT', 'A head of department who runs the teachers', 'A CTF every quarter'] },
+      { name: 'University', min: 350, max: 500, usd: 29, inr: 2499, ctfs: 6, fits: 'Several departments', adds: ['Every student certified CAPT', 'Six CTFs a year', 'A named account manager'] },
     ],
   },
   company: {
