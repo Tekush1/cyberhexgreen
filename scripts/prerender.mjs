@@ -17,7 +17,7 @@ const { render, events } = await import(pathToFileURL(path.resolve('dist-ssr/ent
 // Not /blog or its sections: their content comes from Supabase at request time, so crawlers get them from
 // api/prerender.ts (vercel.json rewrites) instead of a build-time snapshot with empty lists.
 const routes = [
-  '/', '/events', '/host-your-ctf', '/pricing', '/certifications', '/universities', '/companies', '/ambassadors', '/about', '/contact',
+  '/', '/events', '/host-your-ctf', '/pricing', '/academy', '/certifications', '/universities', '/companies', '/ambassadors', '/about', '/contact',
   '/reviews', '/collaborations', '/hall-of-fame', '/responsible-disclosure', '/privacy', '/terms',
   ...events.map((e) => `/events/${e.slug}`),
 ];

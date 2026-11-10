@@ -31,6 +31,7 @@ const GROUPS: Group[] = [
     layout: 'cards',
     items: [
       { name: 'Host a CTF', desc: 'Ready-made CTF packages, built and run for you', to: '/host-your-ctf', tag: 'from $89' },
+      { name: 'Academy', desc: 'Classes, exams, syllabus and reports for colleges', to: '/academy', tag: 'from $19' },
       { name: 'Pentest Lab', desc: 'Hands-on hacking labs on real targets', to: 'https://pentestlab.cyberhx.com' },
       { name: 'Certifications', desc: 'CAPT and CPPT: practical pentest exams', to: '/certifications', tag: 'from $149' },
       { name: 'CTF Platform', desc: 'Play live challenges and climb the board', to: 'https://ctf.cyberhx.com' },

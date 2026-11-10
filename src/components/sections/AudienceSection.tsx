@@ -16,8 +16,8 @@ const AUDIENCES: { who: string; title: string; text: string; points: string[]; t
   {
     who: 'For colleges and universities',
     title: 'A campus program, run for you.',
-    text: 'CTFs we build and host under your name, labs for a whole batch, and a report for your department after every event.',
-    points: ['Campus CTFs from $89', 'Academic pricing, Razorpay invoices', 'The CyberHx Campus League'],
+    text: 'The CyberHx Academy for your classes, exams and syllabus, and CTFs we build and run under your name.',
+    points: ['Academy from ₹1,499 ($19) a student', 'Teacher dashboard and reports, free', 'Campus CTFs from $89'],
     to: '/universities',
     cta: 'CyberHx for Universities',
   },

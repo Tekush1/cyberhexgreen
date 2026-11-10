@@ -12,7 +12,7 @@ export function planIntent(search: string, audience: 'academic' | 'company' = 'a
     const usd = quoteSeats(list, seats, 'usd');
     const inr = quoteSeats(list, seats, 'inr');
     if (usd && inr) {
-      return `Quote for ${seats} ${audience === 'academic' ? 'student' : 'team'} seats (${usd.slab.name} slab, $${usd.perSeat} / ₹${inr.perSeat.toLocaleString('en-IN')} a seat, a year).`;
+      return `Quote for ${seats} ${audience === 'academic' ? 'Academy student' : 'Pentest Lab team'} seats (${usd.slab.name} slab, $${usd.perSeat} / ₹${inr.perSeat.toLocaleString('en-IN')} a seat, a year).`;
     }
   }
   const id = q.get('plan');

@@ -19,7 +19,15 @@ import { isEmail, submitForm } from '../lib/forms';
    Requests go to Supabase form_submissions (form = 'university') -> Admin -> Inbox, plus an email to the team.
    Look: same ink + lime as /companies and /ambassadors; the sample department report is the one playful object. */
 
-const WAYS: { title: string; line: string; points: string[]; to?: string; cta?: string }[] = [
+const WAYS: { title: string; line: string; points: string[]; to?: string; cta?: string; lead?: boolean }[] = [
+  {
+    title: 'CyberHx Academy',
+    line: 'Where your college teaches security all year: classes, exams, syllabus and reports for teachers, daily labs and challenges for students.',
+    points: ['Teacher dashboard, exams, syllabus, schedule, reports', 'Daily labs, practice challenges, college leaderboards', 'From ₹1,499 ($19) a student a year, teachers free'],
+    to: '/academy',
+    cta: 'See the Academy',
+    lead: true,
+  },
   {
     title: 'Campus CTF',
     line: 'One event for your fest, club or semester. We build it, host it and run it on the day.',
@@ -33,11 +41,6 @@ const WAYS: { title: string; line: string; points: string[]; to?: string; cta?: 
     points: ['Pentest Lab seats for every student', 'CAPT and CPPT at academic batch pricing', 'Progress you can track per student'],
     to: '/certifications',
     cta: 'See the certifications',
-  },
-  {
-    title: 'Year-long partnership',
-    line: 'A cybersecurity program that runs all year, with one person from CyberHx looking after your campus.',
-    points: ['A CTF every semester', 'Workshops and talks from practitioners', 'Student ambassadors and Campus League entry'],
   },
 ];
 
@@ -219,11 +222,11 @@ export default function UniversitiesPage() {
               Turn your campus into a <span className="text-white/45">cybersecurity training ground.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">
-              CyberHx for Colleges &amp; Universities: CTFs we build and run for your students, hands-on labs and certification for a whole batch, and a report for your department after every event. Anywhere in the world.
+              CyberHx for Colleges &amp; Universities: the CyberHx Academy for your classes, exams and syllabus, CTFs we build and run for your students, and certification for a whole batch. Anywhere in the world.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a href="#plan" className="btn btn-lime">Plan your campus program <ArrowRight size={17} /></a>
-              <Link to="/events" className="btn btn-ghost">See past events</Link>
+              <Link to="/academy" className="btn btn-ghost">See the Academy</Link>
             </div>
           </div>
           <div className="mx-auto flex w-full max-w-sm justify-center">
@@ -247,18 +250,18 @@ export default function UniversitiesPage() {
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-6 sm:py-28 lg:px-8">
         <div className="max-w-2xl">
           <p className={eyebrow}>Three ways to work with us</p>
-          <h2 className="font-display mt-3 text-4xl leading-tight sm:text-5xl">Start with one event. <span className="text-white/45">Grow into a program.</span></h2>
+          <h2 className="font-display mt-3 text-4xl leading-tight sm:text-5xl">Teach all year. <span className="text-white/45">Compete and certify on top.</span></h2>
         </div>
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {WAYS.map((w, i) => (
-            <motion.article key={w.title} {...rise(i)} className={`flex flex-col rounded-[28px] border p-7 sm:p-8 ${i === 2 ? 'border-lime/35 bg-lime/[0.04]' : 'border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a]'}`}>
+            <motion.article key={w.title} {...rise(i)} className={`flex flex-col rounded-[28px] border p-7 sm:p-8 ${w.lead ? 'border-lime/35 bg-lime/[0.04]' : 'border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a]'}`}>
               <h3 className="font-display text-3xl">{w.title}</h3>
               <p className="mt-3 leading-7 text-white/60">{w.line}</p>
               <ul className="mt-6 space-y-2.5">
                 {w.points.map((p) => <li key={p} className="flex items-start gap-3 text-[15px] text-white/80"><Check size={16} className="mt-1 shrink-0 text-lime" />{p}</li>)}
               </ul>
               <div className="mt-auto pt-8">
-                {w.to ? <Link to={w.to} className="btn btn-ghost">{w.cta} <ArrowRight size={16} /></Link> : <a href="#plan" className="btn btn-lime">Talk to us <ArrowRight size={16} /></a>}
+                {w.to ? <Link to={w.to} className={`btn ${w.lead ? 'btn-lime' : 'btn-ghost'}`}>{w.cta} <ArrowRight size={16} /></Link> : <a href="#plan" className="btn btn-lime">Talk to us <ArrowRight size={16} /></a>}
               </div>
             </motion.article>
           ))}
@@ -358,11 +361,11 @@ export default function UniversitiesPage() {
           </div>
           <div className="mt-10 grid gap-6 rounded-[24px] border border-lime/25 bg-lime/[0.04] p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
             <div>
-              <h3 className="font-display text-2xl">Seats for every student, from $19 (₹1,499) a year</h3>
-              <p className="mt-2 leading-7 text-white/70">Each student gets a year of the Pentest Lab, the CAPT course and the exam with a verifiable certificate. From 10 students; the bigger the batch, the less each seat costs, with free faculty seats and campus CTFs included from 50. No GST, no extra fees. Or a single CTF from ${beginner.usd}, or a yearly plan from ${annualPerMonthUsd(programs.institutions[0])} a month for your club.</p>
+              <h3 className="font-display text-2xl">Academy seats for every student, from $19 (₹1,499) a year</h3>
+              <p className="mt-2 leading-7 text-white/70">Each student gets a year on the CyberHx Academy; your teachers get the dashboard, exams, syllabus, schedule and reports, free. From 10 students; the bigger the batch, the less each seat costs, with campus CTFs included from 50. The Pentest Lab and CAPT for your students at an academic price. No GST, no extra fees. Or a single CTF from ${beginner.usd}, or a yearly plan from ${annualPerMonthUsd(programs.institutions[0])} a month for your club.</p>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
-              <Link to="/pricing#institutions" className="btn btn-lime">Price your batch</Link>
+              <Link to="/academy#pricing" className="btn btn-lime">Price your batch</Link>
               <a href="#plan" className="btn btn-ghost">Get a quote</a>
             </div>
           </div>

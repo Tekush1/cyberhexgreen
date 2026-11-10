@@ -123,7 +123,7 @@ type FaqItem = { q: string; a: string; for: Audience[] };
 const ORG: Audience[] = ['companies', 'institutions'];
 const ALL: Audience[] = ['companies', 'institutions', 'learners'];
 const FAQ: FaqItem[] = [
-  { q: 'What is a seat?', for: ORG, a: 'One named person and twelve months of the CyberHx Pentest Lab, from the day they activate it. A student seat includes the CAPT course, the exam and a verifiable certificate. A company seat includes the CAPT and CPPT courses, both exams and a skills report for the manager.' },
+  { q: 'What is a seat?', for: ORG, a: 'One named person for twelve months, from the day they activate it. A college seat is a student on the CyberHx Academy: daily labs, practice challenges, and the college\'s classes, exams, syllabus and schedule, with the teacher dashboard and reports for staff (teachers are free). A company seat is a person on the Pentest Lab with the CAPT and CPPT courses, both exams and a skills report for the manager.' },
   { q: 'How does the price per seat work?', for: ORG, a: `The more seats, the less each costs. Students start at ${seatLists.academic.min} seats and teams at ${seatLists.company.min}. If the next step up costs the same or less, we bill that step and the extra seats are yours, free. Colleges get free faculty seats and companies get free manager seats.` },
   { q: 'Do you charge GST or other taxes?', for: ALL, a: 'No. The price you see is the total you pay.' },
   { q: 'Which seat orders include free CTFs?', for: ORG, a: 'Colleges get a hosted campus CTF from 50 student seats, two from 100, four from 200 and six from 350. Companies get a private team CTF from 25 seats, two from 50, four from 100 and six from 250. Each is a full CTF under your name, run by our team.' },
@@ -175,7 +175,7 @@ export default function PricingPage() {
   const doors: Record<Need, { label: string; sub: string; head: string; lead: string }> =
     aud === 'institutions'
       ? {
-          train: { label: 'Train my students', sub: `Seats from ${seatFrom} a student a year`, head: 'Seats for every student.', lead: 'A year of the Lab, the CAPT course and the exam for each student. The bigger the batch, the less each seat costs.' },
+          train: { label: 'Academy for my college', sub: `Seats from ${seatFrom} a student a year`, head: 'The CyberHx Academy for your college.', lead: 'Classes, exams, syllabus, schedule and reports for your teachers; daily labs, practice challenges and leaderboards for every student. Teachers free.' },
           plan: { label: 'CTFs all year', sub: `Plans from $${planFrom} a month`, head: 'A plan for your club, cell or department.', lead: 'CTFs on the calendar, Lab seats for the organisers, a report after every event. One budget line.' },
           event: { label: 'Run one CTF', sub: `From $${beginner.usd} per event`, head: 'One CTF, built and run for you.', lead: 'Pick a package. Every package is yours to change in the builder.' },
         }
@@ -261,6 +261,12 @@ export default function PricingPage() {
 
             <div className="mt-10">
               {need === 'train' && <SeatPricing key={aud} audience={aud === 'institutions' ? 'academic' : 'company'} />}
+              {need === 'train' && aud === 'institutions' && (
+                <p className="mt-6 text-center text-[15px] text-white/50">
+                  Teacher dashboard, exams, syllabus, schedule, reports and college leaderboards in every plan.{' '}
+                  <Link to="/academy" className="font-semibold text-white hover:text-lime">See the Academy →</Link>
+                </p>
+              )}
 
               {need === 'plan' && (
                 <>

@@ -1,5 +1,7 @@
 // Per-seat pricing for colleges and companies, shown on /pricing, /universities and /companies.
-// A seat is one person and twelve months of the Pentest Lab with a course, its exam and a verifiable certificate.
+// Colleges: a seat is one student on the CyberHx Academy for twelve months (daily labs, practice challenges, the
+// college's classes, exams, syllabus, schedule and reports for their teachers). Teacher seats are free.
+// Companies: a seat is one person on the Pentest Lab for twelve months with the CAPT and CPPT courses and exams.
 // The more seats, the less each costs. Two price lists: India (rupees, set for Indian budgets) and global (USD).
 // No GST is charged at the moment: the price shown is the total. Research behind these numbers:
 // "CyberHx-Academic-Seat-Pricing.pdf" and "CyberHx-Company-Seat-Pricing.pdf".
@@ -31,7 +33,8 @@ export interface SeatList {
   slabs: Slab[];
   /** Free seats for the people running it: one per `per` seats, at least 1, at most `cap`. */
   freeSeats: { label: string; per: number; cap: number };
-  upgrade: { label: string; usd: number; inr: number };
+  /** An optional add-on per seat, priced; or a line of text when it is quoted. */
+  upgrade: { label: string; usd: number; inr: number } | { label: string; text: string };
   /** What an included CTF is called and what it would cost on its own. */
   ctf: { one: string; many: string; usd: number; inr: number };
   /** Short promises shown under the calculator. */
@@ -40,20 +43,20 @@ export interface SeatList {
 
 export const seatLists: Record<SeatAudience, SeatList> = {
   academic: {
-    seat: 'One student, twelve months of the Pentest Lab, the CAPT course and the CAPT exam with a verifiable certificate.',
+    seat: 'One student on the CyberHx Academy for twelve months: daily labs, the practice challenge library, and your college\'s classes, exams, syllabus and schedule. Teachers get the dashboard and reports.',
     min: 10,
     max: 500,
     floor: { usd: 15, inr: 1199 },
-    freeSeats: { label: 'faculty', per: 25, cap: 10 },
-    upgrade: { label: 'Upgrade a seat to CPPT', usd: 20, inr: 1499 },
+    freeSeats: { label: 'teacher', per: 25, cap: 10 },
+    upgrade: { label: 'Pentest Lab and the CAPT certification for your students', text: 'at an academic price, ask us' },
     ctf: { one: 'hosted campus CTF', many: 'hosted campus CTFs', usd: 89, inr: 7999 },
     terms: ['Inactive seats replaced free in the first 30 days', 'A 10–24 seat pilot is credited in full if you move to 50+ seats within 60 days'],
     slabs: [
-      { name: 'Starter', min: 10, max: 24, usd: 59, inr: 4999, ctfs: 0, fits: 'A pilot for a club or one section', adds: ['Faculty view of progress and hours'] },
-      { name: 'Section', min: 25, max: 49, usd: 49, inr: 3999, ctfs: 0, fits: 'One class section', adds: ['Faculty view of progress and hours'] },
-      { name: 'Department', min: 50, max: 99, usd: 39, inr: 2999, ctfs: 1, fits: 'One batch of 60–64 students', adds: ['One hosted campus CTF a year'], recommended: true },
-      { name: 'School', min: 100, max: 199, usd: 29, inr: 2499, ctfs: 2, fits: 'Two to three batches', adds: ['Two CTFs a year', 'A department report after each', 'One online workshop', 'NAAC/NBA evidence pack'] },
-      { name: 'Campus', min: 200, max: 349, usd: 24, inr: 1999, ctfs: 4, fits: 'A whole department, all years', adds: ['A CTF every quarter', 'Campus ambassadors onboarded', 'Introductions to hiring companies'] },
+      { name: 'Starter', min: 10, max: 24, usd: 59, inr: 4999, ctfs: 0, fits: 'A pilot for a club or one section', adds: ['Teacher dashboard, exams, syllabus and reports'] },
+      { name: 'Section', min: 25, max: 49, usd: 49, inr: 3999, ctfs: 0, fits: 'One class section', adds: ['Teacher dashboard, exams, syllabus and reports'] },
+      { name: 'Department', min: 50, max: 99, usd: 39, inr: 2999, ctfs: 1, fits: 'One batch of 60–64 students', adds: ['Teacher dashboard, exams, syllabus and reports', 'One hosted campus CTF a year'], recommended: true },
+      { name: 'School', min: 100, max: 199, usd: 29, inr: 2499, ctfs: 2, fits: 'Two to three batches', adds: ['Everything for teachers, plus your college logo', 'Two CTFs a year', 'One online workshop', 'Reports ready for NAAC/NBA files'] },
+      { name: 'Campus', min: 200, max: 349, usd: 24, inr: 1999, ctfs: 4, fits: 'A whole department, all years', adds: ['A head of department who runs the teachers', 'A CTF every quarter', 'Campus ambassadors onboarded'] },
       { name: 'University', min: 350, max: 500, usd: 19, inr: 1499, ctfs: 6, fits: 'Several departments', adds: ['Six CTFs a year', 'A quarterly review', 'A named account manager'] },
     ],
   },

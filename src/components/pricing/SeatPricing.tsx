@@ -5,6 +5,7 @@ import { useLocalCurrency } from '../../lib/currency';
 import { quoteSeats, seatLists, type SeatAudience } from '../../data/seats';
 
 /* Seats by volume, as one card read top to bottom:
+   Colleges buy Academy seats; companies buy Pentest Lab seats (data/seats.ts).
    1. one question (how many?), 2. the price ladder with your step lit, 3. one big number and what it includes,
    4. one button. Rupees for visitors in India, dollars elsewhere. The buy-up rule is shown as free seats.
    On phones a slim bar keeps the total and the button in reach once the card's own button scrolls away. */
@@ -140,7 +141,7 @@ export function SeatPricing({ audience }: { audience: SeatAudience }) {
         <ul className="mt-3 space-y-1.5 leading-6">
           <li>{list.seat}</li>
           {list.terms.slice(1).map((t) => <li key={t}>{t}.</li>)}
-          <li>{list.upgrade.label}: {fmt(list.upgrade[cur])}{audience === 'academic' ? ' a seat' : ' each'}.</li>
+          <li>{list.upgrade.label}: {'text' in list.upgrade ? list.upgrade.text : `${fmt(list.upgrade[cur])} each`}.</li>
           <li>Each seat's year starts when it is activated. Seats are named and can be moved once in the first 30 days.</li>
           <li>More than {list.max}? We quote it, from {fmt(list.floor[cur])} a seat.</li>
         </ul>
