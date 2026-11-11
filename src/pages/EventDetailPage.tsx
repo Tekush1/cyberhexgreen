@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronRight } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
 import { SubscribeForm } from '../components/shared/SubscribeForm';
 import { entryLabel, eventBySlug, events, hasCount, playersText, type Event } from '../data/events';
@@ -191,6 +191,11 @@ export default function EventDetailPage() {
               <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {writeups.map((p) => <PostCard key={p.id} post={p} />)}
               </div>
+            )}
+            {writeups.length >= 12 && (
+              <Link to="/blog/writeups?view=event" className="mt-8 inline-flex items-center gap-1.5 text-[15px] font-semibold text-white/80 hover:text-white">
+                See every {e.title} write-up <ArrowRight size={15} className="text-lime" />
+              </Link>
             )}
           </section>
 
