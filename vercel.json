@@ -64,7 +64,7 @@
       ]
     },
     {
-      "source": "/(mascots|icons|events)/(.*)",
+      "source": "/(mascots|icons|events|writeups)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
