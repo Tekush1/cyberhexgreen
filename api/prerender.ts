@@ -175,11 +175,11 @@ const head = (o: { title: string; desc: string; canonical: string; ld: unknown[]
 <meta property="og:title" content="${esc(o.title)}">
 <meta property="og:description" content="${esc(o.desc)}">
 <meta property="og:url" content="${o.canonical}">
-<meta property="og:image" content="${esc(o.image || `${SITE}/og-image.png`)}">
+<meta property="og:image" content="${esc(o.image || `${SITE}/og-cover.png`)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(o.title)}">
 <meta name="twitter:description" content="${esc(o.desc)}">
-<meta name="twitter:image" content="${esc(o.image || `${SITE}/og-image.png`)}">
+<meta name="twitter:image" content="${esc(o.image || `${SITE}/og-cover.png`)}">
 ${o.ld.map((x) => `<script type="application/ld+json">${ld(x)}</script>`).join('\n')}
 </head>
 <body>`;
@@ -367,7 +367,7 @@ export default async function handler(req: any, res: any) {
   if (slug === 'feedback') {
     const t = 'Pinaka CTF 2026 Feedback — CyberHx';
     const d = '24 hours of Pinaka CTF 2026. Tell us which challenge you loved, how the platform felt, and whether you want more events on CyberHx.';
-    res.status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${t}</title><meta name="description" content="${d}"><link rel="canonical" href="${SITE}/blog/feedback"><meta property="og:type" content="website"><meta property="og:site_name" content="CyberHx"><meta property="og:title" content="${t}"><meta property="og:description" content="${d}"><meta property="og:url" content="${SITE}/blog/feedback"><meta property="og:image" content="${SITE}/og-image.png"><meta name="twitter:card" content="summary_large_image"></head><body><h1>24 hours. Your verdict.</h1><p>${d}</p><p><a href="${SITE}/blog">Visit the CyberHx blog</a></p></body></html>`);
+    res.status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${t}</title><meta name="description" content="${d}"><link rel="canonical" href="${SITE}/blog/feedback"><meta property="og:type" content="website"><meta property="og:site_name" content="CyberHx"><meta property="og:title" content="${t}"><meta property="og:description" content="${d}"><meta property="og:url" content="${SITE}/blog/feedback"><meta property="og:image" content="${SITE}/og-cover.png"><meta name="twitter:card" content="summary_large_image"></head><body><h1>24 hours. Your verdict.</h1><p>${d}</p><p><a href="${SITE}/blog">Visit the CyberHx blog</a></p></body></html>`);
     return;
   }
 
@@ -380,7 +380,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const img = imageOf(post) || `${SITE}/og-image.png`;
+  const img = imageOf(post) || `${SITE}/og-cover.png`;
   post.content = stripTitle(post.content, post.title);
   if (!post.excerpt || norm(post.excerpt) === norm(post.title)) post.excerpt = firstParagraph(post.content);
   const desc = (post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`).slice(0, 300);
@@ -396,7 +396,7 @@ export default async function handler(req: any, res: any) {
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at || post.published_at || undefined,
     author: { '@type': 'Person', name: authorName, ...(authorUrl ? { url: authorUrl } : {}) },
-    publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/og-image.png` } },
+    publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/og-cover.png` } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
     articleSection: post.category,
     keywords: (post.tags || []).join(', ') || undefined,

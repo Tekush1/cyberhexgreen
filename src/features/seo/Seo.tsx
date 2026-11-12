@@ -6,7 +6,7 @@ import { useEffect } from 'react';
    each client-rendered route. */
 
 const SITE = 'https://cyberhx.com';
-const DEFAULT_OG = `${SITE}/og-image.png`;
+const DEFAULT_OG = `${SITE}/og-cover.png`;
 
 export interface SeoProps {
   title: string;              // full <title>; keep under ~60 chars of the brand part

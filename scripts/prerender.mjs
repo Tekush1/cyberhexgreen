@@ -37,7 +37,7 @@ for (const route of routes) {
     let page = shell.replace('<div id="root"></div>', `<div id="root">${html}</div>`);
     if (seo) {
       const url = SITE + (seo.path === '/' ? '/' : seo.path.replace(/\/$/, ''));
-      const img = seo.image || `${SITE}/og-image.png`;
+      const img = seo.image || `${SITE}/og-cover.png`;
       page = page.replace(/<title>[^<]*<\/title>/, `<title>${esc(seo.title)}</title>`);
       page = page.replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${url}" />`);
       page = setMeta(page, 'name', 'description', seo.description);
