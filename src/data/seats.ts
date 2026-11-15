@@ -37,7 +37,7 @@ export interface SeatList {
   upgrade: { label: string; usd: number; inr: number } | { label: string; text: string };
   /** What an included CTF is called and what it would cost on its own. */
   ctf: { one: string; many: string; usd: number; inr: number };
-  /** Short promises shown under the calculator. */
+  /** Short promises shown under the price table. */
   terms: string[];
 }
 

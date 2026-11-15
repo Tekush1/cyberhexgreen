@@ -365,7 +365,7 @@ export default function UniversitiesPage() {
               <p className="mt-2 leading-7 text-white/70">Each student gets a year on the CyberHx Academy; your teachers get the dashboard, exams, syllabus, schedule and reports, free. From 10 students; the bigger the batch, the less each seat costs, with campus CTFs included from 50. Or Academy + CAPT, from $29 (₹2,499), so every student leaves certified. No GST, no extra fees. Or a single CTF from ${beginner.usd}, or a yearly plan from ${annualPerMonthUsd(programs.institutions[0])} a month for your club.</p>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
-              <Link to="/academy#pricing" className="btn btn-lime">Price your batch</Link>
+              <Link to="/academy#pricing" className="btn btn-lime">See prices</Link>
               <a href="#plan" className="btn btn-ghost">Get a quote</a>
             </div>
           </div>

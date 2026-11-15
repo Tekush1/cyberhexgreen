@@ -7,7 +7,7 @@ import { Local } from '../components/shared/Local';
 import { plans, builderPricing as P, builderCategories } from '../data/hosting';
 import { certifications, pentestLabUrl } from '../data/pentest';
 import { plans as programs, annualUsd, annualPerMonthUsd, annualSavingPct, type Plan, type PlanAudience } from '../data/plans';
-import { SeatPricing } from '../components/pricing/SeatPricing';
+import { SeatTable } from '../components/pricing/SeatTable';
 import { seatLists, type SeatAudience } from '../data/seats';
 
 /* /pricing, built as a path of small decisions so a visitor never faces every price at once:
@@ -156,7 +156,6 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');
   const [open, setOpen] = useState<number | null>(0);
   const [allFaq, setAllFaq] = useState(false);
-  const [pkg, setPkg] = useState<SeatAudience>('academicCapt');
   useEffect(() => { const a = fromHash(hash); if (a) setAud(a); }, [hash]);
 
   const go = (a: Audience, n: Need = need) => {
@@ -264,16 +263,16 @@ export default function PricingPage() {
               {need === 'train' && aud === 'institutions' && (
                 <>
                   <div className="grid gap-5 lg:grid-cols-3">
-                    {academyCards(inIndia, (p) => setPkg(p)).map((t) => <TierCard key={t.name} t={t} />)}
+                    {academyCards(inIndia).map((t) => <TierCard key={t.name} t={t} />)}
                   </div>
                   <div id="seats" className="mt-14 scroll-mt-24 text-center">
-                    <h3 className="font-display text-3xl sm:text-4xl">Price your batch.</h3>
-                    <p className="mx-auto mt-2 max-w-xl text-white/60">Pick the package, set the number of students. The bigger the batch, the less each seat costs.</p>
+                    <h3 className="font-display text-3xl sm:text-4xl">Price per student.</h3>
+                    <p className="mx-auto mt-2 max-w-xl text-white/60">The bigger the batch, the less each seat costs.</p>
                   </div>
-                  <div className="mt-8"><SeatPricing audience={pkg} packages={['academic', 'academicCapt']} onPackage={setPkg} /></div>
+                  <div className="mt-8"><SeatTable audience="academic" /></div>
                 </>
               )}
-              {need === 'train' && aud === 'companies' && <SeatPricing audience="company" />}
+              {need === 'train' && aud === 'companies' && <SeatTable audience="company" />}
               {need === 'train' && aud === 'institutions' && (
                 <p className="mt-6 text-center text-[15px] text-white/50">
                   Teacher dashboard, exams, syllabus, schedule, reports and college leaderboards in every plan.{' '}
@@ -394,7 +393,7 @@ function Includes({ items, extra }: { items: string[]; extra?: React.ReactNode }
 }
 
 /** The two college packages and the custom one, in the same friendly cards as everything else. */
-function academyCards(inIndia: boolean, pick: (p: SeatAudience) => void): Tier[] {
+function academyCards(inIndia: boolean): Tier[] {
   const from = (l: SeatAudience) => {
     const sl = seatLists[l].slabs;
     const low = sl[sl.length - 1];
@@ -409,14 +408,14 @@ function academyCards(inIndia: boolean, pick: (p: SeatAudience) => void): Tier[]
       promise: 'Teach cybersecurity all year on the CyberHx Academy.',
       price: { text: a.text, unit: 'a year', sub: a.sub },
       includes: ['Teacher dashboard, exams, syllabus and reports', 'Daily labs and practice challenges for every student', 'Class, college and global leaderboards', 'Teacher seats free', 'Schedule, college challenges and CSV exports'],
-      cta: { label: 'Price your batch', to: '#seats', onSelect: () => pick('academic') },
+      cta: { label: 'See prices', to: '#seats', onSelect: () => {} },
     },
     {
       name: 'Academy + CAPT',
       promise: 'Teach all year, and every student leaves certified.',
       price: { text: c.text, unit: 'a year', sub: c.sub },
       includes: ['Everything in Academy', 'A year of the Pentest Lab for every student', 'The CAPT course and exam, with a verifiable certificate', 'One free retake per student'],
-      cta: { label: 'Price your batch', to: '#seats', onSelect: () => pick('academicCapt') },
+      cta: { label: 'See prices', to: '#seats', onSelect: () => {} },
       recommended: true,
       note: `On their own, CAPT is $${capt.usd} a person.`,
     },

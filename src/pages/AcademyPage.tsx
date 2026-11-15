@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Seo, breadcrumbLd, SITE } from '../features/seo/Seo';
-import { SeatPricing } from '../components/pricing/SeatPricing';
+import { SeatTable } from '../components/pricing/SeatTable';
 import { Mascot } from '../components/shared/Mascot';
 import { academyUrl, setupFeatures, studentFeatures, teacherFeatures, type AcademyFeature } from '../data/academy';
-import { seatLists, type SeatAudience } from '../data/seats';
+import { seatLists } from '../data/seats';
 
 /* /academy — the CyberHx Academy, sold to colleges per student seat.
    Read top to bottom: what it is (one line), what teachers get, what students get, how a college starts,
-   the price with the calculator, the questions, one button. Feature copy lives in data/academy.ts. */
+   the price table, the questions, one button. Feature copy lives in data/academy.ts. */
 
 const academic = seatLists.academic;
 const cheapest = academic.slabs[academic.slabs.length - 1];
@@ -38,7 +38,6 @@ function Grid({ items, cols = 3 }: { items: AcademyFeature[]; cols?: 2 | 3 }) {
 
 export default function AcademyPage() {
   const [open, setOpen] = useState<number | null>(0);
-  const [pkg, setPkg] = useState<SeatAudience>('academic');
 
   return (
     <div className="min-h-screen bg-ink text-white">
@@ -74,7 +73,7 @@ export default function AcademyPage() {
               One place for your college: teachers run classes, exams, the syllabus and reports; students practise on daily labs and real challenges, and climb the boards.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#pricing" className="btn btn-lime">Price your batch <ArrowRight size={17} /></a>
+              <a href="#pricing" className="btn btn-lime">See prices <ArrowRight size={17} /></a>
               <a href={academyUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">Open the Academy <ArrowUpRight size={17} /></a>
             </div>
             <p className="mt-5 text-[15px] text-white/50">From ₹{cheapest.inr.toLocaleString('en-IN')} (${cheapest.usd}) a student a year. Teachers free. No GST.</p>
@@ -130,7 +129,7 @@ export default function AcademyPage() {
             <h2 id="p-h" className="font-display text-4xl leading-tight sm:text-5xl">One price per student.</h2>
             <p className="mx-auto mt-3 max-w-2xl text-lg leading-8 text-white/60">The Academy on its own, or with the CAPT certification for every student. The bigger the batch, the less each seat costs; teachers are free.</p>
           </div>
-          <div className="mt-10"><SeatPricing audience={pkg} packages={['academic', 'academicCapt']} onPackage={setPkg} /></div>
+          <div className="mt-10"><SeatTable audience="academic" /></div>
         </div>
       </section>
 
