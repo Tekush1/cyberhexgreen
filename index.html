@@ -150,6 +150,14 @@
         @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
         @keyframes fill { 0%{width:0%;margin-left:0} 50%{width:100%;margin-left:0} 100%{width:0%;margin-left:100%} }
         .loaded #loader { opacity:0; pointer-events:none; }
+        @media (prefers-color-scheme: light) {
+          body { background:#f6f6f3 !important; }
+          #loader { background:#f6f6f3; }
+          .logo-text { color:#111520; }
+          .logo-text span { color:#4d7c0f; }
+          .progress-bar { background:rgba(77,124,15,0.12); }
+          .progress-fill { background:#4d7c0f; }
+        }
       </style>
       <div class="loader-content">
         <div class="logo-text">Cyber<span>Hx</span></div>
