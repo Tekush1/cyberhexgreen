@@ -40,6 +40,7 @@ for (const route of routes) {
       const img = seo.image || `${SITE}/og-cover.png`;
       page = page.replace(/<title>[^<]*<\/title>/, `<title>${esc(seo.title)}</title>`);
       page = page.replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${url}" />`);
+      page = page.replace(/(<link rel="alternate" hreflang="(?:en|x-default)" href=")[^"]*(")/g, `$1${url}$2`);
       page = setMeta(page, 'name', 'description', seo.description);
       if (seo.noindex) page = setMeta(page, 'name', 'robots', 'noindex, nofollow');
       for (const [k, v] of [['og:title', seo.title], ['og:description', seo.description], ['og:url', url], ['og:image', img], ['og:type', seo.type || 'website']]) page = setMeta(page, 'property', k, v);

@@ -193,7 +193,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-ink text-white">
       <Seo
         title="Pricing — CyberHx for Companies, Institutions and Learners"
-        description={`Student seats from ₹1,499 ($19) and team seats from ₹7,499 ($89) a year, yearly plans, single CTFs from $${beginner.usd}, CAPT $${capt.usd} and CPPT $${cppt.usd} per year. No GST, no extra fees, money back on downtime.`}
+        description={`Student seats from $19 (₹1,499) and team seats from $89 (₹7,499) a year, yearly plans, single CTFs from $${beginner.usd}, CAPT $${capt.usd} and CPPT $${cppt.usd} per year. No GST, no extra fees, money back on downtime.`}
         path="/pricing"
         keywords="ctf hosting price, cybersecurity training price per seat, academic cybersecurity lab pricing, capt certification price, cppt price, hiring ctf cost"
       />

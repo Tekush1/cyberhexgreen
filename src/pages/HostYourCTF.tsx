@@ -1107,6 +1107,18 @@ export default function HostYourCTF() {
         description="Ready-made CTF packages for universities, companies and communities worldwide: hosting, live scoreboard and 25 to 40 tested challenges from $89, with unlimited players."
         path="/host-your-ctf"
         keywords="host a ctf, buy ctf challenges, ctf hosting, ctf platform for universities and companies, capture the flag event, international ctf"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          name: 'CTF hosting and ready-made CTF packages',
+          serviceType: 'Capture the flag (CTF) event hosting',
+          url: 'https://cyberhx.com/host-your-ctf',
+          description: 'Hosted CTF platform with a live scoreboard and 25 to 40 tested challenges for universities, companies and communities in any country. Online, unlimited players.',
+          provider: { '@type': 'Organization', name: 'CyberHx', url: 'https://cyberhx.com' },
+          areaServed: 'Worldwide',
+          audience: { '@type': 'Audience', audienceType: 'Universities, companies, security communities and conferences' },
+          offers: { '@type': 'AggregateOffer', priceCurrency: 'USD', lowPrice: 49, highPrice: 199, availability: 'https://schema.org/InStock' },
+        }}
       />
       {/* Store bar */}
       <div className="sticky top-16 z-40 border-b border-line bg-ink/90 backdrop-blur sm:top-[72px]">

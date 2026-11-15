@@ -56,6 +56,17 @@ export const Seo = ({ title, description, path, image, type = 'website', noindex
     upsertMeta('meta[name="robots"]', 'name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1');
     if (keywords) upsertMeta('meta[name="keywords"]', 'name', 'keywords', keywords);
     upsertLink('canonical', url);
+    // One English site for every country: tell search engines this page is the version for everyone.
+    for (const lang of ['en', 'x-default']) {
+      let alt = document.head.querySelector<HTMLLinkElement>(`link[rel="alternate"][hreflang="${lang}"]`);
+      if (!alt) {
+        alt = document.createElement('link');
+        alt.rel = 'alternate';
+        alt.hreflang = lang;
+        document.head.appendChild(alt);
+      }
+      alt.href = url;
+    }
 
     upsertMeta('meta[property="og:title"]', 'property', 'og:title', title);
     upsertMeta('meta[property="og:description"]', 'property', 'og:description', description);

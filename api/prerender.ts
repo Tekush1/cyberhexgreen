@@ -170,6 +170,8 @@ const head = (o: { title: string; desc: string; canonical: string; ld: unknown[]
 <meta name="description" content="${esc(o.desc)}">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 <link rel="canonical" href="${o.canonical}">
+<link rel="alternate" hreflang="en" href="${o.canonical}">
+<link rel="alternate" hreflang="x-default" href="${o.canonical}">
 <meta property="og:type" content="${o.type || 'website'}">
 <meta property="og:site_name" content="CyberHx">
 <meta property="og:title" content="${esc(o.title)}">
@@ -381,6 +383,10 @@ export default async function handler(req: any, res: any) {
   }
 
   const img = imageOf(post) || `${SITE}/og-cover.png`;
+  // Write-ups are searched for as "<challenge> <ctf> writeup": put both in the title.
+  const postTitle = post.category === 'CTF Writeups'
+    ? `${post.title}: ${post.event_slug ? eventTitle(post.event_slug).replace(/\s+20\d\d$/, '') + ' ' : 'CTF '}write-up | CyberHx`
+    : `${post.title} · CyberHx Blog`;
   post.content = stripTitle(post.content, post.title);
   if (!post.excerpt || norm(post.excerpt) === norm(post.title)) post.excerpt = firstParagraph(post.content);
   const desc = (post.excerpt || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`).slice(0, 300);
@@ -396,7 +402,7 @@ export default async function handler(req: any, res: any) {
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at || post.published_at || undefined,
     author: { '@type': 'Person', name: authorName, ...(authorUrl ? { url: authorUrl } : {}) },
-    publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/og-cover.png` } },
+    publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/logo-square.png`, width: 600, height: 600 } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
     articleSection: post.category,
     keywords: (post.tags || []).join(', ') || undefined,
@@ -417,10 +423,12 @@ export default async function handler(req: any, res: any) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(post.title)} · CyberHx Blog</title>
+<title>${esc(postTitle)}</title>
 <meta name="description" content="${esc(desc)}">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 <link rel="canonical" href="${canonical}">
+<link rel="alternate" hreflang="en" href="${canonical}">
+<link rel="alternate" hreflang="x-default" href="${canonical}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="CyberHx">
 <meta property="og:title" content="${esc(post.title)}">

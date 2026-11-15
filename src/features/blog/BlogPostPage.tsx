@@ -248,7 +248,7 @@ export default function BlogPostPage() {
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at || post.published_at || undefined,
     author: { '@type': 'Person', name: authorLabel(post.author_name), ...(authorPath ? { url: `${SITE}${authorPath}` } : {}) },
-    publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/og-cover.png` } },
+    publisher: { '@type': 'Organization', name: 'CyberHx', logo: { '@type': 'ImageObject', url: `${SITE}/logo-square.png`, width: 600, height: 600 } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE}/blog/${post.slug}` },
     articleSection: post.category,
     keywords: (post.tags || []).join(', ') || undefined,
@@ -259,7 +259,9 @@ export default function BlogPostPage() {
   return (
     <div className="min-h-screen bg-ink pb-24 pt-16 text-white sm:pt-[72px]">
       <Seo
-        title={`${post.title} · CyberHx Blog`}
+        title={post.category === 'CTF Writeups'
+          ? `${post.title}: ${event ? event.title.replace(/\s+20\d\d$/, '') + ' ' : 'CTF '}write-up | CyberHx`
+          : `${post.title} · CyberHx Blog`}
         description={summary || `${post.title} — a ${post.category} post on the CyberHx cybersecurity blog.`}
         path={`/blog/${post.slug}`}
         image={absImg}
