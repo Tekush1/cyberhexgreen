@@ -102,7 +102,7 @@ export const HeroSection = () => {
             </span>
             <span className="block overflow-hidden pb-2">
               <motion.span
-                className="block bg-gradient-to-r from-glow via-[#8ff0ff] to-lime bg-clip-text text-transparent"
+                className="hero-accent block bg-clip-text text-transparent"
                 {...rise(0.27, 60)}
               >
                 Host your own.

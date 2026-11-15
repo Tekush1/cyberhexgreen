@@ -982,5 +982,10 @@ img[loading="lazy"] { transition: filter 0.3s; }
 @media (prefers-color-scheme: light) {
   :root { color-scheme: light; }
   .logo-adapt { filter: invert(1) hue-rotate(180deg) saturate(1.4); }
-  .bg-clip-text { filter: saturate(1.5) brightness(0.72); }
+}
+
+/* "Host your own." in the home hero: cyan into lime on dark; on light, the two-tone grey every other headline uses. */
+.hero-accent { background-image: linear-gradient(90deg, #3bd3ff 0%, #8ff0ff 45%, #c6f135 100%); }
+@media (prefers-color-scheme: light) {
+  .hero-accent { background-image: none; color: rgb(17 21 32 / 0.42); -webkit-text-fill-color: rgb(17 21 32 / 0.42); }
 }
