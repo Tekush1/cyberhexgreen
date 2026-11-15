@@ -176,7 +176,7 @@ export const Navigation = () => {
       >
         <div ref={barRef} className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:h-[72px] sm:px-6 lg:px-8">
           <Link to="/" className="flex shrink-0 items-center" aria-label="CyberHx home">
-            <img src="https://i.ibb.co/pBpxn1Sj/Cyberhx-Neon-Swoosh-Logo.png" alt="CyberHx" className="h-10 w-auto object-contain sm:h-11" />
+            <img src="https://i.ibb.co/pBpxn1Sj/Cyberhx-Neon-Swoosh-Logo.png" alt="CyberHx" className="logo-adapt h-10 w-auto object-contain sm:h-11" />
           </Link>
 
           {/* Desktop */}

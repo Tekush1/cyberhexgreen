@@ -59,7 +59,7 @@ export const Footer = () => {
         <div className="mt-14 grid grid-cols-2 gap-x-6 gap-y-12 sm:mt-20 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" aria-label="CyberHx home" className="inline-block">
-              <img src="/cyberhx-logo.png" alt="CyberHx" className="h-12 w-auto object-contain" />
+              <img src="/cyberhx-logo.png" alt="CyberHx" className="logo-adapt h-12 w-auto object-contain" />
             </Link>
             <p className="mt-5 max-w-xs leading-7 text-muted">
               Open CTFs for the global security community, and hosted CTFs for universities, companies and communities worldwide.

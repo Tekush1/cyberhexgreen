@@ -974,3 +974,13 @@ img[loading="lazy"] { transition: filter 0.3s; }
 /* Native dropdown lists: dark rows so the options are readable (they were white on white) */
 .ios-admin select option, .ios-admin select optgroup { background-color: #1c1c1e; color: #fff; }
 .ios-admin select option:checked { background-color: #0A84FF; color: #fff; }
+
+/* ---------- Light theme: hand-tuned parts ----------
+   Colours switch automatically (scripts/postcss-light-theme.cjs). These are the few things a colour swap
+   cannot fix: the white wordmark, and gradient headline text that needs deeper tones on a light page. */
+:root { color-scheme: dark; }
+@media (prefers-color-scheme: light) {
+  :root { color-scheme: light; }
+  .logo-adapt { filter: invert(1) hue-rotate(180deg) saturate(1.4); }
+  .bg-clip-text { filter: saturate(1.5) brightness(0.72); }
+}
