@@ -30,3 +30,5 @@ export function render(url: string): Promise<{ html: string; seo: SeoProps | nul
 }
 
 export { events } from './data/events';
+export { translateTree } from './i18n/translate';
+export { LANGS, TRANSLATED_PAGES, LANG_TAGS, OG_LOCALES, RTL, localize } from './i18n/locales';

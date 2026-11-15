@@ -989,3 +989,6 @@ img[loading="lazy"] { transition: filter 0.3s; }
 @media (prefers-color-scheme: light) {
   .hero-accent { color: rgb(17 21 32 / 0.42); -webkit-text-fill-color: rgb(17 21 32 / 0.42); }
 }
+
+/* Translated pages (src/i18n). Japanese headings break between phrases, not inside a word. */
+html[lang='ja'] :is(h1, h2, h3, h4) { word-break: auto-phrase; }

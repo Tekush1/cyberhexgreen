@@ -1,5 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { BLOG_SECTIONS } from '../shared/blogSections';
+import { LocaleSync } from './i18n/LocaleSync';
+import { LANGS } from './i18n/locales';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
@@ -66,6 +68,17 @@ function ScrollManager() {
 
 /** Everything inside the router. The browser wraps it in BrowserRouter (App below);
     the build-time prerender (src/entry-server.tsx) wraps it in StaticRouter. */
+// The translated marketing pages: the same components under /es/…, /fr/… (src/i18n).
+const LOCALIZED_PAGES: [string, () => JSX.Element][] = [
+  ['/', () => <HomePage />],
+  ['/pricing', () => <PricingPage />],
+  ['/events', () => <EventsPage />],
+  ['/academy', () => <AcademyPage />],
+  ['/universities', () => <UniversitiesPage />],
+  ['/companies', () => <CompaniesPage />],
+  ['/certifications', () => <CertificationsPage />],
+];
+
 export function AppShell() {
   const [isHiringPopupOpen, setIsHiringPopupOpen] = useState(false);
 
@@ -74,6 +87,7 @@ export function AppShell() {
   return (
     <>
       <ScrollManager />
+      <LocaleSync />
       <div className="min-h-screen bg-dark-300 flex flex-col">
         <Navigation />
         <main className="flex-grow">
@@ -125,6 +139,9 @@ export function AppShell() {
               {/* 404 */}
               <Route path="/host-your-ctf" element={<HostYourCTF />} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
+              {LANGS.flatMap((l) =>
+                LOCALIZED_PAGES.map(([p, el]) => <Route key={`${l}${p}`} path={`/${l}${p === '/' ? '' : p}`} element={el()} />),
+              )}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

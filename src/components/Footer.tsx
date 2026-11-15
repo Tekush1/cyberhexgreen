@@ -2,6 +2,7 @@ import { Github, Linkedin, Twitter, Instagram, Mail, MapPin } from 'lucide-react
 import { Link } from 'react-router-dom';
 import { Mascot } from './shared/Mascot';
 import { SubscribeForm } from './shared/SubscribeForm';
+import { LangSwitch } from '../i18n/LangSwitch';
 
 const columns = [
   {
@@ -115,7 +116,10 @@ export const Footer = () => {
         </div>
 
         <div className="mt-14 flex flex-col gap-4 border-t-2 border-line pt-6 text-sm text-white/40 sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {year} CyberHx</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p>&copy; {year} CyberHx</p>
+            <LangSwitch />
+          </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             <Link to="/privacy" className="hover:text-white">Privacy</Link>
             <Link to="/terms" className="hover:text-white">Terms</Link>

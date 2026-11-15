@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { LANGS, LANG_TAGS, OG_LOCALES, isTranslated, localize, splitLang } from '../../i18n/locales';
 
 /* Per-route SEO: sets title, meta description, canonical, Open Graph / Twitter,
    robots, and optional JSON-LD. The static tags in index.html are the defaults
@@ -47,8 +49,11 @@ export const ssrSeo: { current: SeoProps | null } = { current: null };
 
 export const Seo = ({ title, description, path, image, type = 'website', noindex, keywords, jsonLd }: SeoProps) => {
   if (typeof window === 'undefined') ssrSeo.current = { title, description, path, image, type, noindex, keywords, jsonLd };
+  const { lang } = splitLang(useLocation().pathname);
   useEffect(() => {
-    const url = SITE + (path === '/' ? '/' : path.replace(/\/$/, ''));
+    const clean = path === '/' ? '/' : path.replace(/\/$/, '');
+    const translated = isTranslated(clean);
+    const url = SITE + (translated ? localize(clean, lang) : clean);
     const img = image || DEFAULT_OG;
 
     document.title = title;
@@ -56,17 +61,18 @@ export const Seo = ({ title, description, path, image, type = 'website', noindex
     upsertMeta('meta[name="robots"]', 'name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1');
     if (keywords) upsertMeta('meta[name="keywords"]', 'name', 'keywords', keywords);
     upsertLink('canonical', url);
-    // One English site for every country: tell search engines this page is the version for everyone.
-    for (const lang of ['en', 'x-default']) {
-      let alt = document.head.querySelector<HTMLLinkElement>(`link[rel="alternate"][hreflang="${lang}"]`);
-      if (!alt) {
-        alt = document.createElement('link');
-        alt.rel = 'alternate';
-        alt.hreflang = lang;
-        document.head.appendChild(alt);
-      }
-      alt.href = url;
+    // hreflang: English is the default for everyone; translated pages also list each language's version.
+    const alternates: [string, string][] = [['en', SITE + clean], ['x-default', SITE + clean]];
+    if (translated) for (const l of LANGS) alternates.push([LANG_TAGS[l], SITE + localize(clean, l)]);
+    document.head.querySelectorAll('link[rel="alternate"][hreflang]').forEach((n) => n.remove());
+    for (const [hl, href] of alternates) {
+      const alt = document.createElement('link');
+      alt.rel = 'alternate';
+      alt.hreflang = hl;
+      alt.href = href;
+      document.head.appendChild(alt);
     }
+    upsertMeta('meta[property="og:locale"]', 'property', 'og:locale', OG_LOCALES[lang ?? 'en']);
 
     upsertMeta('meta[property="og:title"]', 'property', 'og:title', title);
     upsertMeta('meta[property="og:description"]', 'property', 'og:description', description);
@@ -91,7 +97,7 @@ export const Seo = ({ title, description, path, image, type = 'website', noindex
     return () => {
       document.head.querySelectorAll(`script[${MANAGED_LD}]`).forEach((n) => n.remove());
     };
-  }, [title, description, path, image, type, noindex, keywords, jsonLd]);
+  }, [title, description, path, image, type, noindex, keywords, jsonLd, lang]);
 
   return null;
 };

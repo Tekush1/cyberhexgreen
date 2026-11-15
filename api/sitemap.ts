@@ -4,6 +4,7 @@
 
 import { events } from '../src/data/events.js';
 import { BLOG_SECTIONS } from '../shared/blogSections.js';
+import { LANGS, LANG_TAGS, isTranslated, localize } from '../src/i18n/locales.js';
 
 const SITE = 'https://cyberhx.com';
 
@@ -69,10 +70,17 @@ export default async function handler(_req: any, res: any) {
   const rows = await posts();
   const today = new Date().toISOString().slice(0, 10);
 
-  const urls = STATIC.map(
-    (p) =>
-      `  <url><loc>${SITE}${p.path}</loc><lastmod>${today}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority></url>`,
-  );
+  // Translated pages (/es/pricing, …): every version lists all the others, English being the default.
+  const alternates = (path: string) =>
+    [`<xhtml:link rel="alternate" hreflang="en" href="${SITE}${path}"/>`, `<xhtml:link rel="alternate" hreflang="x-default" href="${SITE}${path}"/>`]
+      .concat(LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${LANG_TAGS[l]}" href="${SITE}${localize(path, l)}"/>`))
+      .join('');
+  const urls: string[] = [];
+  for (const p of STATIC) {
+    const alt = isTranslated(p.path) ? alternates(p.path) : '';
+    urls.push(`  <url><loc>${SITE}${p.path}</loc><lastmod>${today}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority>${alt}</url>`);
+    if (alt) for (const l of LANGS) urls.push(`  <url><loc>${SITE}${localize(p.path, l)}</loc><lastmod>${today}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${Math.max(0.5, p.priority - 0.1).toFixed(1)}</priority>${alt}</url>`);
+  }
 
   // One page per CTF (/events/<slug>): searching an event's name should land on it.
   for (const e of events) {
@@ -96,7 +104,7 @@ export default async function handler(_req: any, res: any) {
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls.join('\n')}
 </urlset>`;
 

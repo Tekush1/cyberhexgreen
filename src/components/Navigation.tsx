@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { LangSwitch } from '../i18n/LangSwitch';
+import { splitLang } from '../i18n/locales';
 import { Menu, X, ChevronDown, ExternalLink, ArrowRight } from 'lucide-react';
 import { Mascot } from './shared/Mascot';
 
@@ -76,7 +78,7 @@ const GROUPS: Group[] = [
 ];
 
 const isExternal = (to: string) => to.startsWith('http');
-const inGroup = (g: Group, path: string) => g.items.some((i) => !isExternal(i.to) && (path === i.to || (i.to !== '/events' && path.startsWith(i.to + '/'))));
+const inGroup = (g: Group, fullPath: string, path = splitLang(fullPath).path) => g.items.some((i) => !isExternal(i.to) && (path === i.to || (i.to !== '/events' && path.startsWith(i.to + '/'))));
 
 /** One entry in a dropdown or the mobile sheet. Internal paths use the router; platforms open in a new tab. */
 function ItemLink({ item, onPick }: { item: Item; onPick?: () => void }) {
@@ -183,13 +185,14 @@ export const Navigation = () => {
           <div className="hidden items-center gap-0.5 lg:flex" onMouseLeave={hoverClose}>
             {GROUPS.slice(0, 2).map(groupButton)}
 
-            <NavLink to="/events" className={({ isActive }) => topCls(isActive || location.pathname.startsWith('/events/'))} onMouseEnter={hoverClose}>
+            <NavLink to="/events" className={({ isActive }) => topCls(isActive || splitLang(location.pathname).path.startsWith('/events'))} onMouseEnter={hoverClose}>
               Events
             </NavLink>
 
             {GROUPS.slice(2).map(groupButton)}
 
             <div className="ml-3 flex items-center gap-2" onMouseEnter={hoverClose}>
+              <LangSwitch compact />
               <Link to="/pricing" className="btn btn-ghost !min-h-[44px] !px-4 !text-sm">
                 Pricing
               </Link>
@@ -253,6 +256,7 @@ export const Navigation = () => {
 
             <div className="relative mt-auto pt-24">
               <Mascot pose="jump" alt="" className="absolute -top-2 right-2 w-32" />
+              <LangSwitch className="mb-5" />
               <p className="text-sm text-white/45">Questions? <Link to="/contact" className="text-white underline underline-offset-4">Talk to us</Link></p>
             </div>
           </div>
