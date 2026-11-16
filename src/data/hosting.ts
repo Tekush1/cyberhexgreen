@@ -92,7 +92,21 @@ export const builderPricing = {
   playerBlock: 1000,
   maxPerTier: 50,
   website3dUsd: 40,
+  /** Dynamic flags: every team gets its own flag, so a shared flag is caught. Per challenge, by difficulty. */
+  dynamicFlagsUsd: { easy: 9, medium: 9, hard: 15, insane: 15 } as Record<Tier, number>,
 };
+
+/** Dynamic flags for one category in a round: how many challenges, and what it adds. */
+export function dynamicFlagsFor(qty: Record<string, number>, cat: BuilderCategory) {
+  let n = 0;
+  let usd = 0;
+  for (const t of cat.tiers) {
+    const q = qty[`${cat.id}:${t.tier}`] ?? 0;
+    n += q;
+    usd += q * builderPricing.dynamicFlagsUsd[t.tier];
+  }
+  return { n, usd };
+}
 
 /* =============================================================
    BOOKING RULES — used by the checkout calendar.

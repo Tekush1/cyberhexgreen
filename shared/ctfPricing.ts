@@ -1,9 +1,9 @@
 // What a CTF checkout costs, worked out from the cart alone. The server uses this to price every
 // Razorpay order, so the browser can never choose its own amount. Prices live in src/data/hosting.ts.
 
-import { plans, builderCategories, builderPricing as P, booking } from '../src/data/hosting.js';
+import { plans, builderCategories, builderPricing as P, booking, dynamicFlagsFor } from '../src/data/hosting.js';
 
-export type RoundIn = { hours?: unknown; players?: unknown; qty?: Record<string, unknown> };
+export type RoundIn = { hours?: unknown; players?: unknown; qty?: Record<string, unknown>; dyn?: Record<string, unknown> };
 export type Cart =
   | { kind: 'hosting' }
   | { kind: 'prebuilt'; planId: string }
@@ -38,7 +38,10 @@ function cleanRound(r: RoundIn | undefined) {
     if (!c || !c.tiers.some((t) => t.tier === tier) || !Number.isFinite(n) || n <= 0) continue;
     qty[k] = Math.min(P.maxPerTier, Math.max(c.min ?? 1, n));
   }
+  const dyn: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(r?.dyn ?? {})) if (v === true && builderCategories.some((c) => c.id === k)) dyn[k] = true;
   return {
+    dyn,
     hours: Number.isFinite(hours) ? Math.min(P.maxHours, Math.max(P.hosting.hours, Math.round(hours))) : P.hosting.hours,
     players: Number.isFinite(players) && players > 0 ? Math.max(P.playerBlock, Math.ceil(players / P.playerBlock) * P.playerBlock) : P.hosting.players,
     qty,
@@ -58,6 +61,11 @@ function roundLines(r: ReturnType<typeof cleanRound>, pre: string): PricedLine[]
       const n = r.qty[`${c.id}:${t.tier}`] ?? 0;
       if (n > 0) lines.push({ label: `${pre}${c.name} · ${t.tier} × ${n}`, usd: n * t.usd });
     }
+  }
+  for (const c of builderCategories) {
+    if (!r.dyn[c.id]) continue;
+    const d = dynamicFlagsFor(r.qty, c);
+    if (d.n > 0) lines.push({ label: `${pre}Dynamic flags · ${c.name} × ${d.n}`, usd: d.usd });
   }
   return lines;
 }

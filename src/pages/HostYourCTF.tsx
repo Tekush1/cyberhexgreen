@@ -7,7 +7,7 @@ import { ShopMascot, type ShopFrame } from "../components/shared/ShopMascot";
 import { initShopSound, playShopSound, setSoundScope, type ShopSound } from "../lib/shopSound";
 import { Local } from "../components/shared/Local";
 import { currencyChoices, useLocalCurrency } from "../lib/currency";
-import { plans, builderCategories, builderPricing, booking, type Tier } from "../data/hosting";
+import { plans, builderCategories, builderPricing, booking, dynamicFlagsFor, type Tier } from "../data/hosting";
 import { DatePicker, addDays, fromISO, prettyDate } from "../components/shared/DatePicker";
 import { Seo } from "../features/seo/Seo";
 import { submitForm } from "../lib/forms";
@@ -38,7 +38,8 @@ const tierBar: Record<Tier, string> = { easy: "bg-lime", medium: "bg-glow", hard
 const TIERS: Tier[] = ["easy", "medium", "hard", "insane"];
 
 type RoundId = "main" | "qualifier" | "finale";
-type Round = { hours: number; players: number; qty: Record<string, number> };
+/** `dyn`: categories with dynamic flags (each team gets its own flag). */
+type Round = { hours: number; players: number; qty: Record<string, number>; dyn: Record<string, boolean> };
 type Build = {
   v: 2;
   format: "single" | "split";
@@ -48,7 +49,7 @@ type Build = {
 };
 
 const roundName: Record<RoundId, string> = { main: "Your CTF", qualifier: "Qualifier", finale: "Grand finale" };
-const freshRound = (): Round => ({ hours: P.hosting.hours, players: P.hosting.players, qty: {} });
+const freshRound = (): Round => ({ hours: P.hosting.hours, players: P.hosting.players, qty: {}, dyn: {} });
 const emptyBuild = (): Build => ({
   v: 2,
   format: "single",
@@ -64,7 +65,10 @@ const challengeLinesOf = (r: Round) =>
   builderCategories.flatMap((c) =>
     c.tiers.map((t) => ({ cat: c, ...t, n: r.qty[key(c.id, t.tier)] ?? 0 })).filter((l) => l.n > 0)
   );
+const dynamicLinesOf = (r: Round) =>
+  builderCategories.filter((c) => r.dyn[c.id]).map((c) => ({ cat: c, ...dynamicFlagsFor(r.qty, c) })).filter((l) => l.n > 0);
 const roundTotal = (r: Round) =>
+  dynamicLinesOf(r).reduce((s, l) => s + l.usd, 0) +
   P.hosting.usd +
   extraHoursOf(r) * P.extraHourUsd +
   extraBlocksOf(r) * P.extraPlayersUsd +
@@ -74,7 +78,7 @@ const roundCount = (r: Round) => challengeLinesOf(r).reduce((s, l) => s + l.n, 0
 /* ---------- presets (single round) ---------- */
 const preset = (qty: Record<string, number>, hours = P.hosting.hours, players = P.hosting.players): Build => {
   const b = emptyBuild();
-  b.rounds.main = { hours, players, qty };
+  b.rounds.main = { hours, players, qty, dyn: {} };
   return b;
 };
 const presets: { id: string; name: string; who: string; build: () => Build }[] = [
@@ -109,11 +113,13 @@ const presets: { id: string; name: string; who: string; build: () => Build }[] =
         hours: 24,
         players: 5000,
         qty: { "web:medium": 6, "osint:medium": 4, "crypto:medium": 4, "steg:easy": 3, "mobile:easy": 3, "reverse:hard": 2 },
+        dyn: {},
       };
       b.rounds.finale = {
         hours: 8,
         players: 1000,
         qty: { "web:medium": 5, "crypto:hard": 3, "reverse:insane": 2, "boot2root:hard": 2, "mobile:hard": 2 },
+        dyn: {},
       };
       return b;
     },
@@ -166,7 +172,10 @@ const clampRound = (r: Partial<Round> | undefined): Round => {
     if (!Number.isFinite(n) || n <= 0 || !builderCategories.some((c) => c.id === cat)) continue;
     qty[k] = Math.min(P.maxPerTier, Math.max(minFor(cat), n));
   }
+  const dyn: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(r.dyn ?? {})) if (v === true && builderCategories.some((c) => c.id === k)) dyn[k] = true;
   return {
+    dyn,
     hours: Number.isFinite(hours) ? Math.min(P.maxHours, Math.max(P.hosting.hours, hours)) : base.hours,
     players: Number.isFinite(players)
       ? Math.max(P.playerBlock, Math.ceil(players / P.playerBlock) * P.playerBlock)
@@ -728,6 +737,13 @@ export default function HostYourCTF() {
       else qty[key(catId, tier)] = n;
       return { ...r, qty };
     });
+  const toggleDynamic = (catId: string) =>
+    patchRound((r) => {
+      const dyn = { ...r.dyn };
+      if (dyn[catId]) delete dyn[catId];
+      else dyn[catId] = true;
+      return { ...r, dyn };
+    });
   const catName = (catId: string) => builderCategories.find((c) => c.id === catId)?.name ?? "Challenge";
   const inc = (catId: string, tier: Tier) => {
     const cur = round.qty[key(catId, tier)] ?? 0;
@@ -765,7 +781,7 @@ export default function HostYourCTF() {
   };
 
   const copyQualifierToFinale = () =>
-    setBuild((b) => ({ ...b, rounds: { ...b.rounds, finale: { ...b.rounds.finale, qty: { ...b.rounds.qualifier.qty } } } }));
+    setBuild((b) => ({ ...b, rounds: { ...b.rounds, finale: { ...b.rounds.finale, qty: { ...b.rounds.qualifier.qty }, dyn: { ...b.rounds.qualifier.dyn } } } }));
 
   const loadPreset = (fn: () => Build) => {
     const b = fn();
@@ -793,6 +809,7 @@ export default function HostYourCTF() {
         ? [{ label: `${pre}Extra players: ${players(xb * P.playerBlock)} (${players(r.players)} total)`, usd: xb * P.extraPlayersUsd, icon: "hacker-team" as IconName }]
         : []),
       ...challengeLinesOf(r).map((l) => ({ label: `${pre}${l.cat.name} · ${l.tier} × ${l.n}`, usd: l.n * l.usd, icon: l.cat.icon })),
+      ...dynamicLinesOf(r).map((l) => ({ label: `${pre}Dynamic flags · ${l.cat.name} × ${l.n}`, usd: l.usd, icon: "ctf-green" as IconName })),
     ];
   };
 
@@ -1582,6 +1599,39 @@ export default function HostYourCTF() {
                         );
                       })}
                     </div>
+                    {catCount > 0 && (() => {
+                      const on = !!round.dyn[c.id];
+                      const d = dynamicFlagsFor(round.qty, c);
+                      const prices = [...new Set(c.tiers.map((t) => P.dynamicFlagsUsd[t.tier]))].map(money).join(" / ");
+                      return (
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={on}
+                          onClick={() => {
+                            act(on ? "arrive" : "add-1", on ? `Dynamic flags off for ${c.name}.` : `Dynamic flags on for ${c.name}: every team gets its own flag.`, 1500, on ? "remove" : undefined);
+                            toggleDynamic(c.id);
+                          }}
+                          className={`mt-4 flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition sm:ml-[68px] sm:w-[calc(100%-68px)] ${
+                            on ? "border-lime/50 bg-lime/[0.06]" : "border-line hover:border-white/20"
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-white">Dynamic flags</span>
+                            <span className="block text-xs text-muted">
+                              A unique flag for every team, so shared flags are caught. {prices} a challenge
+                              {c.tiers.length > 1 && new Set(c.tiers.map((t) => P.dynamicFlagsUsd[t.tier])).size > 1 ? " (easy–medium / hard–insane)" : ""}.
+                            </span>
+                          </span>
+                          <span className="flex shrink-0 items-center gap-3">
+                            {on && <span className="hidden font-mono text-sm text-muted sm:inline">+{money(d.usd)}</span>}
+                            <span className={`relative h-6 w-11 rounded-full transition ${on ? "bg-lime" : "bg-white/15"}`}>
+                              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })()}
                   </div>
                 );
               })}
