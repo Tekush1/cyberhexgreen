@@ -879,6 +879,19 @@ export default function HostYourCTF() {
     setDrawer("checkout");
   };
 
+  // A "Pay" link from another page (/companies, a quote email) opens the checkout straight away:
+  // /host-your-ctf?buy=beginner | pro | max | hosting. It only fills the cart; the price is still worked out on the server.
+  React.useEffect(() => {
+    const url = new URL(window.location.href);
+    const buy = url.searchParams.get("buy");
+    if (!buy) return;
+    if (buy === "hosting") checkoutHosting();
+    else if (plans.some((p) => p.id === buy)) checkoutPlan(buy);
+    url.searchParams.delete("buy");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
   const setField = (k: keyof FormState, v: string) => {
     setForm((f) => ({ ...f, [k]: v }));

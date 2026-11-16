@@ -2,19 +2,54 @@ import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } fr
 import { Link, useLocation } from 'react-router-dom';
 import { planIntent } from '../lib/planIntent';
 import { plans as programs, annualPerMonthUsd } from '../data/plans';
-import { plans as ctfPackages } from '../data/hosting';
+import { plans as ctfPackages, builderPricing, builderCategories } from '../data/hosting';
 
+const beginner = ctfPackages.find((p) => p.id === 'beginner')!;
 const pro = ctfPackages.find((p) => p.id === 'pro')!;
+const cheapestChallenge = Math.min(...builderCategories.flatMap((c) => c.tiers.map((t) => t.usd)));
+const players = builderPricing.hosting.players.toLocaleString('en-US');
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Seo } from '../features/seo/Seo';
 import { Mascot } from '../components/shared/Mascot';
 import { isEmail, submitForm } from '../lib/forms';
 
-/* /companies: CyberHx for Companies. Open to companies anywhere in the world.
-   Two audiences on one page: companies (hire, place, train) and our own learners (what this opens up for them).
-   Applications go to Supabase form_submissions (form = 'company') -> Admin -> Inbox, plus an email to the team.
-   Look: typography first, no icon art; only the site's own mascot in the hero and on success. */
+/* /companies: CyberHx for Companies. Short and direct: what we sell, the price, and a Pay button.
+   Pay buttons open the existing CTF checkout on /host-your-ctf (?buy=<package>), so payment code lives in one
+   place and the price is always worked out on the server. Anything bigger (seats, yearly plans) goes through
+   the form below: Supabase form_submissions (form = 'company') -> Admin -> Inbox, plus an email to the team. */
+
+type Buy = { name: string; promise: string; price: string; unit: string; includes: string[]; cta: string; to: string; external?: boolean; featured?: boolean };
+const BUY: Buy[] = [
+  {
+    name: 'Team CTF',
+    promise: 'A private CTF for your security team. Ready in a week.',
+    price: `$${beginner.usd}`,
+    unit: 'per event',
+    includes: [`Hosting for ${builderPricing.hosting.hours} hours, up to ${players} players`, '25 challenges, easy to medium', 'Live scoreboard and certificates', 'Your name and logo on the event'],
+    cta: `Pay $${beginner.usd}`,
+    to: '/host-your-ctf?buy=beginner',
+  },
+  {
+    name: 'Hiring CTF',
+    promise: 'Your brand. Our challenges. A ranked shortlist by Monday.',
+    price: `$${pro.usd}`,
+    unit: 'per event',
+    includes: ['40 challenges, medium to hard, with the chained challenge', 'Ranked shortlist of candidates with their write-ups', `Hosting for ${builderPricing.hosting.hours} hours, up to ${players} players`, 'Our team live during the event'],
+    cta: `Pay $${pro.usd}`,
+    to: '/host-your-ctf?buy=pro',
+    featured: true,
+  },
+  {
+    name: 'Build your own',
+    promise: 'Start with hosting and add exactly what you need.',
+    price: `from $${builderPricing.hosting.usd}`,
+    unit: 'per 8-hour round',
+    includes: [`Challenges from $${cheapestChallenge} each, by category and difficulty`, 'Dynamic flags: a unique flag for every team', `A 3D event website for $${builderPricing.website3dUsd}`],
+    cta: 'Open the builder',
+    to: '/host-your-ctf#build',
+  },
+];
 
 const OFFERS: { id: string; title: string; line: string; body: string; points: string[] }[] = [
   {
@@ -40,33 +75,11 @@ const OFFERS: { id: string; title: string; line: string; body: string; points: s
   },
 ];
 
-/** What a company actually sees about a candidate. */
-const SIGNALS: { title: string; text: string }[] = [
-  { title: 'CTF results', text: 'Rank, solves and categories across our events, not a self-rated skills list.' },
-  { title: 'Write-ups', text: 'How they think: their published solutions on the CyberHx blog.' },
-  { title: 'Verified credentials', text: 'CAPT and CPPT earned in a practical exam, checkable by anyone.' },
-  { title: 'Lab progress', text: 'Machines and techniques completed on the Pentest Lab.' },
-];
-
-/** Why being part of the CyberHx community now counts for learners. */
-const FOR_LEARNERS: { title: string; text: string }[] = [
-  { title: 'Your rank becomes a door', text: 'Strong CTF results are what we bring to hiring partners. Every flag you capture now counts for more than points.' },
-  { title: 'Get interviewed by skill', text: 'Hiring CTFs judge you on what you solve, not where you studied. Play well and the interview comes to you.' },
-  { title: 'Credentials companies trust', text: 'CAPT and CPPT are earned in a practical exam, and companies in our network can verify them in seconds.' },
-  { title: 'A network across 90+ countries', text: 'Learn alongside practitioners worldwide, and get seen by companies that hire from anywhere.' },
-];
-
-const STEPS = [
-  { n: '01', title: 'Apply', text: 'Tell us who you are and what you need. It takes two minutes.' },
-  { n: '02', title: 'Intro call', text: 'We reply by email and set up a short call in your time zone.' },
-  { n: '03', title: 'Scope', text: 'Together we define the roles, skills, team size and timeline.' },
-  { n: '04', title: 'Launch', text: 'We build and run it with you: a hiring CTF, a shortlist, or a training plan.' },
-];
-
 const FAQ = [
   { q: 'Can companies anywhere in the world apply?', a: 'Yes. CyberHx for Companies is open to companies in any country. Everything runs online, and we work across time zones.' },
   { q: 'Do candidates know which company is hiring?', a: 'For a hiring CTF, yes: it runs under your brand, so the right people come to you. For placement, we share profiles with you first and introduce candidates once you are interested.' },
   { q: 'What does it cost?', a: `Yearly plans start at $${annualPerMonthUsd(programs.companies[0])} a month (Team), with Hiring and Enterprise plans for teams that hire every quarter or run a CTF every month. Annual plans get two months free and an extra CTF. A single hiring CTF is $${pro.usd}. Team training seats start at $89 a person a year with 5 seats or more. Everything is on the pricing page, and anything bigger we scope on the intro call.` },
+  { q: 'How do I pay?', a: 'Online through Razorpay: UPI, cards and netbanking in rupees, or international cards in US dollars. You get an invoice by email straight away.' },
   { q: 'Can we train our existing team instead of hiring?', a: 'Yes. Workforce Training gives your team private CTFs, Pentest Lab seats and CAPT or CPPT certification, and you can follow their progress.' },
 ];
 
@@ -75,7 +88,6 @@ const SIZES = ['1–10', '11–50', '51–200', '201–1,000', '1,000+'];
 const field =
   'w-full rounded-xl border border-white/[0.1] bg-[#070b16] px-4 py-3 text-[15px] text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-glow focus:ring-4 focus:ring-glow/10 aria-[invalid=true]:border-red-400/70';
 const labelCls = 'mb-2 block text-sm font-medium text-white/80';
-const eyebrow = 'font-mono text-[12px] uppercase tracking-[0.2em] text-lime';
 
 function Field({ id, label, hint, error, children }: { id: string; label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
@@ -111,11 +123,6 @@ export default function CompaniesPage() {
     setF((p) => ({ ...p, interests: p.interests.includes(id) ? p.interests.filter((x) => x !== id) : [...p.interests, id] }));
     setErrors(({ interests: _gone, ...rest }) => rest);
   };
-  const pick = (id: string) => {
-    if (!f.interests.includes(id)) toggle(id);
-    document.getElementById('apply')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
-  };
-
   const send = async (e: FormEvent) => {
     e.preventDefault();
     const err: Record<string, string> = {};
@@ -155,7 +162,6 @@ export default function CompaniesPage() {
   };
 
   const fade = reduce ? {} : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 }, transition: { duration: 0.25 } };
-  const rise = (i = 0) => (reduce ? {} : { initial: { opacity: 0, y: 18 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-60px' }, transition: { duration: 0.5, delay: i * 0.08 } });
 
   return (
     <div className="min-h-screen bg-ink text-white">
@@ -167,159 +173,61 @@ export default function CompaniesPage() {
       />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-white/[0.06] pb-16 pt-28 sm:pb-24 sm:pt-36">
-        <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-[30rem] w-[52rem] -translate-x-1/2 rounded-full bg-glow/[0.09] blur-[130px]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 sm:px-6 lg:grid-cols-[1fr_auto] lg:px-8">
-          <div>
-            <h1 className="font-display max-w-3xl text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
-              Hire practitioners, <span className="text-white/45">not resumes.</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">
-              CyberHx runs a community of active cybersecurity learners: people solving real CTF challenges, working through hands-on labs, and building skills the way the industry actually demands. Now we're opening that community to companies, anywhere in the world.
-            </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
-              <a href="#apply" className="btn btn-lime">Apply as a company <ArrowRight size={17} /></a>
-              <a href="#learners" className="btn btn-ghost">I'm a learner</a>
-            </div>
-          </div>
-          <Mascot pose="detective" alt="CyberHx mascot with a magnifying glass" eager className="mx-auto w-52 sm:w-64 lg:w-80" />
-        </div>
-        <dl className="relative mx-auto mt-14 grid max-w-7xl grid-cols-3 gap-4 px-5 sm:px-6 lg:px-8">
-          {[
-            ['7,400+', 'learners in the community'],
-            ['90+', 'countries'],
-            ['Worldwide', 'companies can apply'],
-          ].map(([v, k]) => (
-            <div key={k} className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-5 sm:px-6">
-              <dt className="sr-only">{k}</dt>
-              <dd className="font-display text-3xl text-white sm:text-4xl">{v}</dd>
-              <dd className="mt-1 text-[13px] text-white/45">{k}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      {/* Offers */}
-      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-6 sm:py-28 lg:px-8">
-        <div className="max-w-2xl">
-          <p className={eyebrow}>For companies</p>
-          <h2 className="font-display mt-3 text-4xl leading-tight sm:text-5xl">Not passive learners. <span className="text-white/45">Practitioners.</span></h2>
-          <p className="mt-4 text-lg leading-8 text-white/55">Three ways to work with the CyberHx community, on their own or together.</p>
-        </div>
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {OFFERS.map((o, i) => (
-            <motion.article key={o.id} {...rise(i)} className="flex flex-col rounded-[28px] border border-white/[0.08] bg-gradient-to-b from-[#0c1324] to-[#080d1a] p-7 transition hover:border-white/15">
-              <p className="font-mono text-sm text-lime">0{i + 1}</p>
-              <h3 className="font-display mt-5 text-2xl">{o.title}</h3>
-              <p className="mt-2 font-medium text-white/85">{o.line}</p>
-              <p className="mt-4 leading-7 text-white/55">{o.body}</p>
-              <ul className="mt-6 space-y-2.5">
-                {o.points.map((p) => (
-                  <li key={p} className="flex items-start gap-3 text-[15px] text-white/75"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime" />{p}</li>
-                ))}
-              </ul>
-              <button type="button" onClick={() => pick(o.id)} className="mt-auto inline-flex items-center gap-1.5 pt-8 text-sm font-semibold text-lime underline-offset-4 hover:underline">
-                I'm interested <ArrowRight size={15} />
-              </button>
-            </motion.article>
-          ))}
-        </div>
-      </section>
-
-      {/* What you see about a candidate */}
-      <section className="border-y border-white/[0.06] bg-[#070b15]">
-        <div className="mx-auto max-w-7xl px-5 py-20 sm:px-6 sm:py-24 lg:px-8">
-          <div className="max-w-2xl">
-            <p className={eyebrow}>Proof, not promises</p>
-            <h2 className="font-display mt-3 text-4xl leading-tight sm:text-5xl">What you see about every candidate.</h2>
-          </div>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {SIGNALS.map((s, i) => (
-              <motion.div key={s.title} {...rise(i)} className="rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-6">
-                <span className="block h-px w-10 bg-lime" />
-                <h3 className="mt-5 text-lg font-semibold">{s.title}</h3>
-                <p className="mt-2 leading-7 text-white/55">{s.text}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* One ecosystem */}
-      <section className="mx-auto max-w-5xl px-5 py-20 text-center sm:px-6 sm:py-24">
-        <h2 className="font-display text-3xl sm:text-4xl">One ecosystem.</h2>
-        <div className="mx-auto mt-10 grid max-w-3xl grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 sm:gap-4">
-          {[
-            { label: 'Learners' },
-            { label: 'CyberHx' },
-            { label: 'Companies' },
-          ].map((x, i) => (
-            <div key={x.label} className="contents">
-              {i > 0 && <span aria-hidden="true" className="h-px w-6 bg-gradient-to-r from-white/10 via-lime/60 to-white/10 sm:w-14" />}
-              <div className={`flex flex-col items-center gap-3 rounded-2xl border px-3 py-5 sm:px-6 ${x.label === 'CyberHx' ? 'border-lime/40 bg-lime/[0.07]' : 'border-white/10 bg-white/[0.03]'}`}>
-                <p className={`text-[15px] font-semibold sm:text-lg ${x.label === 'CyberHx' ? 'text-lime' : 'text-white'}`}>{x.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="mx-auto mt-8 max-w-xl leading-7 text-white/55">Learners on one side. Companies on the other. CyberHx in the middle, making sure the right people find each other.</p>
-      </section>
-
-      {/* For learners */}
-      <section id="learners" className="scroll-mt-24 border-y border-white/[0.06] bg-gradient-to-b from-[#0a1120] to-[#070b15]">
-        <div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-6 sm:py-28 lg:grid-cols-[1fr_1.4fr] lg:px-8">
-          <div>
-            <p className={eyebrow}>For our learners</p>
-            <h2 className="font-display mt-3 text-4xl leading-tight sm:text-5xl">Your skills now open doors.</h2>
-            <p className="mt-5 text-lg leading-8 text-white/60">
-              If you play our CTFs, practise on the Pentest Lab or hold a CAPT, this is for you too. Companies are coming to CyberHx to find people who can actually do the work, and they start with our community.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/events" className="btn btn-lime">Play the next CTF <ArrowRight size={17} /></Link>
-              <Link to="/certifications" className="btn btn-ghost">Get certified</Link>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {FOR_LEARNERS.map((l, i) => (
-              <motion.div key={l.title} {...rise(i)} className="rounded-[24px] border border-white/[0.08] bg-[#0b1020]/70 p-6">
-                <span className="block h-px w-10 bg-lime" />
-                <h3 className="mt-5 text-lg font-semibold">{l.title}</h3>
-                <p className="mt-2 leading-7 text-white/55">{l.text}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how" className="mx-auto max-w-7xl scroll-mt-24 px-5 py-20 sm:px-6 sm:py-28 lg:px-8">
-        <p className={eyebrow}>For companies</p>
-        <h2 className="font-display mt-3 text-4xl sm:text-5xl">How it works</h2>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s, i) => (
-            <motion.div key={s.n} {...rise(i)} className="rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-6">
-              <p className="font-mono text-sm text-lime">{s.n}</p>
-              <h3 className="font-display mt-4 text-2xl">{s.title}</h3>
-              <p className="mt-3 leading-7 text-white/55">{s.text}</p>
-            </motion.div>
-          ))}
-        </div>
-        <div className="mt-10 grid gap-6 rounded-[24px] border border-lime/25 bg-lime/[0.04] p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-          <div>
-            <h3 className="font-display text-2xl">Seats for your team, from $89 a person a year</h3>
-            <p className="mt-2 leading-7 text-white/70">Each seat is a year of the Pentest Lab, the CAPT and CPPT courses and both exams, with a skills report for the manager. From 5 people; free manager seats and private team CTFs included as you grow. Hiring? Yearly plans from ${annualPerMonthUsd(programs.companies[0])} a month, or a single hiring CTF for ${pro.usd}.</p>
-          </div>
-          <div className="flex flex-wrap gap-3 lg:justify-end">
-            <Link to="/pricing#companies" className="btn btn-lime">Price your team</Link>
+      <section className="border-b border-white/[0.06] pb-14 pt-28 sm:pb-16 sm:pt-36">
+        <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
+          <h1 className="font-display max-w-3xl text-5xl leading-[1.04] sm:text-6xl">
+            Hire practitioners, <span className="text-white/45">not resumes.</span>
+          </h1>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/60">Hiring CTFs, private team CTFs and security training for companies worldwide. Pick a CTF and pay online, or talk to us.</p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#plans" className="btn btn-lime">Pay for a CTF <ArrowRight size={17} /></a>
             <a href="#apply" className="btn btn-ghost">Talk to us</a>
           </div>
+          <div className="mt-12 flex flex-wrap items-center gap-x-5 gap-y-3 text-[14px] text-white/45">
+            <span className="flex items-center gap-2">
+              <img src="/events/nfsu-logo.webp" alt="NFSU logo" width={36} height={36} loading="lazy" decoding="async" className="h-9 w-9 rounded-lg bg-white object-contain p-1" />
+              <img src="/events/thapar-logo.webp" alt="TIET logo" width={36} height={36} loading="lazy" decoding="async" className="h-9 w-9 rounded-lg bg-white object-contain p-1" />
+            </span>
+            <span>Trusted by NFSU Chennai and Thapar Institute · 7,400+ players from 90+ countries</span>
+          </div>
         </div>
+      </section>
+
+      {/* Buy */}
+      <section id="plans" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <h2 className="font-display text-3xl sm:text-4xl">Book a CTF and pay online.</h2>
+        <p className="mt-3 text-white/55">Pay in ₹ or $ at checkout, with an invoice by email.</p>
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          {BUY.map((b) => (
+            <article key={b.name} className={`flex flex-col rounded-2xl border p-7 ${b.featured ? 'border-lime/50 bg-lime/[0.04]' : 'border-white/[0.09] bg-white/[0.02]'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold">{b.name}</h3>
+                {b.featured && <span className="rounded-full bg-lime px-2.5 py-0.5 text-[12px] font-semibold text-ink">Most chosen</span>}
+              </div>
+              <p className="mt-2 text-[15px] leading-6 text-white/55">{b.promise}</p>
+              <p className="mt-6 font-display text-4xl tabular-nums">{b.price}</p>
+              <p className="mt-1 text-[13px] text-white/45">{b.unit}</p>
+              <ul className="mt-6 space-y-2.5 border-t border-white/[0.07] pt-6">
+                {b.includes.map((x) => (
+                  <li key={x} className="flex items-start gap-2.5 text-[15px] text-white/75"><Check size={16} className="mt-0.5 shrink-0 text-lime" aria-hidden="true" />{x}</li>
+                ))}
+              </ul>
+              <Link to={b.to} className={`btn mt-auto w-full ${b.featured ? 'btn-lime' : 'btn-ghost'}`} style={{ marginTop: '2rem' }}>{b.cta} <ArrowRight size={16} /></Link>
+            </article>
+          ))}
+        </div>
+        <p className="mt-8 text-[15px] leading-7 text-white/55">
+          Training your team or hiring all year? Seats from ${89} a person a year, yearly plans from ${annualPerMonthUsd(programs.companies[0])} a month.{' '}
+          <Link to="/pricing#companies" className="font-semibold text-white underline-offset-4 hover:underline">See all pricing</Link>
+          {' · '}
+          <a href="#apply" className="font-semibold text-white underline-offset-4 hover:underline">Talk to us</a>
+        </p>
       </section>
 
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-5 pb-20 sm:px-6">
         <h2 className="font-display text-3xl sm:text-4xl">Questions companies ask</h2>
-        <div className="mt-8 divide-y divide-white/[0.07] rounded-[24px] border border-white/[0.08] bg-white/[0.02]">
+        <div className="mt-8 divide-y divide-white/[0.07] rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           {FAQ.map((x, i) => (
             <div key={x.q}>
               <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)} className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left">
@@ -335,7 +243,7 @@ export default function CompaniesPage() {
       {/* Apply */}
       <section id="apply" className="mx-auto max-w-3xl scroll-mt-24 px-5 pb-28 sm:px-6">
         <div className="text-center">
-          <h2 className="font-display text-4xl sm:text-5xl">Apply as a company</h2>
+          <h2 className="font-display text-3xl sm:text-4xl">Talk to us</h2>
           <p className="mx-auto mt-4 max-w-lg text-lg leading-8 text-white/55">Tell us what you need. A real person from CyberHx replies by email.</p>
         </div>
 
