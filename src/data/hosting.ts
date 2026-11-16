@@ -75,13 +75,13 @@ export type BuilderCategory = {
 };
 
 export const builderCategories: BuilderCategory[] = [
-  { id: 'web', name: 'Web', icon: 'code', blurb: 'SQLi, XSS, SSRF, auth bypass and logic bugs.', tiers: [{ tier: 'medium', usd: 4 }, { tier: 'hard', usd: 6 }, { tier: 'insane', usd: 9 }], min: 5 },
-  { id: 'osint', name: 'OSINT', icon: 'satellite', blurb: 'Track people, places and leaks from open sources.', tiers: [{ tier: 'medium', usd: 2 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
-  { id: 'crypto', name: 'Crypto', icon: 'lock-key', blurb: 'Classic ciphers up to broken RSA and custom schemes.', tiers: [{ tier: 'medium', usd: 2 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
-  { id: 'reverse', name: 'Reverse', icon: 'gear', blurb: 'Crack binaries, unpack and patch your way to the flag.', tiers: [{ tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
+  { id: 'web', name: 'Web', icon: 'code', blurb: 'SQLi, XSS, SSRF, auth bypass and logic bugs.', tiers: [{ tier: 'easy', usd: 3 }, { tier: 'medium', usd: 4 }, { tier: 'hard', usd: 6 }, { tier: 'insane', usd: 9 }], min: 5 },
+  { id: 'osint', name: 'OSINT', icon: 'satellite', blurb: 'Track people, places and leaks from open sources.', tiers: [{ tier: 'easy', usd: 1 }, { tier: 'medium', usd: 2 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
+  { id: 'crypto', name: 'Crypto', icon: 'lock-key', blurb: 'Classic ciphers up to broken RSA and custom schemes.', tiers: [{ tier: 'easy', usd: 1 }, { tier: 'medium', usd: 2 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
+  { id: 'reverse', name: 'Reverse', icon: 'gear', blurb: 'Crack binaries, unpack and patch your way to the flag.', tiers: [{ tier: 'easy', usd: 2 }, { tier: 'medium', usd: 3 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
   { id: 'boot2root', name: 'Boot2Root', icon: 'linux', blurb: 'A full machine: foothold, then escalate to root.', tiers: [{ tier: 'hard', usd: 6 }, { tier: 'insane', usd: 9 }] },
   { id: 'mobile', name: 'Mobile', icon: 'bell-dot', blurb: 'Android apps with hidden secrets and weak storage.', tiers: [{ tier: 'easy', usd: 2 }, { tier: 'medium', usd: 3 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
-  { id: 'steg', name: 'Steg', icon: 'ghost', blurb: 'Flags hidden in images, audio and files.', tiers: [{ tier: 'easy', usd: 2 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
+  { id: 'steg', name: 'Steg', icon: 'ghost', blurb: 'Flags hidden in images, audio and files.', tiers: [{ tier: 'easy', usd: 2 }, { tier: 'medium', usd: 3 }, { tier: 'hard', usd: 4 }, { tier: 'insane', usd: 6 }] },
 ];
 
 export const builderPricing = {
